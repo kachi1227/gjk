@@ -21,26 +21,57 @@ import com.loopj.android.http.SyncHttpClient;
 
 
 
-private String Name_first;
-private String Name_last;
-private String Email;
-private boolean Email_confirmed;
-private String Username;
-private String password;
+private String name = null;
+private String bio = null;
+private String stringBitMapAvi = null;
+
+private int _id = null;
+private String email = null;
+private String password = null;
+private String image = null;
+//private String facebook_id = null
+//private long date_joined = CURRENT_TIMESTAMP;
 
 
-public void NewSignUp (String first, String last, String email, String User_name, String Pword){
+
+public void NewAccountRequest (String new_name, String new_bio, String new_avi){
+	name = new_name;
+	bio = new_bio;
+	stringBitMapAvi = new_avi;
+	JsonObject parcel = new JsonObject();
+	parcel.put("name", name);
+	parcel.put("bio", bio);
+	parcel.put("avi", stringBitMapAvi)''
 	
-	
+	//executeWithJson(String apiuri, parcel)
+
 	
 }
 
-public  _getNameFirst(){};
-public void _setNameFirst(){};
+public  String _getName(){
+	return this.name;	
+};
+public void _setName(String nameUpdate){
+	//validate string here?
+	//
+	this.name = nameUpdate;
+};
 
-public 		_getNameLast(){}
-public void _setNameLast(){};
-public 		_GetEmail(){};
-public void _setEmail(){};
-public 		_isEmailConfimed(){};
-public 		_getUserName(){};
+public 	String _getBio(){
+	return this.bio;
+}
+public void _setBio(String bioUpdate){
+	this.bio = bioUpdate;
+};
+
+public String _GetEmail(){
+	return this.email;
+};
+public void _setEmail(String emailUpdate){
+	//not sure if this type of data should be accompanied
+	//by a token or authenticated
+	this.email = emailUpdate;
+};
+
+//public void _updatePassword(){};
+
