@@ -4,5 +4,7 @@
     <string name="app_name">Chassip</string>
     <string name="action_settings">Settings</string>
     <string name="hello_world">Hello world!</string>
+    <string name="error_no_connection">No data connection</string>
+    <string name="error_no_message">error no message</string>
 
 </resources>
