@@ -8,7 +8,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_centerHorizontal="true"
-        android:text="Load From Gallery"
+        android:text="@string/gallery"
         android:layout_marginTop="5dp"
         android:layout_marginRight="5dp"
         />
@@ -18,7 +18,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_centerHorizontal="true"
-        android:text="Camera"
+        android:text="@string/camera"
         android:layout_marginTop="5dp"
         android:layout_marginRight="5dp"
         android:layout_below="@+id/gallery"

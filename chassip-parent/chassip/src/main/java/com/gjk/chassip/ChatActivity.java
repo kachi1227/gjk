@@ -2,6 +2,7 @@ package com.gjk.chassip;
 
 import java.util.List;
 
+import android.annotation.SuppressLint;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
@@ -26,6 +27,7 @@ import com.google.common.collect.Lists;
  * @author gpl
  *
  */
+@SuppressLint("DefaultLocale")
 public class ChatActivity extends DrawerActivity {
 
 	private ActionBar mActionBar;
@@ -50,7 +52,8 @@ public class ChatActivity extends DrawerActivity {
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		
-//		android.os.Debug.waitForDebugger();
+		String message = String.format("Using ID=%d", getIntent().getExtras().getLong(Constants.ID));
+		Toast.makeText(getApplicationContext(), message, Toast.LENGTH_SHORT).show();
 		
 		// instantiate new view pager
 		mViewPager = new ViewPager(this);

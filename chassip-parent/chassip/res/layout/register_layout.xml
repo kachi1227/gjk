@@ -11,25 +11,25 @@
         android:layout_weight="1">
     
 	    <EditText
-	        android:id="@+id/email"
+	        android:id="@+id/emailLogin"
 	        android:layout_width="wrap_content"
 	        android:layout_height="wrap_content"
 	        android:layout_alignParentTop="true"
 	        android:layout_centerHorizontal="true"
 	        android:ems="10"
 	        android:inputType="textEmailAddress"
-	        android:hint="Email">
+	        android:hint="@string/email_hint">
 	        <requestFocus/>
         </EditText>
 	
 	    <EditText
-	        android:id="@+id/password"
+	        android:id="@+id/passwordLogin"
 	        android:layout_width="wrap_content"
 	        android:layout_height="wrap_content"
-	        android:layout_alignRight="@+id/email"
-	        android:layout_below="@+id/email"
+	        android:layout_alignRight="@+id/emailLogin"
+	        android:layout_below="@+id/emailLogin"
 	        android:ems="10"
-	        android:hint="Password"
+	        android:hint="@string/password_hint"
 	        android:inputType="textPassword">
 	    </EditText>
 
@@ -37,9 +37,9 @@
 	        android:id="@+id/login"
 	        android:layout_width="wrap_content"
 	        android:layout_height="wrap_content"
-	        android:layout_below="@+id/password"
+	        android:layout_below="@+id/passwordLogin"
 	        android:layout_centerHorizontal="true"
-	        android:text="Login" />
+	        android:text="@string/login" />
 
     </RelativeLayout>
 
@@ -49,53 +49,53 @@
         android:layout_weight="1">
     
 	    <EditText
-	        android:id="@+id/firstName"
+	        android:id="@+id/firstNameReg"
 	        android:layout_width="wrap_content"
 	        android:layout_height="wrap_content"
 	        android:layout_alignParentTop="true"
 	        android:layout_centerHorizontal="true"
 	        android:ems="10"
-	        android:hint="First Name"
+	        android:hint="@string/first_name_hint"
 	        android:inputType="textPersonName"/>
 	
 	    <EditText
-	        android:id="@+id/lastName"
+	        android:id="@+id/lastNameReg"
 	        android:layout_width="wrap_content"
 	        android:layout_height="wrap_content"
-	        android:layout_alignRight="@+id/firstName"
-	        android:layout_below="@+id/firstName"
+	        android:layout_alignRight="@+id/firstNameReg"
+	        android:layout_below="@+id/firstNameReg"
 	        android:ems="10"
-	        android:hint="Last Name"
+	        android:hint="@string/last_name_hint"
 	        android:inputType="textPersonName"/>
 	    
 	
 	    <EditText
-	        android:id="@+id/emailRegister"
+	        android:id="@+id/emailReg"
 	        android:layout_width="wrap_content"
 	        android:layout_height="wrap_content"
-	        android:layout_alignRight="@+id/firstName"
-	        android:layout_below="@+id/lastName"
+	        android:layout_alignRight="@+id/firstNameReg"
+	        android:layout_below="@+id/lastNameReg"
 	        android:ems="10"
-	        android:hint="Email"
+	        android:hint="@string/email_hint"
 	        android:inputType="textEmailAddress"/>
 	    
 	    <EditText
-	        android:id="@+id/passwordRegister"
+	        android:id="@+id/passwordReg"
 	        android:layout_width="wrap_content"
 	        android:layout_height="wrap_content"
-	        android:layout_alignRight="@+id/firstName"
-	        android:layout_below="@+id/emailRegister"
+	        android:layout_alignRight="@+id/firstNameReg"
+	        android:layout_below="@+id/emailReg"
 	        android:ems="10"
-	        android:hint="Password"
+	        android:hint="@string/password_hint"
 	        android:inputType="textPassword"/>
 
 	    <Button
 	        android:id="@+id/loadImage"
 	        android:layout_width="wrap_content"
 	        android:layout_height="wrap_content"
-	        android:layout_below="@+id/passwordRegister"
+	        android:layout_below="@+id/passwordReg"
 	        android:layout_centerHorizontal="true"
-	        android:text="Load Pic From Gallery" />
+	        android:text="@string/load_images" />
 
 	    <Button
 	        android:id="@+id/register"
@@ -103,7 +103,7 @@
 	        android:layout_height="wrap_content"
 	        android:layout_below="@+id/loadImage"
 	        android:layout_centerHorizontal="true"
-	        android:text="Register" />
+	        android:text="@string/register" />
 
     </RelativeLayout>
 	    

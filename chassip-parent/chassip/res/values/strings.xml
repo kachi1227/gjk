@@ -3,8 +3,17 @@
     <string name="app_name">Chassip</string>
     <string name="left_drawer_title">Chats</string>
     <string name="right_drawer_title">Group</string>
-    
     <string name="action_settings">Settings</string>
     <string name="error_no_connection">No data connection</string>
     <string name="error_no_message">error no message</string>
+    <string name="first_name_hint">First Name</string>
+    <string name="last_name_hint">Last Name</string>
+    <string name="email_hint">Email</string>
+    <string name="password_hint">Password</string>
+    <string name="login">Login</string>
+    <string name="register">Register</string>
+    <string name="load_images">Load Image</string>
+    <string name="gallery">Gallery</string>
+    <string name="camera">Camera</string>
+    
 </resources>
