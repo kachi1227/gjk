@@ -528,6 +528,8 @@ int string abs__shareactionprovider_share_with 0x7f090006
 int string abs__shareactionprovider_share_with_application 0x7f090007
 int string action_settings 0x7f090010
 int string app_name 0x7f09000d
+int string error_no_connection 0x7f090011
+int string error_no_message 0x7f090012
 int string left_drawer_title 0x7f09000e
 int string right_drawer_title 0x7f09000f
 int style AppBaseTheme 0x7f0a0059

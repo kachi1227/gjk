@@ -1,10 +1,12 @@
 package com.gjk.chassip;
 
-public class Constants {
+public interface Constants {
 	
-	public final static int MAX_IMS = 50;
-	public final static long INJECTOR_PERIOD = 2000;
-	public final static int OFFSCREEN_PAGE_LIMIT = 10;
+	static final int MAX_IMS = 50;
+	static final long INJECTOR_PERIOD = 2000;
+	static final int OFFSCREEN_PAGE_LIMIT = 10;
+	static final String BASE_URL = "http://skip2milu.com/gjk/";
 	
-	private Constants() {}
+	//PREFERENCES//
+	static final String PREF_FILE_NAME = "gjk_pref";
 }
