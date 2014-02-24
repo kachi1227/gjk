@@ -272,8 +272,10 @@ com\gjk\chassip\ChatActivity$1.class
 com\actionbarsherlock\internal\widget\IcsAbsSpinner$1.class
 com\actionbarsherlock\internal\nineoldandroids\animation\ValueAnimator$1.class
 com\actionbarsherlock\app\ActionBar$OnMenuVisibilityListener.class
+com\gjk\chassip\RegisterActivity$3$2.class
 com\actionbarsherlock\internal\widget\IcsAbsSpinner.class
 com\actionbarsherlock\internal\widget\IcsAdapterView$1.class
+com\gjk\chassip\RegisterActivity$3$1.class
 com\actionbarsherlock\widget\ActivityChooserView$3.class
 com\jeremyfeinstein\slidingmenu\lib\app\SlidingActivityHelper.class
 com\actionbarsherlock\internal\view\menu\MenuItemImpl.class

@@ -4,15 +4,19 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.app.Activity;
+import android.app.Dialog;
+import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
+import android.widget.Toast;
 
 public class RegisterActivity extends Activity {
 
-	private static final int SELECT_PICTURE = 1;
+	private static final int GALLERY_REQUEST = 1;
+	private static final int CAMERA_REQUEST = 2;
 	
 	private Button mLogin;
 	private Button mRegister;
@@ -32,6 +36,9 @@ public class RegisterActivity extends Activity {
     }
     
     private void initialize() {
+    	
+    	final Context ctx = this; 
+    	
     	mLogin.setOnClickListener(new OnClickListener() {
 			@Override
 			public void onClick(View v) {
@@ -47,16 +54,37 @@ public class RegisterActivity extends Activity {
     	mLoadImage.setOnClickListener(new OnClickListener() {
 			@Override
 			public void onClick(View v) {
-	            loadImage();
+				// custom dialog
+				final Dialog dialog = new Dialog(ctx);
+				dialog.setContentView(R.layout.image_selector_dialog);
+				dialog.setTitle("Load Image");
+	 			Button gallery = (Button) dialog.findViewById(R.id.gallery);
+				gallery.setOnClickListener(new OnClickListener() {
+					@Override
+					public void onClick(View v) {
+						loadImage();
+						dialog.dismiss();
+					}
+				});
+				Button camera = (Button) dialog.findViewById(R.id.camera);
+				camera.setOnClickListener(new OnClickListener() {
+					@Override
+					public void onClick(View v) {
+						useCamera();
+						dialog.dismiss();
+					}
+				});
+				dialog.show();
 			}
 		});
     }
     
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (resultCode == RESULT_OK) {
-            if (requestCode == SELECT_PICTURE) {
+            if (requestCode == GALLERY_REQUEST || requestCode == CAMERA_REQUEST) {
                 Uri selectedImageUri = data.getData();
                 selectedImagePath = getPath(selectedImageUri);
+                Toast.makeText(getApplicationContext(), selectedImagePath, Toast.LENGTH_SHORT).show();
             }
         }
     }
@@ -68,7 +96,12 @@ public class RegisterActivity extends Activity {
         intent.setType("image/*");
         intent.setAction(Intent.ACTION_GET_CONTENT);
         startActivityForResult(Intent.createChooser(intent,
-                "Select Picture"), SELECT_PICTURE);
+                "Select Picture"), GALLERY_REQUEST);
+    }
+    
+    private void useCamera() {
+    	Intent cameraIntent = new Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE); 
+        startActivityForResult(cameraIntent, CAMERA_REQUEST);
     }
     
     /**
