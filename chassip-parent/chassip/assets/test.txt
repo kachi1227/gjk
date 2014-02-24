@@ -1,0 +1,37 @@
+addchat`0`0`Greg,Kachi
+message`0`0`Greg`Waddup Bitch
+message`0`0`Kachi`Yo man
+message`0`0`Greg`This Chassip shit is dope right
+message`0`0`Kachi`Yea yo
+message`0`0`Greg`Hold on, lemme add Jeff right quick
+addmembers`0`0`Jeff
+message`0`0`Jeff`Yao
+message`0`0`Jeff`I wish we had a better name
+message`0`0`Greg`Me too
+message`0`0`Jeff`We should call it "Jeff's Dope App"
+message`0`0`Kachi`Nah
+message`0`0`Greg`Nah
+message`0`0`Kachi`We need a better name than Chassip
+message`0`0`Kachi`I thought it'd be good. It's like chat + gossip
+message`0`0`Greg`Yea that was pretty easy to get....
+message`0`0`Jeff`I think the idea is already better than anything I've seen out there as far as group messaging apps goes
+message`0`0`Kachi`Word
+message`0`0`Greg`Well some of these apps out here don't have trademarked names
+message`0`0`Jeff`Whisper though? We can't name an app after one function of our app
+message`0`0`Greg`Why not?
+message`0`0`Kachi`Let's put it like this
+message`0`0`Kachi`We'd need a name to properly represent the app, one aspect won't cut it
+message`0`0`Greg`I disagree though, one aspect is a great way to name something. The defining thing that separates us from other apps. However, I see your point. "Whisper" isn't the best name to describe the app.
+message`0`0`Jeff`But even look at GroupMe. If I told you I had an app called GroupMe, you'd wonder what it's for. WhatsApp, Hangout, others too.
+message`0`0`Kachi`We can keep to Chassip as the prototype name like Apple did for it's products
+message`0`0`Greg`Lisa, Macintosh, Pippin, Newton, Sarah
+message`0`0`Jeff`So maybe we should revisit that list that Greg came out with and make sure none of those names are actually trademarked
+message`0`0`Greg`True
+addthread`0`1`WHISPER`Greg,Jeff
+message`0`1`Jeff`Holla at your boy
+message`0`1`Jeff`Red rover send your bitch over
+message`0`1`Greg`Jay-Z?
+message`0`1`Jeff`Yup
+message`0`0`Kachi`We need more black CS and software engineers
+message`0`0`Greg`True
+

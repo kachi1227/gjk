@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:baselineAligned="false">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_weight="1">
+    
+	    <EditText
+	        android:id="@+id/email"
+	        android:layout_width="wrap_content"
+	        android:layout_height="wrap_content"
+	        android:layout_alignParentTop="true"
+	        android:layout_centerHorizontal="true"
+	        android:ems="10"
+	        android:inputType="textEmailAddress"
+	        android:hint="Email">
+	        <requestFocus/>
+        </EditText>
+	
+	    <EditText
+	        android:id="@+id/password"
+	        android:layout_width="wrap_content"
+	        android:layout_height="wrap_content"
+	        android:layout_alignRight="@+id/email"
+	        android:layout_below="@+id/email"
+	        android:ems="10"
+	        android:hint="Password"
+	        android:inputType="textPassword">
+	    </EditText>
+
+	    <Button
+	        android:id="@+id/login"
+	        android:layout_width="wrap_content"
+	        android:layout_height="wrap_content"
+	        android:layout_below="@+id/password"
+	        android:layout_centerHorizontal="true"
+	        android:text="Login" />
+
+    </RelativeLayout>
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_weight="1">
+    
+	    <EditText
+	        android:id="@+id/firstName"
+	        android:layout_width="wrap_content"
+	        android:layout_height="wrap_content"
+	        android:layout_alignParentTop="true"
+	        android:layout_centerHorizontal="true"
+	        android:ems="10"
+	        android:hint="First Name"
+	        android:inputType="textPersonName"/>
+	
+	    <EditText
+	        android:id="@+id/lastName"
+	        android:layout_width="wrap_content"
+	        android:layout_height="wrap_content"
+	        android:layout_alignRight="@+id/firstName"
+	        android:layout_below="@+id/firstName"
+	        android:ems="10"
+	        android:hint="Last Name"
+	        android:inputType="textPersonName"/>
+	    
+	
+	    <EditText
+	        android:id="@+id/emailRegister"
+	        android:layout_width="wrap_content"
+	        android:layout_height="wrap_content"
+	        android:layout_alignRight="@+id/firstName"
+	        android:layout_below="@+id/lastName"
+	        android:ems="10"
+	        android:hint="Email"
+	        android:inputType="textEmailAddress"/>
+	    
+	    <EditText
+	        android:id="@+id/passwordRegister"
+	        android:layout_width="wrap_content"
+	        android:layout_height="wrap_content"
+	        android:layout_alignRight="@+id/firstName"
+	        android:layout_below="@+id/emailRegister"
+	        android:ems="10"
+	        android:hint="Password"
+	        android:inputType="textPassword"/>
+
+	    <Button
+	        android:id="@+id/loadImage"
+	        android:layout_width="wrap_content"
+	        android:layout_height="wrap_content"
+	        android:layout_below="@+id/passwordRegister"
+	        android:layout_centerHorizontal="true"
+	        android:text="Load Pic From Gallery" />
+
+	    <Button
+	        android:id="@+id/register"
+	        android:layout_width="wrap_content"
+	        android:layout_height="wrap_content"
+	        android:layout_below="@+id/loadImage"
+	        android:layout_centerHorizontal="true"
+	        android:text="Register" />
+
+    </RelativeLayout>
+	    
+</LinearLayout>

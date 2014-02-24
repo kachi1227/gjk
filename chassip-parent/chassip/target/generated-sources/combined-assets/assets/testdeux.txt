@@ -1,0 +1,12 @@
+addchat`0`0`Greg,Jeff,Kachi
+messages`0`0`10000
+addmembers`0`0`Taina,Vanessa
+messages`0`0`10000
+addthread`0`1`WHISPER`Greg,Kachi,Jeff
+messages`0`0,1`10000
+addthread`0`2`SIDE_CONVO`Greg,Kachi,Jeff,Vanessa
+messages`0`0,1,2`10000
+addthread`0`3`WHISPER`Greg,Jeff,Vanessa
+messages`0`0,1,2,3`10000
+addthread`0`4`WHISPER`Greg,Taina
+messages`0`0,1,2,3,4`10000

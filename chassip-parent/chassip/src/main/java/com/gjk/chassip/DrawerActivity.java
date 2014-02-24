@@ -1,9 +1,11 @@
 package com.gjk.chassip;
 
 import android.os.Bundle;
-import android.support.v4.app.ListFragment;
+
 import com.jeremyfeinstein.slidingmenu.lib.SlidingMenu;
 import com.jeremyfeinstein.slidingmenu.lib.app.SlidingFragmentActivity;
+
+import com.gjk.chassip.model.Chat;
 
 /**
  * Activity class for left and right drawers, and any settings. Extends
@@ -14,8 +16,8 @@ import com.jeremyfeinstein.slidingmenu.lib.app.SlidingFragmentActivity;
 public class DrawerActivity extends SlidingFragmentActivity {
 
 	private int mTitleRes;
-	protected ListFragment leftDrawerFragment;
-	protected ListFragment rightDrawerFragment;
+	private ChatsDrawerFragment mLeftDrawerFragment;
+	private ThreadsDrawerFragment mRightDrawerFragment;
 
 	/**
 	 * Constructor
@@ -41,27 +43,27 @@ public class DrawerActivity extends SlidingFragmentActivity {
 		sm.setMode(SlidingMenu.LEFT_RIGHT);
 		
 		// set the Behind View
-		setBehindContentView(R.layout.left_drawer);
+		setBehindContentView(R.layout.chats_drawer);
 		
 		// commit/get drawer fragments
 		if (savedInstanceState == null) {
-			leftDrawerFragment = new SampleListFragment();
-			rightDrawerFragment = new SampleListFragment();
+			mLeftDrawerFragment = new ChatsDrawerFragment();
+			mRightDrawerFragment = new ThreadsDrawerFragment();
 			
 			getSupportFragmentManager()
 	        .beginTransaction()
-	        .replace(R.id.left_menu_frame, leftDrawerFragment)
+	        .replace(R.id.chats_menu_frame, mLeftDrawerFragment)
 	        .commit();
 			
-			sm.setSecondaryMenu(getLayoutInflater().inflate(R.layout.right_drawer, null));
+			sm.setSecondaryMenu(getLayoutInflater().inflate(R.layout.threads_drawer, null));
 			getSupportFragmentManager()
 	        .beginTransaction()
-	        .replace(R.id.right_menu_frame, rightDrawerFragment)
+	        .replace(R.id.threads_menu_frame, mRightDrawerFragment)
 	        .commit();
 			
 		} else {
-			leftDrawerFragment = (ListFragment)this.getSupportFragmentManager().findFragmentById(R.id.left_menu_frame);
-			rightDrawerFragment = (ListFragment)this.getSupportFragmentManager().findFragmentById(R.id.right_menu_frame);
+			mLeftDrawerFragment = (ChatsDrawerFragment)this.getSupportFragmentManager().findFragmentById(R.id.chats_menu_frame);
+			mRightDrawerFragment = (ThreadsDrawerFragment)this.getSupportFragmentManager().findFragmentById(R.id.threads_menu_frame);
 			
 		}
 
@@ -74,5 +76,21 @@ public class DrawerActivity extends SlidingFragmentActivity {
 		sm.setTouchModeAbove(SlidingMenu.TOUCHMODE_MARGIN);
 
 		getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+	}
+	
+	public void addToChatsDrawer(Chat chat) {
+		mLeftDrawerFragment.addChat(chat);
+	}
+	
+	public void updateChatsDrawer() {
+		mLeftDrawerFragment.updateView();
+	}
+	
+	public void addToThreadsDrawer(ThreadFragment frag) {
+		mRightDrawerFragment.addThread(frag);
+	}
+	
+	public void updateThreadsDrawer() {
+		mRightDrawerFragment.updateView();
 	}
 }
