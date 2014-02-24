@@ -1,7 +1,0 @@
-package com.gjk.net;
-
-public interface Constants {
-	
-	static final String BASE_URL = "http://skip2milu.com/gjk/api";
-	
-}
