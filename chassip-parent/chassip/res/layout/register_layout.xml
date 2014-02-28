@@ -88,20 +88,30 @@
 	        android:ems="10"
 	        android:hint="@string/password_hint"
 	        android:inputType="textPassword"/>
-
-	    <Button
-	        android:id="@+id/loadImage"
+	    
+	    <EditText
+	        android:id="@+id/rePasswordReg"
 	        android:layout_width="wrap_content"
 	        android:layout_height="wrap_content"
+	        android:layout_alignRight="@+id/firstNameReg"
 	        android:layout_below="@+id/passwordReg"
+	        android:ems="10"
+	        android:hint="@string/re_password_hint"
+	        android:inputType="textPassword"/>
+	    
+	    <Button
+	        android:id="@+id/selectAvi"
+	        android:layout_width="wrap_content"
+	        android:layout_height="wrap_content"
+	        android:layout_below="@+id/rePasswordReg"
 	        android:layout_centerHorizontal="true"
-	        android:text="@string/load_images" />
+	        android:text="@string/select_avi" />
 
 	    <Button
 	        android:id="@+id/register"
 	        android:layout_width="wrap_content"
 	        android:layout_height="wrap_content"
-	        android:layout_below="@+id/loadImage"
+	        android:layout_below="@+id/selectAvi"
 	        android:layout_centerHorizontal="true"
 	        android:text="@string/register" />
 

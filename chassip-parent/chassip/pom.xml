@@ -31,12 +31,7 @@
 			<version>0.0.1-SNAPSHOT</version>
 			<type>apklib</type>
 		</dependency>
-		<dependency>
-		  <groupId>com.gjk.chassip</groupId>
-		  <artifactId>actionbarsherlock</artifactId>
-		  <version>0.0.1-SNAPSHOT</version>
-		  <type>apklib</type>
-		</dependency>
+
 		<dependency>
 		    <groupId>com.google.guava</groupId>
 		    <artifactId>guava</artifactId>

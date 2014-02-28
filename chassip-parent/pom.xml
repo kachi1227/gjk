@@ -43,7 +43,7 @@
     <android.platform>14</android.platform>
 
     <!-- Compilation dependencies -->
-    <android.version>4.1.1.4</android.version>
+    <android.version>4.4.2</android.version>
     <android-support.version>r7</android-support.version>
     <fest.android.version>1.0.5</fest.android.version>
 

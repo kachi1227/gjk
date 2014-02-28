@@ -10,10 +10,12 @@
     <string name="last_name_hint">Last Name</string>
     <string name="email_hint">Email</string>
     <string name="password_hint">Password</string>
+    <string name="re_password_hint">Re-enter Password</string>
     <string name="login">Login</string>
     <string name="register">Register</string>
-    <string name="load_images">Load Image</string>
-    <string name="gallery">Gallery</string>
-    <string name="camera">Camera</string>
-    
+    <string name="select_avi">Select Avatar</string>
+    <string name="gallery">Load Existing Image</string>
+    <string name="camera">Camera Capture</string>
+    <string name="select_avi_title">Avatar Selector</string>
+    <string name="select_avi_message">Choose the method to select your avatar to register.</string>
 </resources>

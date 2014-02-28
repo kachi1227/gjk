@@ -23,13 +23,6 @@
 			<groupId>com.google.android</groupId>
 			<artifactId>support-v4</artifactId>
 		</dependency>
-		<dependency>
-			<groupId>com.gjk.chassip</groupId>
-			<artifactId>actionbarsherlock</artifactId>
-			<version>0.0.1-SNAPSHOT</version>
-			<type>apklib</type>
-		</dependency>
-		
 	</dependencies>
 
 	<build>
