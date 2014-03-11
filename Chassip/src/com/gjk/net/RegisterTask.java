@@ -39,8 +39,8 @@ public class RegisterTask extends MiluHTTPTask {
 	@Override
 	public JSONObject getPayload() throws Exception {
 		JSONObject payload = new JSONObject();
-		payload.put("first name", mFirstName);
-		payload.put("last name", mLastName);
+		payload.put("first_name", mFirstName);
+		payload.put("last_name", mLastName);
 		payload.put("password", mPassword);
 		payload.put("email", mEmail);
 		Set<String> keys = mFieldMapping.keySet();	
