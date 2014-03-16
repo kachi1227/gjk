@@ -1,10 +1,9 @@
 package com.gjk.chassip;
 
 import java.util.Collection;
-import java.util.List;
 import java.util.Set;
 
-import com.gjk.chassip.model.InstantMessageManager;
+import com.gjk.chassip.model.ImManagerFactory;
 import com.gjk.chassip.model.ThreadType;
 import com.gjk.chassip.model.User;
 import com.google.common.collect.Sets;
@@ -15,6 +14,10 @@ import android.support.v4.app.ListFragment;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.View.OnClickListener;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.Toast;
 
 /**
  * 
@@ -30,7 +33,9 @@ public class ThreadFragment extends ListFragment  {
 	private MessagesAdapter mAdapter;
 	private Set<User> mUsers;
 	private boolean mInitialized;
-	private List<InstantMessage> mIms;
+	
+	private EditText mPendingMessage;
+	private Button mSend;
 	
 	public ThreadFragment() {
 		super();
@@ -48,23 +53,31 @@ public class ThreadFragment extends ListFragment  {
 		mInitialized = false;
 		setRetainInstance(true);
 		addMembers(members);
+		ImManagerFactory.getImManger(chatId).addThread(threadId);
 	}
 	
 	@Override
 	public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
 		if (savedInstanceState != null)
 			mThreadId = savedInstanceState.getLong("mThreadId");
-		return inflater.inflate(R.layout.message_list, null);
+		View view = inflater.inflate(R.layout.message_list, null);
+		mPendingMessage = (EditText) view.findViewById(R.id.pendingMessage);
+		mSend = (Button) view.findViewById(R.id.send);
+		return view;
 	}
 	
 	@Override
 	public void onActivityCreated(Bundle savedInstanceState) {
 		super.onActivityCreated(savedInstanceState);
-		mAdapter = new MessagesAdapter(getActivity(), mThreadId, InstantMessageManager.getInstance().getList());
+		mAdapter = new MessagesAdapter(getActivity(), mChatId, mThreadId, ImManagerFactory.getImManger(mChatId).getList());
 		setListAdapter(mAdapter);
-		if (mInitialized) {
-			addMessages(mIms);
-		}
+		mSend.setOnClickListener(new OnClickListener() {
+			@Override
+			public void onClick(View v) {
+				Toast.makeText(getActivity(), mPendingMessage.getText(), Toast.LENGTH_LONG).show();
+				mPendingMessage.setText("");
+			}
+		});
 	}
 	
 	@Override
@@ -75,11 +88,6 @@ public class ThreadFragment extends ListFragment  {
 	
 	public long getChatId() {
 		return mChatId;
-	}
-	
-	public void initializeWithMessages(List<InstantMessage> ims) {
-		mIms = ims;
-		mInitialized = true;
 	}
 	
 	public boolean isInitialized() {

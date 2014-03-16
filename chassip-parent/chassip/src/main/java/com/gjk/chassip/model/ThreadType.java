@@ -18,4 +18,17 @@ public enum ThreadType {
 	public int getValue() {
 		return this.value;
 	}
+	
+	public static ThreadType getFromValue(int value) {
+		if (MAIN_CHAT.value == value) {
+			return MAIN_CHAT;
+		}
+		else if (SIDE_CONVO.value == value) {
+			return SIDE_CONVO;
+		}
+		else if (WHISPER.value == value) {
+			return WHISPER;
+		}
+		return null;
+	}
 }

@@ -1,6 +1,5 @@
 package com.gjk.chassip;
 
-import java.util.Map;
 import android.content.Context;
 import android.os.Bundle;
 import android.support.v4.app.ListFragment;
@@ -11,7 +10,6 @@ import android.widget.ArrayAdapter;
 import android.widget.TextView;
 
 import com.gjk.chassip.model.User;
-import com.google.common.collect.Maps;
 
 /**
  *
@@ -19,7 +17,6 @@ import com.google.common.collect.Maps;
  */
 public class ThreadsDrawerFragment extends ListFragment {
 
-	private Map<Integer, ThreadFragment> mPositionToThreadFragMap;
 	private ThreadAdapter mAdapter;
 	
 	public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -28,13 +25,16 @@ public class ThreadsDrawerFragment extends ListFragment {
 
 	public void onActivityCreated(Bundle savedInstanceState) {
 		super.onActivityCreated(savedInstanceState);
-		mPositionToThreadFragMap = Maps.newHashMap();
 		mAdapter = new ThreadAdapter(getActivity());
 		setListAdapter(mAdapter);
 	}
 	
 	public void addThread(ThreadFragment frag) {
 		mAdapter.add(frag);
+	}
+	
+	public void removeThread(ThreadFragment frag) {
+		mAdapter.remove(frag);
 	}
 	
 	public void updateView() {
@@ -48,12 +48,6 @@ public class ThreadsDrawerFragment extends ListFragment {
 		}
 
 		public View getView(int position, View convertView, ViewGroup parent) {
-			
-			Integer iPosition = Integer.valueOf(position);
-			
-			if (!mPositionToThreadFragMap.containsKey(iPosition)) {
-				mPositionToThreadFragMap.put(iPosition, getItem(position));
-			}
 			
 			if (convertView == null) {
 				convertView = LayoutInflater.from(getContext()).inflate(R.layout.threads_drawer_row, null);

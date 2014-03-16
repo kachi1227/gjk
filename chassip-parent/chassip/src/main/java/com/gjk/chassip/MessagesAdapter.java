@@ -1,12 +1,9 @@
 package com.gjk.chassip;
 
 import java.util.List;
-import java.util.Map;
-
-import com.gjk.chassip.model.InstantMessageManager;
-import com.google.common.collect.Maps;
-
+import com.gjk.chassip.model.ImManagerFactory;
 import android.content.Context;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -15,15 +12,17 @@ import android.widget.TextView;
 
 public class MessagesAdapter extends ArrayAdapter<InstantMessage> {
 	
+	private final String LOGTAG = getClass().getSimpleName();
+	
 	private final Context mContext;
-	private final Map<Integer, Integer> mColorMap;
+	private final long mChatId;
 	private final long mThreadId;
 	
-	public MessagesAdapter(Context context, long threadId, List<InstantMessage> ims) {
+	public MessagesAdapter(Context context, long chatId, long threadId, List<InstantMessage> ims) {
 		super(context, 0, ims);
 		mContext = context;
+		mChatId = chatId;
 		mThreadId = threadId;
-		mColorMap = Maps.newHashMap();
 	}
 
 	@Override
@@ -35,23 +34,21 @@ public class MessagesAdapter extends ArrayAdapter<InstantMessage> {
 		userName.setText(getItem(position).getUser().getName());
 		TextView message = (TextView) convertView.findViewById(R.id.message);
 		message.setText(getItem(position).getIm());
+		
+		userName.setTextColor(mContext.getResources().getColor(ImManagerFactory.getImManger(mChatId).get(getItem(position),  mThreadId)));
+		message.setTextColor(mContext.getResources().getColor(ImManagerFactory.getImManger(mChatId).get(getItem(position),  mThreadId)));
 
-		Integer iPosition = Integer.valueOf(position);
-		
-		if (!mColorMap.containsKey(iPosition)) {
-			int color = getItem(position).getThreadId() == mThreadId ? R.color.black : R.color.lightgrey;
-			mColorMap.put(iPosition, color);
-		}
-		
-		userName.setTextColor(mContext.getResources().getColor(mColorMap.get(iPosition)));
-		message.setTextColor(mContext.getResources().getColor(mColorMap.get(iPosition)));
-		
 		return convertView;
 	}
 	
 	@Override
 	public void add(InstantMessage im) {
-		InstantMessageManager.getInstance().trim();
+//		if (InstantMessageManager.getInstance().trim()) {
+//			mColors.remove(0);
+//			remove(getItem(0));
+//		}
+		Log.d(LOGTAG, "mThreadId="+mThreadId+" imThreadId="+im.getThreadId());
 		super.add(im);
+		ImManagerFactory.getImManger(mChatId).add(im);
 	}
 }

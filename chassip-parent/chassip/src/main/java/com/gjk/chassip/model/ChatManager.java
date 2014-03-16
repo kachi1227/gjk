@@ -15,6 +15,7 @@ public class ChatManager {
 
 	private static ChatManager sInstance;
 	
+	private long mCurrentChatId;
 	private final Map<Long, Chat> mChatMap;
 	
 	private ChatManager() {
@@ -33,15 +34,20 @@ public class ChatManager {
 	}
 	
 	public synchronized void addChat(long chatId, ThreadFragment mainChatFrag) {
+		mCurrentChatId = chatId;
 		Chat newChat = new Chat(chatId);
 		newChat.addThread(mainChatFrag);
 		if (!chatExists(chatId)) {
 			mChatMap.put(chatId, newChat);
 		}
 	}
-	
+
 	public synchronized Chat getChat(long chatId) {
 		return mChatMap.get(chatId);
+	}
+	
+	public synchronized Chat getCurrentChat() {
+		return mChatMap.get(mCurrentChatId);
 	}
 	
 	public synchronized void addMember(long chatId, long threadId, User newMember) {
@@ -62,15 +68,15 @@ public class ChatManager {
 		}
 	}
 	
-	public synchronized void addInstantMessage(long chatId, InstantMessage im) {
-		if (chatExists(chatId)) {
-			getChat(chatId).addInstantMessage(im);
+	public synchronized void addInstantMessage(InstantMessage im) {
+		if (chatExists(im.getChatId())) {
+			getChat(im.getChatId()).addInstantMessage(im);
 		}
 	}
 	
-	public synchronized void addInstantMessages(long chatId, List<InstantMessage> ims) {
+	public synchronized void addInstantMessages(List<InstantMessage> ims) {
 		for (InstantMessage im : ims) {
-			addInstantMessage(chatId, im);
+			addInstantMessage(im);
 		}
 	}
 	
@@ -86,5 +92,20 @@ public class ChatManager {
 			return getChat(chatId).getNumberOfThreads();
 		}
 		return 0;
+	}
+	
+	public synchronized int getNumberOfChats() {
+		return mChatMap.keySet().size();
+	}
+	
+	public synchronized long[] getThreadIds(long chatId) {
+		if (chatExists(chatId)) {
+			return getChat(chatId).getThreadIds();
+		}
+		return new long[0];
+	}
+	
+	public synchronized Long[] getChatIds() {
+		return mChatMap.keySet().toArray(new Long[getNumberOfChats()]);
 	}
 }

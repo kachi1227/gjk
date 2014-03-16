@@ -17,7 +17,6 @@ import com.gjk.chassip.net.TaskResult;
 import com.google.common.collect.Maps;
 
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
@@ -38,6 +37,8 @@ import android.widget.Toast;
 
 public class RegisterActivity extends Activity {
 
+	private final String LOGTAG = getClass().getSimpleName();
+	
 	private static final int GALLERY_REQUEST = 1;
 	private static final int CAMERA_REQUEST = 2;
 	
@@ -164,7 +165,7 @@ public class RegisterActivity extends Activity {
     }
 
 	private void sendGalleryIntentPreKitKat() {
-		Log.d(this.getClass().getSimpleName(), "Running pre-Kit-Kat");
+		Log.d(LOGTAG, "Running pre-Kit-Kat");
     	Intent intent = new Intent();
         intent.setType("image/*");
         intent.setAction(Intent.ACTION_GET_CONTENT);
@@ -173,7 +174,7 @@ public class RegisterActivity extends Activity {
 	
     @TargetApi(19)
     private void sendGalleryIntent() {
-    	Log.d(this.getClass().getSimpleName(), "Running Kit-Kat or higher!");
+    	Log.d(LOGTAG, "Running Kit-Kat or higher!");
     	Intent intent = new Intent();
         intent.setType("image/*");
         intent.setAction(Intent.ACTION_OPEN_DOCUMENT);
@@ -362,32 +363,32 @@ public class RegisterActivity extends Activity {
     }
     
     private void handleAviError(Exception e) {
-		Log.e(this.getClass().getSimpleName(), e.toString());
+		Log.e(LOGTAG, e.toString());
 		showLongToast(e.toString());
 		mPasswordLogin.setText("");
     }
     
     private void handleLoginError(Exception e) {
-		Log.e(this.getClass().getSimpleName(), String.format("Login unsuccessful: %s", e));
+		Log.e(LOGTAG, String.format("Login unsuccessful: %s", e));
 		showLongToast(e.toString());
 		mPasswordLogin.setText("");
     }
     
     private void handleLoginFail(TaskResult result) {
-		Log.d(this.getClass().getSimpleName(), String.format("Login unsuccessful: code %d", result.getMessage()));
+		Log.d(LOGTAG, String.format("Login unsuccessful: code %d", result.getMessage()));
 		showLongToast(String.format("Login unsuccessful: code %d", result.getMessage()));
 		mPasswordLogin.setText("");
     }
     
     private void handleRegistrationError(Exception e) {
-		Log.e(this.getClass().getSimpleName(), String.format("Registration unsuccessful: %s", e));
+		Log.e(LOGTAG, String.format("Registration unsuccessful: %s", e));
 		showLongToast(e.toString());
 		mPasswordReg.setText("");
 		mRePasswordReg.setText("");
     }
     
     private void handleRegistrationFail(TaskResult result) {
-		Log.d(this.getClass().getSimpleName(), String.format("Registration unsuccessful: %s", result.getMessage()));
+		Log.d(LOGTAG, String.format("Registration unsuccessful: %s", result.getMessage()));
 		showLongToast(String.format("Registration unsuccessful: %s", result.getMessage()));
 		mPasswordReg.setText("");
 		mRePasswordReg.setText("");

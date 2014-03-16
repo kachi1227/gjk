@@ -18,4 +18,11 @@
     <string name="camera">Camera Capture</string>
     <string name="select_avi_title">Avatar Selector</string>
     <string name="select_avi_message">Choose the method to select your avatar to register.</string>
+    <string name="send">Send</string>
+    <string name="yes">Yes</string>
+    <string name="no">No</string>
+    <string name="join_whisper_title">Side-Convo Invite</string>
+    <string name="join_whisper_message">You\'ve been invited to a side-convo. Would you like to join?</string>
+    <string name="join_sideconvo_title">Whipser Invite</string>
+    <string name="join_sideconvo_message">You\'ve been invited to a whisper. Would you like to join?</string>
 </resources>

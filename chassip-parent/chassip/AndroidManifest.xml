@@ -4,8 +4,6 @@
     android:versionCode="1"
     android:versionName="0.1.0" >
     
-<!--             android:debuggable="true" -->
-    
     <uses-permission android:name="android.permission.CAMERA" />
 	<uses-permission android:name="android.permission.INTERNET" /> 
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -45,6 +43,7 @@
 	            <category android:name="android.intent.category.DEFAULT" />
 	        </intent-filter>
         </activity>
+        <service android:name=".service.InjectorTrois" />
     </application>
 
 </manifest>

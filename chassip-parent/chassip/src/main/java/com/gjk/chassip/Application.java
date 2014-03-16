@@ -1,7 +1,6 @@
 package com.gjk.chassip;
 
 
-import android.app.NotificationManager;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.SharedPreferences;

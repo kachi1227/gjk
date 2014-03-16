@@ -28,6 +28,14 @@ public class User {
 		this.mName = name;
 	}
 	
+	public static User[] getUsers(String[] userNames) {
+		User[] users = new User[userNames.length];
+		for (int i=0; i<userNames.length; i++) {
+			users[i] = new User(userNames[i]);
+		}
+		return users;
+	}
+	
 	@Override
 	public boolean equals(Object obj) {
 		if (obj instanceof User) {

@@ -1,6 +1,5 @@
 package com.gjk.chassip;
 
-import java.util.Map;
 import android.content.Context;
 import android.os.Bundle;
 import android.support.v4.app.ListFragment;
@@ -12,7 +11,6 @@ import android.widget.TextView;
 
 import com.gjk.chassip.model.User;
 import com.gjk.chassip.model.Chat;
-import com.google.common.collect.Maps;
 
 /**
  *
@@ -20,7 +18,6 @@ import com.google.common.collect.Maps;
  */
 public class ChatsDrawerFragment extends ListFragment {
 
-	private Map<Integer, Chat> mPositionToChatMap;
 	private ChatAdapter mAdapter;
 	
 	public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -29,7 +26,6 @@ public class ChatsDrawerFragment extends ListFragment {
 
 	public void onActivityCreated(Bundle savedInstanceState) {
 		super.onActivityCreated(savedInstanceState);
-		mPositionToChatMap = Maps.newHashMap();
 		mAdapter = new ChatAdapter(getActivity());
 		setListAdapter(mAdapter);
 	}
@@ -50,12 +46,6 @@ public class ChatsDrawerFragment extends ListFragment {
 
 		public View getView(int position, View convertView, ViewGroup parent) {
 			
-			Integer iPosition = Integer.valueOf(position);
-			
-			if (!mPositionToChatMap.containsKey(iPosition)) {
-				mPositionToChatMap.put(iPosition, getItem(position));
-			}
-			
 			if (convertView == null) {
 				convertView = LayoutInflater.from(getContext()).inflate(R.layout.chats_drawer_row, null);
 			}
@@ -68,7 +58,6 @@ public class ChatsDrawerFragment extends ListFragment {
 		}
 		
 		private String getLabel(int position) {
-
 			return String.format("Chat #%d", position);
 		}
 		

@@ -1,0 +1,5 @@
+-kill service after done with injections
+-trim is messing up the focus
+-fix keyboard messing up the screen
+-display messages when the user sends
+-escaped client, app restarted but service didn't, fix onResume stuff

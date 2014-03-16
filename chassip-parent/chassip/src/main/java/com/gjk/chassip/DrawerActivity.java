@@ -69,8 +69,8 @@ public class DrawerActivity extends SlidingFragmentActivity {
 
 		// customize
 		sm.setShadowWidthRes(R.dimen.shadow_width);
-		//sm.setShadowDrawable(R.drawable.shadow);
-		//sm.setSecondaryShadowDrawable(R.drawable.shadowright);
+//		sm.setShadowDrawable(R.drawable.shadow);
+//		sm.setSecondaryShadowDrawable(R.drawable.shadowright);
 		sm.setBehindOffsetRes(R.dimen.slidingmenu_offset);
 		sm.setFadeDegree(0.35f);
 		sm.setTouchModeAbove(SlidingMenu.TOUCHMODE_MARGIN);
@@ -86,8 +86,12 @@ public class DrawerActivity extends SlidingFragmentActivity {
 		mLeftDrawerFragment.updateView();
 	}
 	
-	public void addToThreadsDrawer(ThreadFragment frag) {
+	public void addToThreadDrawer(ThreadFragment frag) {
 		mRightDrawerFragment.addThread(frag);
+	}
+	
+	public void removeThreadFromDrawer(ThreadFragment frag) {
+		mRightDrawerFragment.removeThread(frag);
 	}
 	
 	public void updateThreadsDrawer() {

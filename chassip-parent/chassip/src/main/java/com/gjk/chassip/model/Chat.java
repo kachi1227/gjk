@@ -82,6 +82,24 @@ public class Chat {
 		return mThreadsFragMap.values().size();
 	}
 	
+	public ThreadFragment[] getThreads() {
+		ThreadFragment[] threads = new ThreadFragment[getNumberOfThreads()];
+		int idCount = 0;
+		for (ThreadFragment frag : mThreadsFragMap.values()) {
+			threads[idCount] = frag;
+		}
+		return threads;
+	}
+	
+	public long[] getThreadIds() {
+		long[] threadIds = new long[getNumberOfThreads()];
+		int idCount = 0;
+		for (ThreadFragment frag : mThreadsFragMap.values()) {
+			threadIds[idCount] = frag.getThreadId();
+		}
+		return threadIds;
+	}
+	
 	public ThreadFragment getMainChatThread() {
 		return mMainThreadFrag;
 	}
