@@ -22,10 +22,11 @@ public class SendMessageTask extends MiluHTTPTask {
 	private int mMessage_type_id = -1; // message type 1:standard 2: Sideconvo 3:whisper
 	private long mTable_id = -1;//requisite while message type != 1 or api return error
 	//end optional fields 
-
+	
+	
 	public SendMessageTask(Context ctx, HTTPTaskListener listener, int sender_id, int group_id,
 			String content) {
-		super(ctx, listener);
+		this(ctx, listener, sender_id, group_id, content, null, -1, -1, -1, -1);
 		// TODO Auto-generated constructor stub
 		mSender_id = sender_id;
 		mGroup_id = group_id;
@@ -41,55 +42,28 @@ public class SendMessageTask extends MiluHTTPTask {
 	}
 
 	//Optional overloaded methods for later
-	/*
+	
 	public SendMessageTask(Context ctx, HTTPTaskListener listener, int sender_id, int group_id,
 			String content,HashMap<String, Object> fieldMapping) {
-		super(ctx, listener);
+		this(ctx, listener, sender_id, group_id, content, fieldMapping, -1, -1, -1, -1);
 		// TODO Auto-generated constructor stub
-		mSender_id = sender_id;
-		mGroup_id = group_id;
-		mContent = content;
-		mFieldMapping = fieldMapping;
-		extractFiles(mFieldMapping, true);
-		
-		//mRecipient_id = recipient_id;
-		//mTopic_id = topic_id;
-		//mMessage_type_id = message_type_id;
-		//mTable_id = table_id;
 		execute();
 	}
 
 	public SendMessageTask(Context ctx, HTTPTaskListener listener, int sender_id, int group_id,
 			String content,HashMap<String, Object> fieldMapping, long recipient_id) {
-		super(ctx, listener);
+
+		this(ctx, listener, sender_id, group_id, content, fieldMapping, recipient_id, -1, -1, -1);
 		// TODO Auto-generated constructor stub
-		mSender_id = sender_id;
-		mGroup_id = group_id;
-		mContent = content;
-		mFieldMapping = fieldMapping;
-		extractFiles(mFieldMapping, true);
-		
-		mRecipient_id = recipient_id;
-		//mTopic_id = topic_id;
-		//mMessage_type_id = message_type_id;
-		//mTable_id = table_id;
 		execute();
 	}
 
 	public SendMessageTask(Context ctx, HTTPTaskListener listener, int sender_id, int group_id,
 			String content,HashMap<String, Object> fieldMapping, long recipient_id, int topic_id) {
-		super(ctx, listener);
-		// TODO Auto-generated constructor stub
-		mSender_id = sender_id;
-		mGroup_id = group_id;
-		mContent = content;
-		mFieldMapping = fieldMapping;
-		extractFiles(mFieldMapping, true);
 		
-		mRecipient_id = recipient_id;
-		mTopic_id = topic_id;
-		//mMessage_type_id = message_type_id;
-		//mTable_id = table_id;
+		// TODO Auto-generated constructor stub
+		this(ctx, listener, sender_id, group_id, content, fieldMapping, recipient_id, topic_id, -1, -1);
+
 		execute();
 	}
 
@@ -101,16 +75,33 @@ public class SendMessageTask extends MiluHTTPTask {
 		mSender_id = sender_id;
 		mGroup_id = group_id;
 		mContent = content;
-		mFieldMapping = fieldMapping;
-		extractFiles(mFieldMapping, true);
-		
 		mRecipient_id = recipient_id;
+		if(fieldMapping != null)
+			mFieldMapping.putAll(fieldMapping);
 		mTopic_id = topic_id;
 		mMessage_type_id = message_type_id;
 		mTable_id = table_id;
+		
+		//extractFiles(mFieldMapping, true);
+		//if(mFieldMapping != null)
+			//payload.put("attachment", mFieldMapping);
+		if(mRecipient_id != -1)
+			mFieldMapping.put("recipient_id",mRecipient_id);
+		if(mTopic_id != -1)
+			mFieldMapping.put("topic_id", mTopic_id);
+		if(mMessage_type_id != -1)
+			mFieldMapping.put("message_type_id", mMessage_type_id);
+		
+		if(mTable_id != -1)
+			mFieldMapping.put("table_id", mTable_id);
+		//mRecipient_id = recipient_id;
+		//mFieldMapping.put("topic_id",topic_id);//mTopic_id = topic_id;
+		//mFieldMapping.put("message_type_id", message_type_id);//mMessage_type_id = message_type_id;
+		//mFieldMapping.put("table_id", table_id);//mTable_id = table_id;
+		extractFiles(mFieldMapping, true);
 		execute();
 	}
-*///end optional methods for later
+///end optional methods for later
 	
 	
 	@Override
