@@ -21,8 +21,11 @@
     <string name="send">Send</string>
     <string name="yes">Yes</string>
     <string name="no">No</string>
-    <string name="join_whisper_title">Side-Convo Invite</string>
-    <string name="join_whisper_message">You\'ve been invited to a side-convo. Would you like to join?</string>
-    <string name="join_sideconvo_title">Whipser Invite</string>
-    <string name="join_sideconvo_message">You\'ve been invited to a whisper. Would you like to join?</string>
+    <string name="join_whisper_title">Whipser Invite</string>
+    <string name="join_whisper_message">You\'ve been invited to a whisper with %s. Would you like to join?</string>
+    <string name="join_sideconvo_title">Side-Convo Invite</string>
+    <string name="join_sideconvo_message">You\'ve been invited to a side-convo with %s. Would you like to join?</string>
+    <string name="join_chat_title">Chat Invite</string>
+    <string name="join_chat_message">You\'ve been invited to a chat with %s. Would you like to join?</string>
+    
 </resources>

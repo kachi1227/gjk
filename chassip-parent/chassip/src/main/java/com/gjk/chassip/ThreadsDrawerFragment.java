@@ -33,6 +33,10 @@ public class ThreadsDrawerFragment extends ListFragment {
 		mAdapter.add(frag);
 	}
 	
+	public void removeAllThreads() {
+		mAdapter.clear();
+	}
+	
 	public void removeThread(ThreadFragment frag) {
 		mAdapter.remove(frag);
 	}

@@ -1,12 +1,7 @@
 package com.gjk.chassip.net;
 
-import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.net.URLDecoder;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Date;
@@ -41,11 +36,9 @@ import com.gjk.chassip.helper.DataHelper;
 
 import android.content.Context;
 import android.os.AsyncTask;
-import android.os.Bundle;
 import android.util.Base64;
-import android.util.Log;
-import android.widget.Toast;
 
+@SuppressWarnings("unused")
 public class MiluHttpRequest {
 	public static final int REQUEST_TYPE_GET = 1;
 	public static final int REQUEST_TYPE_POST_NORM = 2;

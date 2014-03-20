@@ -55,6 +55,7 @@ import java.util.WeakHashMap;
  *
  * @hide
  */
+@SuppressWarnings("unused")
 class SuggestionsAdapter extends ResourceCursorAdapter implements OnClickListener {
 
     private static final boolean DBG = false;
@@ -685,7 +686,7 @@ class SuggestionsAdapter extends ResourceCursorAdapter implements OnClickListene
      * @return A drawable, or {@code null} if neither the activity nor the application
      *         has an icon set.
      */
-    private Drawable getActivityIconWithCache(ComponentName component) {
+	private Drawable getActivityIconWithCache(ComponentName component) {
         // First check the icon cache
         String componentIconKey = component.flattenToShortString();
         // Using containsKey() since we also store null values.

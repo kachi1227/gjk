@@ -22,6 +22,7 @@ public class ImManagerFactory {
 	private final String LOGTAG = getClass().getSimpleName();
 	
 	private static Map<Long, ImManagerFactory> sInstanceMap = Maps.newHashMap();
+	private static int sTotalImCount = 0;
 	
 	private LinkedList<InstantMessage> mIms;
 	private Table<InstantMessage, Long, Integer> mColorTable;
@@ -77,6 +78,11 @@ public class ImManagerFactory {
 	
 	public LinkedList<InstantMessage> getList() {
 		return mIms;
+	}
+	
+	public static int incrementTotalImCount() {
+		sTotalImCount++;
+		return sTotalImCount;
 	}
 	
 	public boolean trim() {

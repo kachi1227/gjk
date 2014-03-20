@@ -7,23 +7,18 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 
 import org.apache.http.protocol.HTTP;
 import org.json.JSONObject;
 
-import android.app.Activity;
 import android.content.Context;
-import android.content.Intent;
-import android.os.Handler;
-import android.util.Log;
-import android.widget.Toast;
-
 import com.gjk.chassip.Application;
 import com.gjk.chassip.Constants;
 import com.gjk.chassip.R;
 import com.gjk.chassip.net.MiluHttpRequest.DBHttpUploadFile;
 
-
+@SuppressWarnings("unused")
 public abstract class MiluHTTPTask extends HTTPTask {
 	
 	List<DBHttpUploadFile> mFiles = null;
@@ -151,7 +146,7 @@ public abstract class MiluHTTPTask extends HTTPTask {
 	  public static String bytesToHex(byte[] data) {
 	        StringBuffer buf = new StringBuffer();
 	        for (int i = 0; i < data.length; i++) {
-	            buf.append(byteToHex(data[i]).toUpperCase());
+	            buf.append(byteToHex(data[i]).toUpperCase(Locale.getDefault()));
 	        }
 	        return (buf.toString());
 	    }

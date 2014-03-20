@@ -43,6 +43,7 @@ import com.actionbarsherlock.view.ActionMode;
 /**
  * @hide
  */
+@SuppressWarnings("deprecation")
 public class ActionBarContextView extends AbsActionBarView implements AnimatorListener {
     //UNUSED private static final String TAG = "ActionBarContextView";
 

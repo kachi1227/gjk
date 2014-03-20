@@ -36,11 +36,30 @@ public class User {
 		return users;
 	}
 	
+	public static String getUserStrs(User[] userNames) {
+		String users = userNames[0].getName();
+		for (int i=1; i<userNames.length-1; i++) {
+			users = users + ", " + userNames[i].getName();
+		}
+		if (userNames.length == 2) {
+			users = users + " and " + userNames[userNames.length-1].getName();
+		}
+		else if (userNames.length > 2) {
+			users = users + ", and " + userNames[userNames.length-1].getName();
+		}
+		return users;
+	}
+	
 	@Override
 	public boolean equals(Object obj) {
 		if (obj instanceof User) {
 			return ((User) obj).getName().equals(mName);
 		}
 		return false;
+	}
+	
+	@Override
+	public String toString() {
+		return String.format("name=%s", mName);
 	}
 }

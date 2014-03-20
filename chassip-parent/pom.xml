@@ -44,7 +44,7 @@
 
     <!-- Compilation dependencies -->
     <android.version>4.4.2</android.version>
-    <android-support.version>r7</android-support.version>
+    <android-support.version>19.0.1</android-support.version>
     <fest.android.version>1.0.5</fest.android.version>
 
     <!-- Sample dependencies -->
@@ -127,7 +127,7 @@
         <plugin>
           <groupId>com.jayway.maven.plugins.android.generation2</groupId>
           <artifactId>android-maven-plugin</artifactId>
-          <version>3.6.0</version>
+          <version>3.8.0</version>
           <configuration>
             <nativeLibrariesDirectory>ignored</nativeLibrariesDirectory>
             <sdk>
@@ -162,6 +162,32 @@
           <artifactId>maven-replacer-plugin</artifactId>
           <version>1.4.0</version>
         </plugin>
+        
+        <plugin>
+        <groupId>org.eclipse.m2e</groupId>
+        <artifactId>lifecycle-mapping</artifactId>
+        <version>1.0.0</version>
+        <configuration>
+          <lifecycleMappingMetadata>
+            <pluginExecutions>
+              <pluginExecution>
+                <pluginExecutionFilter>
+                  <groupId>org.apache.maven.plugins</groupId>
+                  <artifactId>maven-enforcer-plugin</artifactId>
+                  <versionRange>[1.0.0,)</versionRange>
+                  <goals>
+                    <goal>enforce</goal>
+                  </goals>
+                </pluginExecutionFilter>
+                <action>
+                  <ignore />
+                </action>
+              </pluginExecution>
+            </pluginExecutions>
+          </lifecycleMappingMetadata>
+        </configuration>
+      </plugin>
+        
       </plugins>
     </pluginManagement>
 

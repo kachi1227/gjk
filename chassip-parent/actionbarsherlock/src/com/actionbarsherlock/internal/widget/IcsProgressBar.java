@@ -183,6 +183,7 @@ import android.widget.RemoteViews.RemoteView;
  * @attr ref android.R.styleable#ProgressBar_secondaryProgress
  */
 @RemoteView
+@SuppressWarnings("deprecation")
 public class IcsProgressBar extends View {
     private static final boolean IS_HONEYCOMB = Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB;
     private static final int MAX_LEVEL = 10000;

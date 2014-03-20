@@ -60,6 +60,7 @@ public class Chat {
 			break;
 		}
 		mThreadsFragMap.put(newThreadFrag.getThreadId(), newThreadFrag);
+		
 	}
 	
 	public void addInstantMessage(InstantMessage im) {
@@ -87,6 +88,7 @@ public class Chat {
 		int idCount = 0;
 		for (ThreadFragment frag : mThreadsFragMap.values()) {
 			threads[idCount] = frag;
+			idCount++;
 		}
 		return threads;
 	}
