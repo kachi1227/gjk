@@ -1,5 +1,5 @@
 /**************************************************
- * BaseUser.java
+ * BaseGroup.java
  *
  * Created By Kachi Nwaobasi on 03/18/2014.
  * Copyright 2014 GJK, Inc. All rights reserved.
@@ -8,13 +8,12 @@
 package com.gjk.database.objects.base;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 import org.json.JSONObject;
 
 import com.gjk.database.PersistentObject;
-import com.gjk.database.objects.User;
+import com.gjk.database.objects.Group;
 
 import android.content.ContentValues;
 import android.database.Cursor;
@@ -23,43 +22,47 @@ import android.database.sqlite.SQLiteStatement;
 
 public abstract class BaseGroup extends PersistentObject {
 	
-	private static final String ERROR_MSG_CLOSED_CURSOR = "Tried to hyrdate User from closed cursor.";
+	private static final String ERROR_MSG_CLOSED_CURSOR = "Tried to hyrdate Group from closed cursor.";
 
-	private static final String ERROR_MSG_HYDRATE_NO_ID = "Error fetching column 'id' from table 'user'";
-	private static final String ERROR_MSG_HYDRATE_NO_GLOBAL_ID = "Error fetching column 'global_id' from table 'user'";
-	private static final String ERROR_MSG_HYDRATE_NO_FIRST_NAME = "Error fetching column 'first_name' from table 'user'";
-	private static final String ERROR_MSG_HYDRATE_NO_LAST_NAME = "Error fetching column 'last_name' from table 'user'";
-	private static final String ERROR_MSG_HYDRATE_NO_BIO = "Error fetching column 'bio' from table 'user'";
-	private static final String ERROR_MSG_HYDRATE_NO_IMAGE_URL = "Error fetching column 'image_url' from table 'user'";
+	private static final String ERROR_MSG_HYDRATE_NO_ID = "Error fetching column 'id' from table 'group'";
+	private static final String ERROR_MSG_HYDRATE_NO_GLOBAL_ID = "Error fetching column 'global_id' from table 'group'";
+	private static final String ERROR_MSG_HYDRATE_NO_NAME = "Error fetching column 'name' from table 'group'";
+	private static final String ERROR_MSG_HYDRATE_NO_IMAGE_URL = "Error fetching column 'image_url' from table 'group'";
+	private static final String ERROR_MSG_HYDRATE_NO_CREATOR_ID = "Error fetching column 'creator_id' from table 'group'";
+	private static final String ERROR_MSG_HYDRATE_NO_CREATOR_NAME = "Error fetching column 'creator_name' from table 'group'";
+	private static final String ERROR_MSG_HYDRATE_NO_SIDE_CHATS = "Error fetching column 'side_chats' from table 'group'";
+	private static final String ERROR_MSG_HYDRATE_NO_WHISPERS = "Error fetching column 'whispers' from table 'group'";
 	
-	public static final String TABLE_NAME = "user";
+	public static final String TABLE_NAME = "group";
 	
 
 	public static final String F_ID = "_id";
 	public static final String F_GLOBAL_ID = "global_id";
-
-	public static final String F_FIRST_NAME = "first_name";
-	public static final String F_LAST_NAME = "last_name";
-	public static final String F_BIO = "bio";
+	public static final String F_NAME = "name";
 	public static final String F_IMAGE_URL = "image_url";
+	public static final String F_CREATOR_ID = "creator_id";
+	public static final String F_CREATOR_NAME = "creator_name";
+	public static final String F_SIDE_CHATS = "side_chats";
+	public static final String F_WHISPERS = "whispers";
 	
-	public static final String[] ALL_COLUMN_NAMES = new String[] {F_ID, F_GLOBAL_ID, F_FIRST_NAME, F_LAST_NAME, F_BIO, F_IMAGE_URL};
+	public static final String[] ALL_COLUMN_NAMES = new String[] {F_ID, F_GLOBAL_ID, F_NAME, F_IMAGE_URL, F_CREATOR_ID, F_CREATOR_NAME, F_SIDE_CHATS, F_WHISPERS};
 	
-	public static final String CREATE_TABLE_STATEMENT = "CREATE TABLE \"user\"(   \"_id\" INTEGER PRIMARY KEY NOT NULL,   \"global_id\" INTEGER NOT NULL,   \"first_name\" VARCHAR(256),	\"last_name\" VARCHAR(256),   \"bio\" TEXT,	\"image_url\" VARCHAR(2000))";
-	public static final String DROP_TABLE_STATEMENT = "DROP TABLE IF EXISTS 'user';";
+	public static final String CREATE_TABLE_STATEMENT = "CREATE TABLE \"group\"(   \"_id\" INTEGER PRIMARY KEY NOT NULL,   \"global_id\" INTEGER NOT NULL,   \"name\" VARCHAR(256),	\"image_url\" VARCHAR(2000),	\"creator_id\" INTEGER NOT NULL,	\"creator_name\" VARCHAR(512),   \"side_chats\" TEXT, 	\"whispers\" TEXT)";
+	public static final String DROP_TABLE_STATEMENT = "DROP TABLE IF EXISTS 'group';";
 	
-	private static final String COUNT_STATEMENT = "SELECT COUNT(" + F_ID + ") FROM user";
+	private static final String COUNT_STATEMENT = "SELECT COUNT(" + F_ID + ") FROM group";
 	
 	private static final String EMPTY_STRING = "";
 	
 
 	private long mGlobalId;
 	private String mName;
-	private String mFirstName;
-	private String mLastName;
-
 	private String mImageUrl;
-	
+	private long mCreatorId;
+	private String mCreatorName;
+	private String mSideChats;
+	private String mWhispers;
+		
 	public BaseGroup(SQLiteOpenHelper dbm, Cursor c, boolean skipOk) {
 		super(dbm, c, skipOk);
 	}
@@ -85,10 +88,12 @@ public abstract class BaseGroup extends PersistentObject {
 		super.initNewObject();
 
 		mGlobalId = 0;
-		mFirstName = "";
-		mLastName = "";
 		mName = "";
 		mImageUrl = "";
+		mCreatorId = 0;
+		mCreatorName = "";
+		mSideChats = "";
+		mWhispers = "";
 	}
 
 	@Override
@@ -139,32 +144,13 @@ public abstract class BaseGroup extends PersistentObject {
 				setIsComplete(false);
 			}
 		}
+
 		try {
-			setFirstName(c.getString(c.getColumnIndexOrThrow(F_FIRST_NAME)));
+			setName(c.getString(c.getColumnIndexOrThrow(F_NAME)));
 		} catch (Exception e) {
 			if (!skipOk) {
 				e.printStackTrace();
-				throw new PersistentObjectHydrateException(ERROR_MSG_HYDRATE_NO_FIRST_NAME, e);
-			} else {
-				setIsComplete(false);
-			}
-		}
-		try {
-			setLastName(c.getString(c.getColumnIndexOrThrow(F_LAST_NAME)));
-		} catch (Exception e) {
-			if (!skipOk) {
-				e.printStackTrace();
-				throw new PersistentObjectHydrateException(ERROR_MSG_HYDRATE_NO_LAST_NAME, e);
-			} else {
-				setIsComplete(false);
-			}
-		}
-		try {
-			setBio(c.getString(c.getColumnIndexOrThrow(F_BIO)));
-		} catch (Exception e) {
-			if (!skipOk) {
-				e.printStackTrace();
-				throw new PersistentObjectHydrateException(ERROR_MSG_HYDRATE_NO_BIO, e);
+				throw new PersistentObjectHydrateException(ERROR_MSG_HYDRATE_NO_NAME, e);
 			} else {
 				setIsComplete(false);
 			}
@@ -179,6 +165,58 @@ public abstract class BaseGroup extends PersistentObject {
 				setIsComplete(false);
 			}
 		}
+		try {
+			setCreatorId(c.getLong(c.getColumnIndexOrThrow(F_CREATOR_ID)));
+		} catch (Exception e) {
+			if (!skipOk) {
+				e.printStackTrace();
+				throw new PersistentObjectHydrateException(ERROR_MSG_HYDRATE_NO_CREATOR_ID, e);
+			} else {
+				setIsComplete(false);
+			}
+		}
+		try {
+			setCreatorName(c.getString(c.getColumnIndexOrThrow(F_CREATOR_NAME)));
+		} catch (Exception e) {
+			if (!skipOk) {
+				e.printStackTrace();
+				throw new PersistentObjectHydrateException(ERROR_MSG_HYDRATE_NO_CREATOR_NAME, e);
+			} else {
+				setIsComplete(false);
+			}
+		}
+		try {
+			setCreatorName(c.getString(c.getColumnIndexOrThrow(F_CREATOR_NAME)));
+		} catch (Exception e) {
+			if (!skipOk) {
+				e.printStackTrace();
+				throw new PersistentObjectHydrateException(ERROR_MSG_HYDRATE_NO_CREATOR_NAME, e);
+			} else {
+				setIsComplete(false);
+			}
+		}
+		try {
+			setSideChats(c.getString(c.getColumnIndexOrThrow(F_SIDE_CHATS)));
+		} catch (Exception e) {
+			if (!skipOk) {
+				e.printStackTrace();
+				throw new PersistentObjectHydrateException(ERROR_MSG_HYDRATE_NO_SIDE_CHATS, e);
+			} else {
+				setIsComplete(false);
+			}
+		}
+		try {
+			setWhispers(c.getString(c.getColumnIndexOrThrow(F_WHISPERS)));
+		} catch (Exception e) {
+			if (!skipOk) {
+				e.printStackTrace();
+				throw new PersistentObjectHydrateException(ERROR_MSG_HYDRATE_NO_WHISPERS, e);
+			} else {
+				setIsComplete(false);
+			}
+		}
+
+
 		
 		setIsDirty(false);
 	}
@@ -207,31 +245,11 @@ public abstract class BaseGroup extends PersistentObject {
 			}
 		}
 		try {
-			mFirstName = obj.getString(F_FIRST_NAME);
+			mName = obj.getString(F_NAME);
 		} catch (Exception e) {
 			if (!skipOk) {
 				e.printStackTrace();
-				throw new PersistentObjectHydrateException(ERROR_MSG_HYDRATE_NO_FIRST_NAME, e);
-			} else {
-				setIsComplete(false);
-			}
-		}
-		try {
-			mLastName = obj.getString(F_LAST_NAME);
-		} catch (Exception e) {
-			if (!skipOk) {
-				e.printStackTrace();
-				throw new PersistentObjectHydrateException(ERROR_MSG_HYDRATE_NO_LAST_NAME, e);
-			} else {
-				setIsComplete(false);
-			}
-		}
-		try {
-			mName = obj.getString(F_BIO);
-		} catch (Exception e) {
-			if (!skipOk) {
-				e.printStackTrace();
-				throw new PersistentObjectHydrateException(ERROR_MSG_HYDRATE_NO_BIO, e);
+				throw new PersistentObjectHydrateException(ERROR_MSG_HYDRATE_NO_NAME, e);
 			} else {
 				setIsComplete(false);
 			}
@@ -246,6 +264,48 @@ public abstract class BaseGroup extends PersistentObject {
 				setIsComplete(false);
 			}
 		}
+		try {
+			mCreatorId = obj.getLong(F_CREATOR_ID);
+		} catch (Exception e) {
+			if (!skipOk) {
+				e.printStackTrace();
+				throw new PersistentObjectHydrateException(ERROR_MSG_HYDRATE_NO_CREATOR_ID, e);
+			} else {
+				setIsComplete(false);
+			}
+		}
+
+		try {
+			mCreatorName = obj.getString(F_CREATOR_NAME);
+		} catch (Exception e) {
+			if (!skipOk) {
+				e.printStackTrace();
+				throw new PersistentObjectHydrateException(ERROR_MSG_HYDRATE_NO_CREATOR_NAME, e);
+			} else {
+				setIsComplete(false);
+			}
+		}
+		try {
+			mSideChats = obj.getString(F_SIDE_CHATS);
+		} catch (Exception e) {
+			if (!skipOk) {
+				e.printStackTrace();
+				throw new PersistentObjectHydrateException(ERROR_MSG_HYDRATE_NO_SIDE_CHATS, e);
+			} else {
+				setIsComplete(false);
+			}
+		}
+		try {
+			mWhispers = obj.getString(F_WHISPERS);
+		} catch (Exception e) {
+			if (!skipOk) {
+				e.printStackTrace();
+				throw new PersistentObjectHydrateException(ERROR_MSG_HYDRATE_NO_WHISPERS, e);
+			} else {
+				setIsComplete(false);
+			}
+		}
+
 		setIsDirty(true);
 		setIsNew(true);
 	}
@@ -257,10 +317,12 @@ public abstract class BaseGroup extends PersistentObject {
 
 			obj.put(F_ID, getId());
 			obj.put(F_GLOBAL_ID, mGlobalId);
-			obj.put(F_FIRST_NAME, mFirstName);
-			obj.put(F_LAST_NAME, mLastName);
-			obj.put(F_BIO, mName);
+			obj.put(F_NAME, mName);
 			obj.put(F_IMAGE_URL, mImageUrl);
+			obj.put(F_CREATOR_ID, mCreatorId);
+			obj.put(F_CREATOR_NAME, mCreatorName);
+			obj.put(F_SIDE_CHATS, mSideChats);
+			obj.put(F_WHISPERS, mWhispers);
 			return obj;
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -273,10 +335,12 @@ public abstract class BaseGroup extends PersistentObject {
 		ContentValues cv = new ContentValues(14);
 
 		cv.put(F_GLOBAL_ID, mGlobalId);
-		cv.put(F_FIRST_NAME, mFirstName);
-		cv.put(F_LAST_NAME, mLastName);
-		cv.put(F_BIO, mName);
+		cv.put(F_NAME, mName);
 		cv.put(F_IMAGE_URL, mImageUrl);
+		cv.put(F_CREATOR_ID, mCreatorId);
+		cv.put(F_CREATOR_NAME, mCreatorName);
+		cv.put(F_SIDE_CHATS, mSideChats);
+		cv.put(F_WHISPERS, mWhispers);
 		return cv;
 	}
 	
@@ -324,8 +388,8 @@ public abstract class BaseGroup extends PersistentObject {
 		return dbm.getWritableDatabase().delete(TABLE_NAME, whereClause, whereArgs);
 	}
 
-	public static List<User> findAllObjects(SQLiteOpenHelper dbm, String orderBy) {
-		ArrayList<User> objList = new ArrayList<User>();
+	public static List<Group> findAllObjects(SQLiteOpenHelper dbm, String orderBy) {
+		ArrayList<Group> objList = new ArrayList<Group>();
 		Cursor c = dbm.getReadableDatabase().query(TABLE_NAME, ALL_COLUMN_NAMES, null, null, null, null, orderBy);
 		c.moveToFirst();
 		if (c.isAfterLast()) {
@@ -335,21 +399,21 @@ public abstract class BaseGroup extends PersistentObject {
 		
 		
 		while (!c.isAfterLast()) {
-			objList.add(new User(dbm, c, false));
+			objList.add(new Group(dbm, c, false));
 			c.moveToNext();
 		}
 		c.close();
 		return objList;
 	}
 	
-	public static User findById(SQLiteOpenHelper dbm, long id) {
+	public static Group findById(SQLiteOpenHelper dbm, long id) {
 	Cursor c = dbm.getReadableDatabase().query(TABLE_NAME, ALL_COLUMN_NAMES, F_ID + " = " + id, null, null, null, null, "1");
 		c.moveToFirst();
 		if (c.isAfterLast()) {
 			c.close();
 			return null;
 		} 
-		User obj = new User(dbm, c, false);
+		Group obj = new Group(dbm, c, false);
 		c.close();
 		return obj;
 	}
@@ -367,14 +431,14 @@ public abstract class BaseGroup extends PersistentObject {
 	
 	
 	
-	public static User findOneByGlobalId(SQLiteOpenHelper dbm, long val) {
+	public static Group findOneByGlobalId(SQLiteOpenHelper dbm, long val) {
 		Cursor c = dbm.getReadableDatabase().query(TABLE_NAME, ALL_COLUMN_NAMES, F_GLOBAL_ID + " = " + val, null, null, null, null);
 		c.moveToFirst();
 		if (c.isAfterLast()) {
 			c.close();
 			return null;
 		} 
-		User obj = new User(dbm, c, false);
+		Group obj = new Group(dbm, c, false);
 		c.close();
 		return obj;
 	}
@@ -383,46 +447,58 @@ public abstract class BaseGroup extends PersistentObject {
 		return dbm.getWritableDatabase().delete(TABLE_NAME, F_GLOBAL_ID + "=" + val, null);
 	}
 	
-	public String getFirstName() {
-		return mFirstName;
-	}
-
-	public void setFirstName(String val) {
-		this.mFirstName = val;
-		setIsDirty(true);
-	}
-	
-	public static int deleteByFirstName(SQLiteOpenHelper dbm, String val) {
-		return dbm.getWritableDatabase().delete(TABLE_NAME, F_FIRST_NAME + " = ?", new String[] {val});
-	}
-
-	public String getLastName() {
-		return mLastName;
-	}
-
-	public void setLastName(String val) {
-		this.mLastName = val;
-		setIsDirty(true);
-	}
-	
-	public static int deleteByLastName(SQLiteOpenHelper dbm, String val) {
-		return dbm.getWritableDatabase().delete(TABLE_NAME, F_LAST_NAME + " = ?", new String[] {val});
-	}
-	public String getBio() {
+	public String getName() {
 		return mName;
 	}
 
-	public void setBio(String val) {
+	public void setName(String val) {
 		this.mName = val;
 		setIsDirty(true);
 	}
-		
+	
+	
 	public String getImageUrl() {
 		return mImageUrl;
 	}
-
+	
 	public void setImageUrl(String val) {
 		this.mImageUrl = val;
+		setIsDirty(true);
+	}
+	
+	public long getCreatorId() {
+		return mCreatorId;
+	}
+	
+	public void setCreatorId(long val) {
+		this.mCreatorId = val;
+		setIsDirty(true);
+	}
+
+	public String getCreatorName() {
+		return mCreatorName;
+	}
+
+	public void setCreatorName(String val) {
+		this.mCreatorName = val;
+		setIsDirty(true);
+	}
+	
+	public String getSideChats() {
+		return mSideChats;
+	}
+
+	public void setSideChats(String val) {
+		this.mSideChats = val;
+		setIsDirty(true);
+	}
+	
+	public String getWhispers() {
+		return mWhispers;
+	}
+
+	public void setWhispers(String val) {
+		this.mWhispers = val;
 		setIsDirty(true);
 	}
 }

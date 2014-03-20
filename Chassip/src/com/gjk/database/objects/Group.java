@@ -13,30 +13,33 @@ import android.database.sqlite.SQLiteOpenHelper;
 import org.json.JSONObject;
 
 import com.gjk.database.objects.base.BaseGroup;
-import com.gjk.database.objects.base.BaseUser;
 
 
 public class Group extends BaseGroup {
 	
-	public static User insertOrUpdate(SQLiteOpenHelper dbm, JSONObject json) throws Exception {
+	//{"group":{"id":"1","name":"GJK","image":"","creator_id":"4","creator_name":"Kachi Nwaobasi","side_chats":"2:side_chat-2|3:Hello WOrld|4:Home|5:Sweet|6:Home","whispers":"1:whisper-1|2:Knock, Knock|3:Who's There"},"success":true}
+	public static Group insertOrUpdate(SQLiteOpenHelper dbm, JSONObject json) throws Exception {
 		long id = json.getLong("id");
-		User user = findOneByGlobalId(dbm, id);
-		if (user == null) {
-			user = new User(dbm);
+		Group group = findOneByGlobalId(dbm, id);
+		if (group == null) {
+			group = new Group(dbm);
 		}
-		user.setGlobalId(id);
-		if(!json.isNull("first_name"))
-			user.setFirstName(json.getString("first_name"));
-		if(!json.isNull("last_name"))
-			user.setLastName(json.getString("last_name"));
-		if(!json.isNull("name") && user.getFullName().trim().isEmpty())
-			user.setFirstName(json.getString("name"));
-		if(!json.isNull("bio"))
-			user.setBio(json.getString("bio"));
+		group.setGlobalId(id);
+		if(!json.isNull("name"))
+			group.setName(json.getString("name"));
 		if(!json.isNull("image"))
-			user.setImageUrl(json.getString("image"));
-		user.save();
-		return user;
+			group.setImageUrl(json.getString("image"));
+		if(!json.isNull("creator_id"))
+			group.setCreatorId(json.getLong("creator_id"));
+		if(!json.isNull("creator_name"))
+			group.setCreatorName(json.getString("creator_name"));
+		if(!json.isNull("side_chats"))
+			group.setSideChats(json.getString("side_chats"));
+		if(!json.isNull("whispers"))
+			group.setWhispers(json.getString("whispers"));
+
+		group.save();
+		return group;
 	}
 
 	public Group(SQLiteOpenHelper dbm, Cursor c, boolean skipOk) {

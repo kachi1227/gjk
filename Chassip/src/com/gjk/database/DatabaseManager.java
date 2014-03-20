@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+import com.gjk.database.objects.Group;
 import com.gjk.database.objects.GroupMember;
 import com.gjk.database.objects.User;
 import com.gjk.database.objects.Message;
@@ -60,11 +61,12 @@ public class DatabaseManager extends SQLiteOpenHelper {
 	public void clear(SQLiteDatabase db, boolean loggingOut) {
 		db.execSQL(User.DROP_TABLE_STATEMENT);
 		db.execSQL(User.CREATE_TABLE_STATEMENT);
+		db.execSQL(Group.DROP_TABLE_STATEMENT);
+		db.execSQL(Group.CREATE_TABLE_STATEMENT);
 		db.execSQL(GroupMember.DROP_TABLE_STATEMENT);
 		db.execSQL(GroupMember.CREATE_TABLE_STATEMENT);
 		db.execSQL(Message.DROP_TABLE_STATEMENT);
 		db.execSQL(Message.CREATE_TABLE_STATEMENT);
-		
 	}
 
 	@Override
