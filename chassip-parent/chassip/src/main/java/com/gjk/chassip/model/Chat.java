@@ -15,13 +15,15 @@ import com.google.common.collect.Sets;
 public class Chat {
 
 	private long mChatId;
+	private String mChatName;
 	private Map<Long, ThreadFragment> mThreadsFragMap;
 	private ThreadFragment mMainThreadFrag;
 	private Set<ThreadFragment> mWhisperThreadFrags;
 	private Set<ThreadFragment> mSideConvoThreadFrags;
 	
-	public Chat(long chatId) {
+	public Chat(long chatId, String chatName) {
 		mChatId = chatId;
+		mChatName = chatName;
 		mThreadsFragMap = Maps.newHashMap();
 		mWhisperThreadFrags = Sets.newHashSet();
 		mSideConvoThreadFrags = Sets.newHashSet();
@@ -29,6 +31,10 @@ public class Chat {
 	
 	public long getChatId() {
 		return mChatId;
+	}
+	
+	public String getChatName() {
+		return mChatName;
 	}
 	
 	public Set<User> getMembers() {

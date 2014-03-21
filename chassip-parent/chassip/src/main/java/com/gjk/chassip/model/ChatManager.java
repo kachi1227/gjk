@@ -5,6 +5,7 @@ import java.util.Map;
 
 import com.gjk.chassip.InstantMessage;
 import com.gjk.chassip.ThreadFragment;
+import com.gjk.chassip.account.AccountManager;
 import com.google.common.collect.Maps;
 
 /**
@@ -35,7 +36,7 @@ public class ChatManager {
 	
 	public void addChat(ThreadFragment mainChatFrag) {
 		mCurrentChatId = mainChatFrag.getChatId();
-		Chat newChat = new Chat(mCurrentChatId);
+		Chat newChat = new Chat(mCurrentChatId, mainChatFrag.getName());
 		newChat.addThread(mainChatFrag);
 		if (!chatExists(mCurrentChatId)) {
 			mChatMap.put(mCurrentChatId, newChat);

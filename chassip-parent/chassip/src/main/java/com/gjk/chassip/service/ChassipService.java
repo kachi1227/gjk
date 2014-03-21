@@ -114,16 +114,18 @@ public class ChassipService extends Service {
 		Bundle bundle = new Bundle();
 		bundle.putLong("chat_id", chatId);
 		bundle.putLong("thread_id", 1);
+		bundle.putString("thread_name", chatName);
 		bundle.putStringArray("user_names", new String[] { AccountManager.getInstance().getUser().getName() });
 		Log.d(LOGTAG, "Got create chat");
 		sendMessage(new MutableInt(MSG_NEW_CHAT), bundle);
 	}
 	
-	public static void addChatMembers(long chatId, String[] members) {
+	public static void addChatMembers(long chatId, String[] memberNames, long[] memberIds) {
 		Bundle bundle = new Bundle();
 		bundle.putLong("chat_id", chatId);
 		bundle.putLong("thread_id", 1);
-		bundle.putStringArray("user_names", members);
+		bundle.putStringArray("user_names", memberNames);
+		bundle.putLongArray("user_ids", memberIds);
 		Log.d(LOGTAG, "Got add members");
 		sendMessage(new MutableInt(MSG_NEW_MEMBERS), bundle);
 	}

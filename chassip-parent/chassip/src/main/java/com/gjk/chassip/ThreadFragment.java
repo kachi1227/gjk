@@ -1,8 +1,6 @@
 package com.gjk.chassip;
 
-import java.io.File;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
@@ -15,13 +13,11 @@ import com.gjk.chassip.model.ChatManager;
 import com.gjk.chassip.model.ImManagerFactory;
 import com.gjk.chassip.model.ThreadType;
 import com.gjk.chassip.model.User;
-import com.gjk.chassip.net.CreateGroupTask;
 import com.gjk.chassip.net.SendMessageTask;
 import com.gjk.chassip.net.TaskResult;
 import com.gjk.chassip.net.HTTPTask.HTTPTaskListener;
 import com.gjk.chassip.service.ChassipService;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import android.annotation.SuppressLint;
@@ -48,6 +44,7 @@ public class ThreadFragment extends ListFragment {
 
 	private long mChatId;
 	private long mThreadId;
+	private String mName;
 	private ThreadType mThreadType;
 	private MessagesAdapter mAdapter;
 	private Set<User> mUsers;
@@ -67,11 +64,12 @@ public class ThreadFragment extends ListFragment {
 		mInitialized = false;
 	}
 
-	public ThreadFragment(long chatId, long threadId, ThreadType threadType, User[] members) {
+	public ThreadFragment(long chatId, long threadId, ThreadType threadType, String name, User[] members) {
 		super();
 		mChatId = chatId;
 		mThreadId = threadId;
 		mThreadType = threadType;
+		mName = name;
 		mUsers = Sets.newHashSet();
 		mInitialized = false;
 		setRetainInstance(true);
@@ -170,6 +168,10 @@ public class ThreadFragment extends ListFragment {
 
 	public long getChatId() {
 		return mChatId;
+	}
+	
+	public String getName() {
+		return mName;
 	}
 
 	public boolean isInitialized() {

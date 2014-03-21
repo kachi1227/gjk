@@ -170,7 +170,7 @@ public class ChatsDrawerFragment extends ListFragment {
 				if (result.getResponseCode() == 1) {
 					JSONObject response = (JSONObject) result.getExtraInfo();
 					try {
-						ChassipService.createChat(response.getLong("id"), response.getString("creator_id"));
+						ChassipService.createChat(response.getLong("id"), mChatName);
 					} catch (JSONException e) {
 						handleCreateChatError(e);
 					}
@@ -315,7 +315,7 @@ public class ChatsDrawerFragment extends ListFragment {
 			}
 			
 			TextView chatLabel = (TextView) convertView.findViewById(R.id.chatLabel);
-			chatLabel.setText(getLabel(position));
+			chatLabel.setText(getItem(position).getChatName());
 			TextView members = (TextView) convertView.findViewById(R.id.chatMembers);
 			members.setText(getMembers(position));
 

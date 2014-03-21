@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -27,6 +28,7 @@ import com.gjk.chassip.model.ChatManager;
 import com.gjk.chassip.model.User;
 import com.gjk.chassip.net.AddMemberTask;
 import com.gjk.chassip.net.CreateGroupTask;
+import com.gjk.chassip.net.GetGroupMembersTask;
 import com.gjk.chassip.net.TaskResult;
 import com.gjk.chassip.net.HTTPTask.HTTPTaskListener;
 import com.gjk.chassip.service.ChassipService;
@@ -39,12 +41,14 @@ import com.google.common.collect.Maps;
 public class ThreadsDrawerFragment extends ListFragment {
 
 	private final String LOGTAG = getClass().getSimpleName();
-	
+
 	private View mView;
 	private Button mAddChatMembers;
 	private ThreadAdapter mAdapter;
 	private AlertDialog mDialog;
 	private List<Long> mSelectedMembers;
+	private String[] mSelectedMembersNames;
+	private long[] mSelectedMembersIds;
 
 	// TODO: Temporary!!
 	private final static HashMap<String, Long> mapping = Maps.newHashMap();
@@ -101,28 +105,57 @@ public class ThreadsDrawerFragment extends ListFragment {
 	}
 
 	private void addChatMembers() {
-		
+
 		long[] members = new long[mSelectedMembers.size()];
-		final String[] membersStr = new String[mSelectedMembers.size()];
-		for (int i=0; i<mSelectedMembers.size(); i++) {
+		for (int i = 0; i < mSelectedMembers.size(); i++) {
 			members[i] = mSelectedMembers.get(i);
-			membersStr[i] = String.valueOf(mSelectedMembers.get(i));
 		}
-		
+
 		new AddMemberTask(getActivity(), new HTTPTaskListener() {
 
 			@Override
 			public void onTaskComplete(TaskResult result) {
 
 				if (result.getResponseCode() == 1) {
-					ChassipService.addChatMembers(ChatManager.getInstance().getCurrentChatId(), membersStr);
+					loadMembers();
 				} else {
 					handleCreateChatFail(result);
 				}
 			}
-		}, ChatManager.getInstance().getCurrentChatId(), members); 
+		}, ChatManager.getInstance().getCurrentChatId(), members);
 	}
-	
+
+	private void loadMembers() {
+		
+		mSelectedMembersNames = new String[mSelectedMembers.size()+1];
+		mSelectedMembersIds = new long[mSelectedMembers.size()+1];
+
+		new GetGroupMembersTask(getActivity(), new HTTPTaskListener() {
+
+			@Override
+			public void onTaskComplete(TaskResult result) {
+
+				if (result.getResponseCode() == 1) {
+					JSONArray response = (JSONArray) result.getExtraInfo();
+					try {
+
+						for (int i=0; i<response.length(); i++) {
+							JSONObject member = response.getJSONObject(i);
+							mSelectedMembersNames[i] = member.getString("first_name") + " " + member.getString("last_name");
+							mSelectedMembersIds[i] = member.getLong("id");
+						}
+						ChassipService.addChatMembers(ChatManager.getInstance().getCurrentChatId(), mSelectedMembersNames, mSelectedMembersIds);
+
+					} catch (JSONException e) {
+						handleGetGroupMembersError(e);
+					}
+				} else {
+					handleGetGroupMembersFail(result);
+				}
+			}
+		}, ChatManager.getInstance().getCurrentChatId()); 
+	}
+
 	private void handleCreateChatFail(TaskResult result) {
 		Log.e(LOGTAG, String.format(Locale.getDefault(), "Adding Chat Members failed: %s", result.getMessage()));
 		showLongToast(String.format(Locale.getDefault(), "Adding Chat Members failed: %s", result.getMessage()));
@@ -133,6 +166,16 @@ public class ThreadsDrawerFragment extends ListFragment {
 		showLongToast(String.format(Locale.getDefault(), "Adding Chat Members errored: %s", e.getMessage()));
 	}
 	
+	private void handleGetGroupMembersFail(TaskResult result) {
+		Log.e(LOGTAG, String.format(Locale.getDefault(), "Getting Chat Members failed: %s", result.getMessage()));
+		showLongToast(String.format(Locale.getDefault(), "Getting Chat Members failed: %s", result.getMessage()));
+	}
+
+	private void handleGetGroupMembersError(JSONException e) {
+		Log.e(LOGTAG, String.format(Locale.getDefault(), "Getting Chat Members errored: %s", e.getMessage()));
+		showLongToast(String.format(Locale.getDefault(), "Getting Chat Members errored: %s", e.getMessage()));
+	}
+
 	private void showLongToast(String message) {
 		Toast.makeText(getActivity(), message, Toast.LENGTH_LONG).show();
 	}
@@ -171,7 +214,7 @@ public class ThreadsDrawerFragment extends ListFragment {
 				convertView = LayoutInflater.from(getContext()).inflate(R.layout.threads_drawer_row, null);
 			}
 			TextView threadLabel = (TextView) convertView.findViewById(R.id.threadLabel);
-			threadLabel.setText(getLabel(position));
+			threadLabel.setText(getItem(position).getName());
 			TextView members = (TextView) convertView.findViewById(R.id.threadMembers);
 			members.setText(getMembers(position));
 

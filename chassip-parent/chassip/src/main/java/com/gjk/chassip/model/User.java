@@ -49,7 +49,7 @@ public class User {
 		this.mId = id;
 	}
 	
-	public static User[] getUsers(String[] userNames) {
+	public static User[] build(String[] userNames) {
 		User[] users = new User[userNames.length];
 		for (int i=0; i<userNames.length; i++) {
 			users[i] = new User(userNames[i]);
@@ -57,7 +57,15 @@ public class User {
 		return users;
 	}
 	
-	public static String getUserStrs(User[] userNames) {
+	public static User[] build(String[] userNames, long[] userIds) {
+		User[] users = new User[userNames.length];
+		for (int i=0; i<userNames.length; i++) {
+			users[i] = new User(userNames[i], userIds[i]);
+		}
+		return users;
+	}
+	
+	public static String toString(User[] userNames) {
 		String users = userNames[0].getName();
 		for (int i=1; i<userNames.length-1; i++) {
 			users = users + ", " + userNames[i].getName();

@@ -2,6 +2,12 @@ package com.gjk.chassip;
 
 import java.util.List;
 import java.util.Locale;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import android.accounts.Account;
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.app.Service;
@@ -36,6 +42,10 @@ import com.gjk.chassip.model.ChatManager;
 import com.gjk.chassip.model.ImManagerFactory;
 import com.gjk.chassip.model.ThreadType;
 import com.gjk.chassip.model.User;
+import com.gjk.chassip.net.GetGroupMembersTask;
+import com.gjk.chassip.net.GetMultipleGroupsTask;
+import com.gjk.chassip.net.TaskResult;
+import com.gjk.chassip.net.HTTPTask.HTTPTaskListener;
 import com.gjk.chassip.service.ChassipService;
 import com.google.common.collect.Lists;
 import com.jeremyfeinstein.slidingmenu.lib.SlidingMenu;
@@ -162,6 +172,8 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 
 		startService(new Intent(MainActivity.this, ChassipService.class));
 		doBindService();
+
+		getGroups();
 	}
 
 	/*
@@ -299,37 +311,118 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 		}
 	}
 
+	private void getGroups() {
+		new GetMultipleGroupsTask(this, new HTTPTaskListener() {
+
+			@Override
+			public void onTaskComplete(TaskResult result) {
+
+				if (result.getResponseCode() == 1) {
+					JSONArray response = (JSONArray) result.getExtraInfo();
+					try {
+						for (int i = 0; i < response.length(); i++) {
+							JSONObject group = response.getJSONObject(i);
+							long chatId = group.getLong("id");
+							String chatName = group.getString("name");
+							mThreadPagerAdapter.addChat(chatId, 1, chatName, AccountManager.getInstance().getUser());
+							getMembersOfGroup(chatId);
+						}
+					} catch (JSONException e) {
+						handleGetGroupsError(e);
+					}
+				} else {
+					handleGetGroupsFail(result);
+				}
+			}
+		}, AccountManager.getInstance().getUser().getId());
+	}
+
+	private void getMembersOfGroup(final long chatId) {
+		new GetGroupMembersTask(this, new HTTPTaskListener() {
+
+			@Override
+			public void onTaskComplete(TaskResult result) {
+
+				if (result.getResponseCode() == 1) {
+					JSONArray response = (JSONArray) result.getExtraInfo();
+					try {
+
+						for (int i = 0; i < response.length(); i++) {
+							JSONObject member = response.getJSONObject(i);
+							String name = member.getString("first_name") + " " + member.getString("last_name");
+							long userId = member.getLong("id");
+							addMember(chatId, 1, new User(name, userId));
+						}
+
+					} catch (JSONException e) {
+						handleGetGroupMembersError(e);
+					}
+				} else {
+					handleGetGroupMembersFail(result);
+				}
+			}
+		}, chatId);
+	}
+
+	private void handleGetGroupsFail(TaskResult result) {
+		Log.e(LOGTAG, String.format(Locale.getDefault(), "Getting Groups failed: %s", result.getMessage()));
+		showLongToast(String.format(Locale.getDefault(), "Getting Groups failed: %s", result.getMessage()));
+	}
+
+	private void handleGetGroupsError(JSONException e) {
+		Log.e(LOGTAG, String.format(Locale.getDefault(), "Getting Groups errored: %s", e.getMessage()));
+		showLongToast(String.format(Locale.getDefault(), "Getting Groups errored: %s", e.getMessage()));
+	}
+
+	private void handleGetGroupMembersFail(TaskResult result) {
+		Log.e(LOGTAG, String.format(Locale.getDefault(), "Getting Chat Members failed: %s", result.getMessage()));
+		showLongToast(String.format(Locale.getDefault(), "Getting Chat Members failed: %s", result.getMessage()));
+	}
+
+	private void handleGetGroupMembersError(JSONException e) {
+		Log.e(LOGTAG, String.format(Locale.getDefault(), "Getting Chat Members errored: %s", e.getMessage()));
+		showLongToast(String.format(Locale.getDefault(), "Getting Chat Members errored: %s", e.getMessage()));
+	}
+
+	private void showLongToast(String message) {
+		Toast.makeText(this, message, Toast.LENGTH_LONG).show();
+	}
+
 	private void toggleChat(final long chatId) {
 		if (chatId != mChatManager.getCurrentChatId()) {
 			mThreadPagerAdapter.addChat(chatId, 0, null);
 		}
 	}
 
-	private void joinNewChat(final long chatId, final long threadId, final User[] users) {
+	private void joinNewChat(final long chatId, final long threadId, final String name, final User[] users) {
 
 		if (!mChatManager.chatExists(chatId)) {
 
-			AlertDialog.Builder builder = new AlertDialog.Builder(this);
-			// Add the buttons
-			builder.setPositiveButton(R.string.yes, new DialogInterface.OnClickListener() {
-				@Override
-				public void onClick(DialogInterface dialog, int which) {
-					mThreadPagerAdapter.addChat(chatId, threadId, users);
-				}
-			});
-			builder.setNegativeButton(R.string.no, new DialogInterface.OnClickListener() {
-				@Override
-				public void onClick(DialogInterface dialog, int which) {
-				}
-			});
+			if (users[0].getName() != AccountManager.getInstance().getUser().getName()) {
+				AlertDialog.Builder builder = new AlertDialog.Builder(this);
+				// Add the buttons
+				builder.setPositiveButton(R.string.yes, new DialogInterface.OnClickListener() {
+					@Override
+					public void onClick(DialogInterface dialog, int which) {
+						mThreadPagerAdapter.addChat(chatId, threadId, name, users);
+					}
+				});
+				builder.setNegativeButton(R.string.no, new DialogInterface.OnClickListener() {
+					@Override
+					public void onClick(DialogInterface dialog, int which) {
+					}
+				});
 
-			String message = getResources().getString(R.string.join_chat_message, User.getUserStrs(users));
-			builder.setMessage(message).setTitle(R.string.join_chat_title);
+				String message = getResources().getString(R.string.join_chat_message, User.toString(users));
+				builder.setMessage(message).setTitle(R.string.join_chat_title);
 
-			// Create the AlertDialog
-			mDialog = builder.create();
-			mDialog.setCanceledOnTouchOutside(true);
-			mDialog.show();
+				// Create the AlertDialog
+				mDialog = builder.create();
+				mDialog.setCanceledOnTouchOutside(true);
+				mDialog.show();
+			} else {
+				mThreadPagerAdapter.addChat(chatId, threadId, name, users);
+			}
 		}
 	}
 
@@ -338,7 +431,9 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 	}
 
 	private void addMember(long chatId, long threadId, User user) {
-		mThreadPagerAdapter.addMember(chatId, threadId, user);
+		if (!AccountManager.getInstance().getUser().equals(user)) {
+			mThreadPagerAdapter.addMember(chatId, threadId, user);
+		}
 	}
 
 	private void addMembers(long chatId, long threadId, User... users) {
@@ -347,7 +442,8 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 		}
 	}
 
-	private void joinThread(final long chatId, final long threadId, final ThreadType type, final User[] members) {
+	private void joinThread(final long chatId, final long threadId, final ThreadType type, final String name,
+			final User[] members) {
 
 		if (mChatManager.chatExists(chatId)) {
 
@@ -356,7 +452,7 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 			builder.setPositiveButton(R.string.yes, new DialogInterface.OnClickListener() {
 				@Override
 				public void onClick(DialogInterface dialog, int which) {
-					mThreadPagerAdapter.addThread(chatId, threadId, type, members);
+					mThreadPagerAdapter.addThread(chatId, threadId, type, name, members);
 				}
 			});
 			builder.setNegativeButton(R.string.no, new DialogInterface.OnClickListener() {
@@ -366,10 +462,10 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 			});
 
 			if (type == ThreadType.SIDE_CONVO) {
-				String message = getResources().getString(R.string.join_sideconvo_message, User.getUserStrs(members));
+				String message = getResources().getString(R.string.join_sideconvo_message, User.toString(members));
 				builder.setMessage(message).setTitle(R.string.join_sideconvo_title);
 			} else if (type == ThreadType.WHISPER) {
-				String message = getResources().getString(R.string.join_whisper_message, User.getUserStrs(members));
+				String message = getResources().getString(R.string.join_whisper_message, User.toString(members));
 				builder.setMessage(message).setTitle(R.string.join_whisper_title);
 			} else {
 				throw new RuntimeException("Whooooooa....");
@@ -419,8 +515,8 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 			case ChassipService.MSG_NEW_MESSAGE:
 				Log.i(LOGTAG, "MSG_NEW_MESSAGE");
 				InstantMessage im = new InstantMessage(msg.getData().getLong("chat_id"), msg.getData().getLong(
-						"thread_id"), new User(msg.getData().getString(
-						"user_name")), msg.getData().getString("message"), msg.getData().getLong("time"));
+						"thread_id"), new User(msg.getData().getString("user_name")), msg.getData()
+						.getString("message"), msg.getData().getLong("time"));
 				addInstantMessage(im);
 				break;
 			case ChassipService.MSG_NEW_MEMBERS:
@@ -428,22 +524,25 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 				long chatId2 = msg.getData().getLong("chat_id");
 				long threadId2 = msg.getData().getLong("thread_id");
 				String[] userNames2 = msg.getData().getStringArray("user_names");
-				addMembers(chatId2, threadId2, User.getUsers(userNames2));
+				long[] userNamesIds = msg.getData().getLongArray("user_ids");
+				addMembers(chatId2, threadId2, User.build(userNames2, userNamesIds));
 				break;
 			case ChassipService.MSG_NEW_THREAD:
 				Log.i(LOGTAG, "MSG_NEW_THREAD");
 				long chatId3 = msg.getData().getLong("chat_id");
 				long threadId3 = msg.getData().getLong("thread_id");
 				ThreadType type3 = ThreadType.getFromValue(msg.getData().getInt("thread_type"));
+				String threadName3 = msg.getData().getString("thread_name");
 				String[] userNames3 = msg.getData().getStringArray("user_names");
-				joinThread(chatId3, threadId3, type3, User.getUsers(userNames3));
+				joinThread(chatId3, threadId3, type3, threadName3, User.build(userNames3));
 				break;
 			case ChassipService.MSG_NEW_CHAT:
 				Log.i(LOGTAG, "MSG_NEW_CHAT");
 				long chatId4 = msg.getData().getLong("chat_id");
 				long threadId4 = msg.getData().getLong("thread_id");
+				String threadName4 = msg.getData().getString("thread_name");
 				String[] userNames4 = msg.getData().getStringArray("user_names");
-				joinNewChat(chatId4, threadId4, User.getUsers(userNames4));
+				joinNewChat(chatId4, threadId4, threadName4, User.build(userNames4));
 				break;
 			default:
 				super.handleMessage(msg);
@@ -529,13 +628,13 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 			notifyDataSetChanged();
 		}
 
-		protected void addChat(long chatId, long threadId, User[] members) {
-			mAddChatTask = new AddChatTask(chatId, threadId, members);
+		protected void addChat(long chatId, long threadId, String name, User... members) {
+			mAddChatTask = new AddChatTask(chatId, threadId, name, members);
 			mAddChatTask.execute();
 		}
 
-		protected void addThread(long chatId, long threadId, ThreadType type, User[] members) {
-			mAddThreadTask = new AddThreadTask(chatId, threadId, type, members);
+		protected void addThread(long chatId, long threadId, ThreadType type, String name, User... members) {
+			mAddThreadTask = new AddThreadTask(chatId, threadId, type, name, members);
 			mAddThreadTask.execute();
 		}
 
@@ -551,27 +650,7 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 
 		protected void addTab(ThreadFragment frag) {
 
-			String heading;
-			switch (frag.getThreadType()) {
-			case MAIN_CHAT:
-				heading = "MAIN";
-				break;
-			case SIDE_CONVO:
-				heading = "SIDE CONVO";
-				break;
-			case WHISPER:
-				heading = "WHISPER";
-				break;
-			default:
-				heading = "WTF...";
-				break;
-			}
-
-			Tab tab = mBar
-					.newTab()
-					.setText(
-							String.format(Locale.getDefault(), "%s - %d-%d", heading, frag.getChatId(),
-									frag.getThreadId())).setTabListener(this);
+			Tab tab = mBar.newTab().setText(frag.getName()).setTabListener(this);
 			if (mChatManager.getCurrentChatId() == frag.getChatId()) {
 				mBar.addTab(tab);
 				mCurrrentThreads.add(frag);
@@ -588,11 +667,13 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 		private long mChatId;
 		private long mThreadId;
 		private User[] mUsers;
+		private String mName;
 		private ThreadFragment mMainChatFrag;
 
-		protected AddChatTask(long chatId, long threadId, User[] users) {
+		protected AddChatTask(long chatId, long threadId, String name, User[] users) {
 			mChatId = chatId;
 			mThreadId = threadId;
+			mName = name;
 			mUsers = users;
 		}
 
@@ -609,7 +690,7 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 				mChatManager.setCurrentChat(mChatId);
 				mThreadPagerAdapter.displayCurrentTabs();
 			} else {
-				mMainChatFrag = new ThreadFragment(mChatId, mThreadId, ThreadType.MAIN_CHAT, mUsers);
+				mMainChatFrag = new ThreadFragment(mChatId, mThreadId, ThreadType.MAIN_CHAT, mName, mUsers);
 				mChatManager.addChat(mMainChatFrag);
 				mThreadPagerAdapter.addTab(mMainChatFrag);
 				addToChatsDrawer(mChatManager.getChat(mChatId));
@@ -622,13 +703,15 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 		private long mChatId;
 		private long mThreadId;
 		private ThreadType mType;
+		private String mName;
 		private User[] mUsers;
 		private ThreadFragment mThreadFrag;
 
-		protected AddThreadTask(long chatId, long threadId, ThreadType type, User[] users) {
+		protected AddThreadTask(long chatId, long threadId, ThreadType type, String name, User[] users) {
 			mChatId = chatId;
 			mThreadId = threadId;
 			mType = type;
+			mName = name;
 			mUsers = users;
 		}
 
@@ -640,7 +723,7 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 
 		@Override
 		protected void onPostExecute(Void result) {
-			mThreadFrag = new ThreadFragment(mChatId, mThreadId, mType, mUsers);
+			mThreadFrag = new ThreadFragment(mChatId, mThreadId, mType, mName, mUsers);
 			mChatManager.addThread(mThreadFrag);
 			mThreadPagerAdapter.addTab(mThreadFrag);
 		}
