@@ -1,9 +1,5 @@
 package com.gjk.chassip;
 
-import java.util.Date;
-
-import android.text.format.DateFormat;
-
 import com.gjk.chassip.model.User;
 
 /**
@@ -14,18 +10,16 @@ public class InstantMessage {
 	
 	private long mChatId;
 	private long mThreadId;
-	private long mImId;
 	private User mUser;
 	private String mIm;
 	private long mTime;
 	
-	public InstantMessage(long chatId, long threadId, long imId, User user, String im) {
+	public InstantMessage(long chatId, long threadId, User user, String im, long time) {
 		mChatId = chatId;
 		mThreadId = threadId;
-		mImId = imId;
 		mUser = user;
 		mIm = im;
-		mTime = System.currentTimeMillis();
+		mTime = time;
 	}
 	
 	public InstantMessage() {}
@@ -57,20 +51,6 @@ public class InstantMessage {
 		this.mThreadId = threadId;
 	}
 
-	/**
-	 * @return the mImId
-	 */
-	public long getmImId() {
-		return mImId;
-	}
-
-	/**
-	 * @param mImId the mImId to set
-	 */
-	public void setmImId(long mImId) {
-		this.mImId = mImId;
-	}
-	
 	/**
 	 * @return the user
 	 */
@@ -112,7 +92,7 @@ public class InstantMessage {
 	
 	@Override
 	public int hashCode() {
-		return Long.valueOf(mImId).hashCode();
+		return Long.valueOf(mTime).hashCode();
 	}
 	
 	@Override

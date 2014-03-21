@@ -13,6 +13,7 @@ import org.apache.commons.lang.mutable.MutableInt;
 
 import com.gjk.chassip.InstantMessage;
 import com.gjk.chassip.MainActivity;
+import com.gjk.chassip.account.AccountManager;
 import com.gjk.chassip.model.ThreadType;
 import com.gjk.chassip.model.User;
 import com.gjk.chassip.model.ChatManager;
@@ -47,7 +48,7 @@ public class ChassipService extends Service {
 	private Timer mTimer = new Timer();
 	private static boolean isRunning = false;
 
-	private Messenger sClient = null; // one single client
+	private static Messenger sClient = null; // one single client
 
 	public static final int MSG_REGISTER_CLIENT = 1;
 	public static final int MSG_UNREGISTER_CLIENT = 2;
@@ -60,7 +61,7 @@ public class ChassipService extends Service {
 
 	private final Messenger mServiceMessenger = new Messenger(new IncomingMessageHandler()); // Target we publish for
 																								// clients to send
-	private final String LOGTAG = getClass().getSimpleName();
+	private final static String LOGTAG = "ChassipService";
 
 	@Override
 	public void onCreate() {
@@ -108,6 +109,35 @@ public class ChassipService extends Service {
 		stopSelf();
 		return super.onUnbind(intent);
 	}
+	
+	public static void createChat(long chatId, String chatName) {
+		Bundle bundle = new Bundle();
+		bundle.putLong("chat_id", chatId);
+		bundle.putLong("thread_id", 1);
+		bundle.putStringArray("user_names", new String[] { AccountManager.getInstance().getUser().getName() });
+		Log.d(LOGTAG, "Got create chat");
+		sendMessage(new MutableInt(MSG_NEW_CHAT), bundle);
+	}
+	
+	public static void addChatMembers(long chatId, String[] members) {
+		Bundle bundle = new Bundle();
+		bundle.putLong("chat_id", chatId);
+		bundle.putLong("thread_id", 1);
+		bundle.putStringArray("user_names", members);
+		Log.d(LOGTAG, "Got add members");
+		sendMessage(new MutableInt(MSG_NEW_MEMBERS), bundle);
+	}
+	
+	public static void sendMessage(long chatId, long threadId, String from, String message, long time) {
+		Bundle bundle = new Bundle();
+		bundle.putLong("chat_id", chatId);
+		bundle.putLong("thread_id", threadId);
+		bundle.putString("user_name", from);
+		bundle.putString("message", message);
+		bundle.putLong("time", time);
+		Log.d(LOGTAG, "Got send message");
+		sendMessage(new MutableInt(MSG_NEW_MESSAGE), bundle);
+	}
 
 	/**
 	 * Send the data to all clients.
@@ -115,22 +145,23 @@ public class ChassipService extends Service {
 	 * @param intvaluetosend
 	 *            The value to send.
 	 */
-	private void sendMessage(MutableInt type, Bundle bundle) {
-		if (sClient != null) {
-			try {
-				// Send data as a String
-				Message msg = Message.obtain(null, type.intValue());
-				msg.setData(bundle);
-				sClient.send(msg);
-			} catch (RemoteException e) {
-				// The client is dead. Remove it from the list.
-				sClient = null;
-				Log.d(LOGTAG, "Client is dead. FUCCCK");
+	private static void sendMessage(MutableInt type, Bundle bundle) {
+		synchronized (sClient) { 
+			if (sClient != null) {
+				try {
+					// Send data as a String
+					Message msg = Message.obtain(null, type.intValue());
+					msg.setData(bundle);
+					sClient.send(msg);
+				} catch (RemoteException e) {
+					// The client is dead. Remove it from the list.
+					sClient = null;
+					Log.d(LOGTAG, "Client is dead. FUCCCK");
+				}
+			} else {
+				Log.d(LOGTAG, "No client to send message to bro");
 			}
-		} else {
-			Log.d(LOGTAG, "No client to send message to bro");
 		}
-
 	}
 
 	public static boolean isRunning() {
@@ -179,6 +210,7 @@ public class ChassipService extends Service {
 				bundle.putLong("thread_id", randomCleanGarbage.getThreadId());
 				bundle.putString("user_name", randomCleanGarbage.getUser().getName());
 				bundle.putString("message", randomCleanGarbage.getIm());
+				bundle.putLong("time", randomCleanGarbage.getTime());
 				mMessageLoop.checkTime();
 				return true;
 			} else {
@@ -320,7 +352,7 @@ public class ChassipService extends Service {
 					.getThreadFragment(randomThreadId).getMembers());
 			User randomUser = members.get(mRandom.nextInt(members.size()));
 			String randomMessage = mMessages.get(mRandom.nextInt(mMessages.size()));
-			return new InstantMessage(randomChatId, randomThreadId, 0, randomUser, randomMessage);
+			return new InstantMessage(randomChatId, randomThreadId, randomUser, randomMessage, System.currentTimeMillis());
 		}
 
 		public boolean isInMessageLoop() {
@@ -348,7 +380,7 @@ public class ChassipService extends Service {
 				Bundle bundle = new Bundle();
 				boolean gotMessage = next(msgType, bundle);
 				if (gotMessage) {
-					sendNotification(bundle.getString("user_name"), bundle.getString("message"));
+//					sendNotification(bundle.getString("user_name"), bundle.getString("message"));
 					sendMessage(msgType, bundle);
 				}
 
@@ -370,7 +402,7 @@ public class ChassipService extends Service {
 			case MSG_REGISTER_CLIENT:
 				sClient = msg.replyTo;
 				initialize();
-				mTimer.scheduleAtFixedRate(new SimTask(), 0, 1000L);
+				mTimer.scheduleAtFixedRate(new SimTask(), 0, 3000L);
 				break;
 			case MSG_UNREGISTER_CLIENT:
 				sClient = null;
@@ -381,7 +413,7 @@ public class ChassipService extends Service {
 				break;
 			case MSG_GO:
 				mTimer = new Timer();
-				mTimer.scheduleAtFixedRate(new SimTask(), 0, 1000L);
+				mTimer.scheduleAtFixedRate(new SimTask(), 0, 3000L);
 				break;
 			default:
 				super.handleMessage(msg);

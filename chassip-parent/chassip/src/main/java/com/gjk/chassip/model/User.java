@@ -6,10 +6,17 @@ package com.gjk.chassip.model;
  */
 public class User {
 	
+	private long mId;
 	private String mName;
 
 	public User(String name) {
 		this.mName = name;
+		this.mId = 0;
+	}
+	
+	public User(String name, long id) {
+		this.mName = name;
+		this.mId = id;
 	}
 	
 	public User() {}
@@ -26,6 +33,20 @@ public class User {
 	 */
 	public void setName(String name) {
 		this.mName = name;
+	}
+	
+	/**
+	 * @return the mId
+	 */
+	public long getId() {
+		return mId;
+	}
+
+	/**
+	 * @param mId the mId to set
+	 */
+	public void setId(long id) {
+		this.mId = id;
 	}
 	
 	public static User[] getUsers(String[] userNames) {
@@ -53,11 +74,12 @@ public class User {
 	@Override
 	public boolean equals(Object obj) {
 		if (obj instanceof User) {
-			return ((User) obj).getName().equals(mName);
+			User u = (User) obj;
+			return u.mName.equals(mName) && u.mId == mId;
 		}
 		return false;
 	}
-	
+
 	@Override
 	public String toString() {
 		return String.format("name=%s", mName);

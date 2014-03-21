@@ -62,7 +62,7 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 	private AddThreadTask mAddThreadTask;
 	private AddInstantMessageTask mAddInstantMessagrTask;
 	private AddMemberTask mMemberTask;
-	private AlertDialog mJoinThreadDialog;
+	private AlertDialog mDialog;
 	private ChatsDrawerFragment mChatsDrawerFragment;
 	private ThreadsDrawerFragment mThreadsDrawerFragment;
 
@@ -144,7 +144,7 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 		Toast.makeText(getApplicationContext(), message2, Toast.LENGTH_SHORT).show();
 		Toast.makeText(getApplicationContext(), message3, Toast.LENGTH_SHORT).show();
 
-		AccountManager.getInstance().setUser(new User(firstName + " " + lastName));
+		AccountManager.getInstance().setUser(new User(firstName + " " + lastName, chassipId));
 
 		// instantiate new view pager
 		mViewPager = new ViewPager(this);
@@ -327,9 +327,9 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 			builder.setMessage(message).setTitle(R.string.join_chat_title);
 
 			// Create the AlertDialog
-			mJoinThreadDialog = builder.create();
-			mJoinThreadDialog.setCanceledOnTouchOutside(true);
-			mJoinThreadDialog.show();
+			mDialog = builder.create();
+			mDialog.setCanceledOnTouchOutside(true);
+			mDialog.show();
 		}
 	}
 
@@ -376,9 +376,9 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 			}
 
 			// Create the AlertDialog
-			mJoinThreadDialog = builder.create();
-			mJoinThreadDialog.setCanceledOnTouchOutside(true);
-			mJoinThreadDialog.show();
+			mDialog = builder.create();
+			mDialog.setCanceledOnTouchOutside(true);
+			mDialog.show();
 		}
 	}
 
@@ -419,8 +419,8 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 			case ChassipService.MSG_NEW_MESSAGE:
 				Log.i(LOGTAG, "MSG_NEW_MESSAGE");
 				InstantMessage im = new InstantMessage(msg.getData().getLong("chat_id"), msg.getData().getLong(
-						"thread_id"), ImManagerFactory.incrementTotalImCount(), new User(msg.getData().getString(
-						"user_name")), msg.getData().getString("message"));
+						"thread_id"), new User(msg.getData().getString(
+						"user_name")), msg.getData().getString("message"), msg.getData().getLong("time"));
 				addInstantMessage(im);
 				break;
 			case ChassipService.MSG_NEW_MEMBERS:

@@ -5,9 +5,9 @@ package com.gjk.chassip.model;
  * @author gpl
  */
 public enum ThreadType {
-	MAIN_CHAT(0),
-	SIDE_CONVO(1),
-	WHISPER(2);
+	MAIN_CHAT(1),
+	SIDE_CONVO(2),
+	WHISPER(3);
 	
 	private final int value;
 	

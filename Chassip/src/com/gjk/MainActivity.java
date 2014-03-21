@@ -1,5 +1,11 @@
 package com.gjk;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+
+import com.gjk.net.GetMessageTask;
+import com.gjk.net.SendMessageTask;
+
 import android.os.Bundle;
 import android.app.Activity;
 import android.support.v7.app.ActionBarActivity;
@@ -11,6 +17,13 @@ public class MainActivity extends ActionBarActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
+        try {
+			new GetMessageTask(this, null, 4, 1, new JSONArray("[4, -1]"));
+		} catch (JSONException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+        //new SendMessageTask(this, null, 4, 1, "Testing from the app", null, null, null, 2, 3L);
                
     }
 

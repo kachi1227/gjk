@@ -73,10 +73,10 @@ public abstract class MiluHTTPTask extends HTTPTask {
 
 	public void execute()  {
 		try {
-			if(Application.get().isNetworkAvailableWithMessage())
+			//if(Application.get().isNetworkAvailableWithMessage())
 				executeWithJson(getUri(), getPayload());
-			else if(mListener != null)
-				mListener.onTaskComplete(new TaskResult(this, TaskResult.RC_FAILURE, mCtx.getString(R.string.error_no_connection) , null));
+		//	else if(mListener != null)
+			//	mListener.onTaskComplete(new TaskResult(this, TaskResult.RC_FAILURE, mCtx.getString(R.string.error_no_connection) , null));
 				
 		} catch (Exception e) {
 			throw new RuntimeException(e);
