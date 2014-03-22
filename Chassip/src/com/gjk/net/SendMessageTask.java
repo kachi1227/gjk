@@ -1,5 +1,39 @@
 package com.gjk.net;
 
+/*-------------------------------------
+Sending Message
+
+API endpoint: http://skip2milu.com/gjk/api/sendMessage
+
+Sample JSON request:
+Required fields:
+{"sender_id":4, "group_id": 1, "content": "Hello world"}
+
+Optional fields:
+- recipient_id (long): The id of the person that the specific message is geared toward (if any). 
+This is for a later feature that we discussed. Most likely will not be in the prototype
+
+- topic_id (integer): The id of the current topic of discussion
+
+- message_type_id (integer): id corresponding to the various message types 
+( (1) Standard, (2) Side Conversation, (3) Whisper). If the field is not included in the JSON,
+ then the message is assumed to be Standard.
+
+- table_id (long): the id of this particular side conversation or whisper. 
+If message_type_id is not equal to 1 (Standard), then this value must absolutely be specified 
+else the API will return a "Missing fields" error
+
+
+
+Sample JSON response:
+
+{"message":{"id":"5","group_id":"1","sender_id":"4","first_name":"Kachi","last_name":"Nwaobasi",
+"image":null,"recipient_id":null,"topic_id":null,"content":"",
+"attachment":"resources\/groups\/group-0\/img20140228184604.png","message_type_id":"1","table_id":null,
+"date":"1393613164000"},"success":true}
+
+--------------------------------------------------------*/
+
 import java.util.HashMap;
 
 import org.json.JSONObject;
