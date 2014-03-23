@@ -1,7 +1,26 @@
 package com.gjk.net;
 
+/*----------------------------------------------------------------
+
+Remove Side Chat Members
+
+API endpoint: http://skip2milu.com/gjk/api/removeSideChatMembers
+
+Sample JSON request:
+Required fields:
+{"side_chat_id":1, "members": [5]}
+
+Sample JSON response:
+
+{"success":true} (if we were able to successfully remove members or if we tried to remove a member that wasnt in side chat)
+
+--------------------------------------------------------------------*/
+
 import java.util.Arrays;
 
+
+
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import com.gjk.net.MiluHttpRequest.DBHttpResponse;
@@ -34,7 +53,12 @@ public class RemoveSideChatMembersTask extends MiluHTTPTask{
 		// TODO Auto-generated method stub
 		JSONObject payload = new JSONObject();
 		payload.put("side_chat_id", mSideChatID);
-		payload.put("members", mMembers);
+		JSONArray ids = new JSONArray();
+		for(long id : mMembers){
+			ids.put(id);			
+		}
+		
+		payload.put("members", ids);
 		
 		return payload;
 	}
