@@ -1,10 +1,26 @@
 package com.gjk.chassip.net;
 
+/*---------------------------------------
+Delete GCM Registration
+
+API endpoint: http://skip2milu.com/gjk/api/updateGCMRegistration
+
+Sample JSON request:
+Deleting GCM - Required fields:
+{"id":4, "delete":true}
+
+
+Sample JSON response:
+{"success":true}
+----------------------------------------*/
+
 import org.json.JSONObject;
 
 import com.gjk.chassip.net.MiluHttpRequest.DBHttpResponse;
 
 import android.content.Context;
+
+
 
 public class DeleteGCMRegTask extends MiluHTTPTask {
 	
@@ -23,7 +39,7 @@ public class DeleteGCMRegTask extends MiluHTTPTask {
 	public TaskResult handleSuccessfulJSONResponse(DBHttpResponse response,
 			JSONObject json) throws Exception {
 		// TODO Auto-generated method stub
-		return new TaskResult(this, TaskResult.RC_SUCCESS,null,json);
+		return new TaskResult(this, TaskResult.RC_SUCCESS,null,json.getBoolean("success"));
 
 	}
 

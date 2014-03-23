@@ -38,7 +38,6 @@ import android.content.Context;
 import android.os.AsyncTask;
 import android.util.Base64;
 
-@SuppressWarnings("unused")
 public class MiluHttpRequest {
 	public static final int REQUEST_TYPE_GET = 1;
 	public static final int REQUEST_TYPE_POST_NORM = 2;
@@ -56,16 +55,16 @@ public class MiluHttpRequest {
 	}
 	
 	private static final String LAST_MOD_HEADER_NAME = "Last-Modified";
-	private static final String LINE_END = "\r\n";
-	private static final String TWO_HYPHENS = "--";
-	private static final String BOUNDRY = "*****";
-	private static final String POST_SEPERATOR = TWO_HYPHENS + BOUNDRY + LINE_END;
-	private static final String POST_CLOSER = TWO_HYPHENS + BOUNDRY + TWO_HYPHENS + LINE_END;
-	private static final String PARAM_CONTENT_DISPO_FORMAT = "Content-Disposition: form-data; name=\"%s\"" + LINE_END;
-	private static final String FILE_CONTENT_DISPO_FORMAT = "Content-Disposition: form-data; name=\"%s\"; filename=\"%s\"" + LINE_END;
-	
-	private static final String HTTP_POST_METHOD = "POST";
-	private static final String HTTP_FILE_POST_CONTENT_TYPE = "multipart/form-data;boundary=" + BOUNDRY;
+//	private static final String LINE_END = "\r\n";
+//	private static final String TWO_HYPHENS = "--";
+//	private static final String BOUNDRY = "*****";
+//	private static final String POST_SEPERATOR = TWO_HYPHENS + BOUNDRY + LINE_END;
+//	private static final String POST_CLOSER = TWO_HYPHENS + BOUNDRY + TWO_HYPHENS + LINE_END;
+//	private static final String PARAM_CONTENT_DISPO_FORMAT = "Content-Disposition: form-data; name=\"%s\"" + LINE_END;
+//	private static final String FILE_CONTENT_DISPO_FORMAT = "Content-Disposition: form-data; name=\"%s\"; filename=\"%s\"" + LINE_END;
+//	
+//	private static final String HTTP_POST_METHOD = "POST";
+//	private static final String HTTP_FILE_POST_CONTENT_TYPE = "multipart/form-data;boundary=" + BOUNDRY;
 	
 	
 	private String mUrl;
@@ -436,7 +435,7 @@ public class MiluHttpRequest {
 		}
 		
 		if(mEntityType != null)
-			entity.addPart("string", new StringBody(mStringEntity, "application/json", Charset.forName(HTTP.UTF_8)));
+			entity.addPart("string", new StringBody(mStringEntity, "applicatoin/json", Charset.forName(HTTP.UTF_8)));
 			
 		if (mFilesToUpload != null) {
 			int numOfFiles = mFilesToUpload.size();

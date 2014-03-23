@@ -1,10 +1,7 @@
 package com.gjk.chassip.net;
 
-import org.json.JSONObject;
-
-import com.gjk.chassip.net.MiluHttpRequest.DBHttpResponse;
-
-/*Removing Group
+/*------------------------------------------
+Removing Group
 
 API endpoint:  http://skip2milu.com/gjk/api/removeGroup
 
@@ -13,8 +10,12 @@ Sample JSON request:
 
 Sample JSON response:
 {"success":true} (if we were able to successfully remove group or if we tried to remove a group that doesn't exist)
+-------------------------------------------------
 */
 
+import org.json.JSONObject;
+
+import com.gjk.chassip.net.MiluHttpRequest.DBHttpResponse;
 
 import android.content.Context;
 

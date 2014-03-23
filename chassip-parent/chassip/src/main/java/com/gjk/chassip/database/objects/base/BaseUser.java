@@ -8,18 +8,17 @@
 package com.gjk.chassip.database.objects.base;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 import org.json.JSONObject;
-
-import com.gjk.chassip.database.PersistentObject;
-import com.gjk.chassip.database.objects.User;
 
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.database.sqlite.SQLiteStatement;
+
+import com.gjk.chassip.database.PersistentObject;
+import com.gjk.chassip.database.objects.User;
 
 public abstract class BaseUser extends PersistentObject {
 	

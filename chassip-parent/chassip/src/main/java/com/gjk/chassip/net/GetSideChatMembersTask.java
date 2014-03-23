@@ -1,5 +1,21 @@
 package com.gjk.chassip.net;
 
+/*---------------------------------------------------------
+
+Get Side Chat Members
+
+API endpoint: http://skip2milu.com/gjk/api/getSideChatMembers
+
+Sample JSON request:
+Required fields:
+ {"side_chat_id":2}
+
+Sample JSON response:
+
+{"members":[{"id":"4","first_name":"Kachi","last_name":"Nwaobasi","image":""},{"id":"5","first_name":"Kachi","last_name":"Nwaobasi","image":""},{"id":"7","first_name":"Tukach","last_name":"Shakur","image":"resources\/7\/images\/img20140213181223.jpg"}],"success":true}
+
+----------------------------------------------------------------*/
+
 import org.json.JSONObject;
 
 import com.gjk.chassip.net.MiluHttpRequest.DBHttpResponse;
@@ -21,7 +37,7 @@ public class GetSideChatMembersTask extends MiluHTTPTask {
 	public TaskResult handleSuccessfulJSONResponse(DBHttpResponse response,
 			JSONObject json) throws Exception {
 		// TODO Auto-generated method stub
-		return new TaskResult(this, TaskResult.RC_SUCCESS,null,json.getJSONObject("sidechat"));
+		return new TaskResult(this, TaskResult.RC_SUCCESS,null,json.getJSONObject("members"));
 	}
 
 	@Override

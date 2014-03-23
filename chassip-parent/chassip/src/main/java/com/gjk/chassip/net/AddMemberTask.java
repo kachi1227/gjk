@@ -1,14 +1,7 @@
 package com.gjk.chassip.net;
 
-import org.json.JSONArray;
-import org.json.JSONObject;
-
-import com.gjk.chassip.net.MiluHttpRequest.DBHttpResponse;
-
-import android.content.Context;
-import java.util.Arrays;
-
-/*Adding Member
+/*----------------------------
+ Adding Member
 
 API endpoint:  http://skip2milu.com/gjk/api/addMembers
 
@@ -19,6 +12,15 @@ Sample JSON response:
 {"success":true} (if we were able to successfully add all members that we attempted to add)
 
 ------------------------------------------*/
+
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import com.gjk.chassip.net.MiluHttpRequest.DBHttpResponse;
+
+import android.content.Context;
+import java.util.Arrays;
+
 
 public class AddMemberTask extends MiluHTTPTask{
 	private long mGroupID;
@@ -46,11 +48,15 @@ public class AddMemberTask extends MiluHTTPTask{
 		
 		JSONObject payload = new JSONObject();
 		payload.put("group_id", mGroupID);
+		
+		//convert long[] to JSONArray
 		JSONArray ids = new JSONArray();
-		for (long id : mInvitedIDs) {
+		for(long id : mInvitedIDs){
 			ids.put(id);
-		}
-		payload.put("recipients", ids);
+		}//end convert array
+		
+		payload.put("recipients", mInvitedIDs);
+		
 		return payload;
 	}
 

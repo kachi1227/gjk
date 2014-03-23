@@ -1,5 +1,22 @@
 package com.gjk.chassip.net;
 
+/*---------------------------------------------
+
+Get Group Members
+
+API endpoint: http://skip2milu.com/gjk/api/getGroupMembers
+
+Sample JSON request:
+Required fields:
+{"group_id":1}
+
+
+Sample JSON response:
+
+{"members":[{"id":"4","first_name":"Kachi","last_name":"Nwaobasi","image":""},{"id":"5","first_name":"Kachi","last_name":"Nwaobasi","image":""},{"id":"6","first_name":"Kachi","last_name":"Nwaobasi","image":"resources\/6\/images\/img20140213064951.jpg"},{"id":"7","first_name":"Tukach","last_name":"Shakur","image":"resources\/7\/images\/img20140213181223.jpg"}],"success":true}
+
+---------------------------------------------*/
+
 import org.json.JSONObject;
 
 import com.gjk.chassip.net.MiluHttpRequest.DBHttpResponse;

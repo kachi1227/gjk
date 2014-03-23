@@ -1,11 +1,17 @@
 package com.gjk.chassip.helper;
 
+import static com.gjk.chassip.Constants.JSON;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+
+import android.database.Cursor;
+import android.os.Bundle;
 
 import com.gjk.chassip.Application;
 import com.gjk.chassip.database.DatabaseManager;
@@ -13,12 +19,6 @@ import com.gjk.chassip.database.objects.Group;
 import com.gjk.chassip.database.objects.GroupMember;
 import com.gjk.chassip.database.objects.Message;
 import com.gjk.chassip.database.objects.User;
-
-import android.database.Cursor;
-import android.os.Bundle;
-import android.util.Log;
-
-import static com.gjk.chassip.Constants.*;
 
 public final class DatabaseHelper {
 
