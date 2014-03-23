@@ -4,23 +4,18 @@ import java.util.List;
 import java.util.Locale;
 
 import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
 
-import android.accounts.Account;
 import android.annotation.SuppressLint;
-import android.app.AlertDialog;
 import android.app.Service;
 import android.content.ComponentName;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
-import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Debug;
 import android.os.Handler;
 import android.os.IBinder;
-import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
 import android.support.v4.app.Fragment;
@@ -36,12 +31,12 @@ import android.widget.Toast;
 
 import com.actionbarsherlock.app.ActionBar;
 import com.actionbarsherlock.app.ActionBar.Tab;
-import com.gjk.chassip.account.AccountManager;
-import com.gjk.chassip.model.Chat;
-import com.gjk.chassip.model.ChatManager;
-import com.gjk.chassip.model.ImManagerFactory;
-import com.gjk.chassip.model.ThreadType;
-import com.gjk.chassip.model.User;
+import com.gjk.chassip.database.DatabaseManager;
+import com.gjk.chassip.database.DatabaseManager.DataChangeListener;
+import com.gjk.chassip.database.PersistentObject;
+import com.gjk.chassip.database.objects.Group;
+import com.gjk.chassip.database.objects.GroupMember;
+import com.gjk.chassip.database.objects.User;
 import com.gjk.chassip.net.GetGroupMembersTask;
 import com.gjk.chassip.net.GetMultipleGroupsTask;
 import com.gjk.chassip.net.TaskResult;
@@ -51,7 +46,7 @@ import com.google.common.collect.Lists;
 import com.jeremyfeinstein.slidingmenu.lib.SlidingMenu;
 import com.jeremyfeinstein.slidingmenu.lib.app.SlidingFragmentActivity;
 
-import static com.gjk.chassip.Constants.*;
+import static com.gjk.chassip.helper.DatabaseHelper.*;
 
 /**
  * Activity for chats. This extends {@link SlidingFragmentActivity} and implements {@link Service}.
@@ -59,26 +54,25 @@ import static com.gjk.chassip.Constants.*;
  * @author gpl
  * 
  */
-public class MainActivity extends SlidingFragmentActivity implements ServiceConnection {
+public class MainActivity extends SlidingFragmentActivity implements ServiceConnection, DataChangeListener {
 
 	private final String LOGTAG = getClass().getSimpleName();
-
-	private ChatManager mChatManager = ChatManager.getInstance();
 
 	private ViewPager mViewPager;
 	private ActionBar mActionBar;
 	private ThreadPagerAdapter mThreadPagerAdapter;
-	private AddChatTask mAddChatTask;
-	private AddThreadTask mAddThreadTask;
-	private AddInstantMessageTask mAddInstantMessagrTask;
-	private AddMemberTask mMemberTask;
-	private AlertDialog mDialog;
+	// private AddChatTask mAddChatTask;
+	// private AddThreadTask mAddThreadTask;
+	// private AddInstantMessageTask mAddInstantMessagrTask;
+	// private AddMemberTask mMemberTask;
+	// private AlertDialog mDialog;
 	private ChatsDrawerFragment mChatsDrawerFragment;
 	private ThreadsDrawerFragment mThreadsDrawerFragment;
 
 	private Messenger mServiceMessenger = null;
 	boolean mIsBound;
 
+	private Context mCtx;
 	private final Messenger mClientMessager = new Messenger(new IncomingMessageHandler());
 
 	private ServiceConnection mConnection = this;
@@ -91,6 +85,25 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
+
+//		Debug.waitForDebugger();
+
+		mCtx = this;
+
+		// Listen for table changes
+		Application.get().getDatabaseManager().registerDataChangeListener(User.TABLE_NAME, this);
+		Application.get().getDatabaseManager().registerDataChangeListener(Group.TABLE_NAME, this);
+		Application.get().getDatabaseManager().registerDataChangeListener(GroupMember.TABLE_NAME, this);
+		try {
+			setAccountUser(getIntent().getExtras());
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		String fullName = getAccountUserFullName();
+		String message1 = String.format(Locale.getDefault(), "Welcome, %s! You're swagged out!", fullName);
+		Toast.makeText(getApplicationContext(), message1, Toast.LENGTH_SHORT).show();
+		// mAccountUserId = getAccountUserId(mCtx);
 
 		// Instantiate sliding menu
 		final SlidingMenu sm = getSlidingMenu();
@@ -142,20 +155,6 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 		sm.setFadeDegree(0.35f);
 		sm.setTouchModeAbove(SlidingMenu.TOUCHMODE_MARGIN);
 
-		String firstName = getIntent().getExtras().getString(FIRST_NAME);
-		String lastName = getIntent().getExtras().getString(LAST_NAME);
-		long chassipId = getIntent().getExtras().getLong(CHASSIP_ID);
-		String gcmId = getIntent().getExtras().getString(GCM_ID);
-		String message1 = String
-				.format(Locale.getDefault(), "Welcome, %s %s! You're swagged out!", firstName, lastName);
-		String message2 = String.format(Locale.getDefault(), "Your Chassip ID is: %d", chassipId);
-		String message3 = String.format(Locale.getDefault(), "Your GCM ID is: %s", gcmId);
-		Toast.makeText(getApplicationContext(), message1, Toast.LENGTH_SHORT).show();
-		Toast.makeText(getApplicationContext(), message2, Toast.LENGTH_SHORT).show();
-		Toast.makeText(getApplicationContext(), message3, Toast.LENGTH_SHORT).show();
-
-		AccountManager.getInstance().setUser(new User(firstName + " " + lastName, chassipId));
-
 		// instantiate new view pager
 		mViewPager = new ViewPager(this);
 
@@ -172,8 +171,6 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 
 		startService(new Intent(MainActivity.this, ChassipService.class));
 		doBindService();
-
-		getGroups();
 	}
 
 	/*
@@ -203,7 +200,7 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 		mServiceMessenger = new Messenger(service);
 		Log.i(LOGTAG, "onServiceConnected()");
 		try {
-			Message msg = Message.obtain(null, ChassipService.MSG_REGISTER_CLIENT);
+			android.os.Message msg = android.os.Message.obtain(null, ChassipService.MSG_REGISTER_CLIENT);
 			msg.replyTo = mClientMessager;
 			mServiceMessenger.send(msg);
 		} catch (RemoteException e) {
@@ -227,23 +224,6 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 			Log.e(LOGTAG, "Failed to unbind from the service", t);
 		}
 	}
-
-	// /**
-	// * Send data to the service
-	// * @param intvaluetosend The data to send
-	// */
-	// private void sendMessageToService(int intvaluetosend) {
-	// if (mIsBound) {
-	// if (mServiceMessenger != null) {
-	// try {
-	// Message msg = Message.obtain(null, InjectorTrois.MSG_SET_INT_VALUE, intvaluetosend, 0);
-	// msg.replyTo = mClientMessager;
-	// mServiceMessenger.send(msg);
-	// } catch (RemoteException e) {
-	// }
-	// }
-	// }
-	// }
 
 	/**
 	 * Check if the service is running. If the service is running when the activity starts, we want to automatically
@@ -273,7 +253,7 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 			// If we have received the service, and hence registered with it, then now is the time to unregister.
 			if (mServiceMessenger != null) {
 				try {
-					Message msg = Message.obtain(null, ChassipService.MSG_UNREGISTER_CLIENT);
+					android.os.Message msg = android.os.Message.obtain(null, ChassipService.MSG_UNREGISTER_CLIENT);
 					msg.replyTo = mClientMessager;
 					mServiceMessenger.send(msg);
 				} catch (RemoteException e) {
@@ -291,7 +271,7 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 	private void pauseService() {
 		Log.i(LOGTAG, "pauseService()");
 		try {
-			Message msg = Message.obtain(null, ChassipService.MSG_PAUSE);
+			android.os.Message msg = android.os.Message.obtain(null, ChassipService.MSG_PAUSE);
 			msg.replyTo = mClientMessager;
 			mServiceMessenger.send(msg);
 		} catch (RemoteException e) {
@@ -303,7 +283,7 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 	private void goService() {
 		Log.i(LOGTAG, "goService()");
 		try {
-			Message msg = Message.obtain(null, ChassipService.MSG_GO);
+			android.os.Message msg = android.os.Message.obtain(null, ChassipService.MSG_GO);
 			msg.replyTo = mClientMessager;
 			mServiceMessenger.send(msg);
 		} catch (RemoteException e) {
@@ -311,7 +291,7 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 		}
 	}
 
-	private void getGroups() {
+	private void fetchGroups() {
 		new GetMultipleGroupsTask(this, new HTTPTaskListener() {
 
 			@Override
@@ -320,24 +300,18 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 				if (result.getResponseCode() == 1) {
 					JSONArray response = (JSONArray) result.getExtraInfo();
 					try {
-						for (int i = 0; i < response.length(); i++) {
-							JSONObject group = response.getJSONObject(i);
-							long chatId = group.getLong("id");
-							String chatName = group.getString("name");
-							mThreadPagerAdapter.addChat(chatId, 1, chatName, AccountManager.getInstance().getUser());
-							getMembersOfGroup(chatId);
-						}
-					} catch (JSONException e) {
+						addGroups(response);
+					} catch (Exception e) {
 						handleGetGroupsError(e);
 					}
 				} else {
 					handleGetGroupsFail(result);
 				}
 			}
-		}, AccountManager.getInstance().getUser().getId());
+		}, getAccountUserId());
 	}
 
-	private void getMembersOfGroup(final long chatId) {
+	private void fetchGroupMembers(final Group chat) {
 		new GetGroupMembersTask(this, new HTTPTaskListener() {
 
 			@Override
@@ -346,22 +320,16 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 				if (result.getResponseCode() == 1) {
 					JSONArray response = (JSONArray) result.getExtraInfo();
 					try {
-
-						for (int i = 0; i < response.length(); i++) {
-							JSONObject member = response.getJSONObject(i);
-							String name = member.getString("first_name") + " " + member.getString("last_name");
-							long userId = member.getLong("id");
-							addMember(chatId, 1, new User(name, userId));
-						}
-
-					} catch (JSONException e) {
+						addGroupMembers(response, chat.getGlobalId());
+					} catch (Exception e) {
 						handleGetGroupMembersError(e);
 					}
+
 				} else {
 					handleGetGroupMembersFail(result);
 				}
 			}
-		}, chatId);
+		}, chat.getGlobalId());
 	}
 
 	private void handleGetGroupsFail(TaskResult result) {
@@ -369,7 +337,7 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 		showLongToast(String.format(Locale.getDefault(), "Getting Groups failed: %s", result.getMessage()));
 	}
 
-	private void handleGetGroupsError(JSONException e) {
+	private void handleGetGroupsError(Exception e) {
 		Log.e(LOGTAG, String.format(Locale.getDefault(), "Getting Groups errored: %s", e.getMessage()));
 		showLongToast(String.format(Locale.getDefault(), "Getting Groups errored: %s", e.getMessage()));
 	}
@@ -379,7 +347,7 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 		showLongToast(String.format(Locale.getDefault(), "Getting Chat Members failed: %s", result.getMessage()));
 	}
 
-	private void handleGetGroupMembersError(JSONException e) {
+	private void handleGetGroupMembersError(Exception e) {
 		Log.e(LOGTAG, String.format(Locale.getDefault(), "Getting Chat Members errored: %s", e.getMessage()));
 		showLongToast(String.format(Locale.getDefault(), "Getting Chat Members errored: %s", e.getMessage()));
 	}
@@ -388,102 +356,10 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 		Toast.makeText(this, message, Toast.LENGTH_LONG).show();
 	}
 
-	private void toggleChat(final long chatId) {
-		if (chatId != mChatManager.getCurrentChatId()) {
-			mThreadPagerAdapter.addChat(chatId, 0, null);
+	private void toggleChat(Group chat) {
+		if (ChatsDrawerFragment.getCurrentChat() == null || chat != ChatsDrawerFragment.getCurrentChat()) {
+			mThreadPagerAdapter.setChat(chat);
 		}
-	}
-
-	private void joinNewChat(final long chatId, final long threadId, final String name, final User[] users) {
-
-		if (!mChatManager.chatExists(chatId)) {
-
-			if (users[0].getName() != AccountManager.getInstance().getUser().getName()) {
-				AlertDialog.Builder builder = new AlertDialog.Builder(this);
-				// Add the buttons
-				builder.setPositiveButton(R.string.yes, new DialogInterface.OnClickListener() {
-					@Override
-					public void onClick(DialogInterface dialog, int which) {
-						mThreadPagerAdapter.addChat(chatId, threadId, name, users);
-					}
-				});
-				builder.setNegativeButton(R.string.no, new DialogInterface.OnClickListener() {
-					@Override
-					public void onClick(DialogInterface dialog, int which) {
-					}
-				});
-
-				String message = getResources().getString(R.string.join_chat_message, User.toString(users));
-				builder.setMessage(message).setTitle(R.string.join_chat_title);
-
-				// Create the AlertDialog
-				mDialog = builder.create();
-				mDialog.setCanceledOnTouchOutside(true);
-				mDialog.show();
-			} else {
-				mThreadPagerAdapter.addChat(chatId, threadId, name, users);
-			}
-		}
-	}
-
-	private void addInstantMessage(InstantMessage im) {
-		mThreadPagerAdapter.addInstantMessage(im);
-	}
-
-	private void addMember(long chatId, long threadId, User user) {
-		if (!AccountManager.getInstance().getUser().equals(user)) {
-			mThreadPagerAdapter.addMember(chatId, threadId, user);
-		}
-	}
-
-	private void addMembers(long chatId, long threadId, User... users) {
-		for (User user : users) {
-			addMember(chatId, threadId, user);
-		}
-	}
-
-	private void joinThread(final long chatId, final long threadId, final ThreadType type, final String name,
-			final User[] members) {
-
-		if (mChatManager.chatExists(chatId)) {
-
-			AlertDialog.Builder builder = new AlertDialog.Builder(this);
-			// Add the buttons
-			builder.setPositiveButton(R.string.yes, new DialogInterface.OnClickListener() {
-				@Override
-				public void onClick(DialogInterface dialog, int which) {
-					mThreadPagerAdapter.addThread(chatId, threadId, type, name, members);
-				}
-			});
-			builder.setNegativeButton(R.string.no, new DialogInterface.OnClickListener() {
-				@Override
-				public void onClick(DialogInterface dialog, int which) {
-				}
-			});
-
-			if (type == ThreadType.SIDE_CONVO) {
-				String message = getResources().getString(R.string.join_sideconvo_message, User.toString(members));
-				builder.setMessage(message).setTitle(R.string.join_sideconvo_title);
-			} else if (type == ThreadType.WHISPER) {
-				String message = getResources().getString(R.string.join_whisper_message, User.toString(members));
-				builder.setMessage(message).setTitle(R.string.join_whisper_title);
-			} else {
-				throw new RuntimeException("Whooooooa....");
-			}
-
-			// Create the AlertDialog
-			mDialog = builder.create();
-			mDialog.setCanceledOnTouchOutside(true);
-			mDialog.show();
-		}
-	}
-
-	private void addToChatsDrawer(Chat chat) {
-		mChatsDrawerFragment.addChat(chat);
-	}
-
-	private void updateChatsDrawer() {
-		mChatsDrawerFragment.updateView();
 	}
 
 	private void addToThreadDrawer(ThreadFragment frag) {
@@ -494,59 +370,42 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 		mThreadsDrawerFragment.removeAllThreads();
 	}
 
-	@SuppressWarnings("unused")
-	private void removeThreadFromDrawer(ThreadFragment frag) {
-		mThreadsDrawerFragment.removeThread(frag);
-	}
-
-	private void updateThreadsDrawer() {
-		mThreadsDrawerFragment.updateView();
-	}
-
 	/**
 	 * Handle incoming messages from MyService
 	 */
 	@SuppressLint("HandlerLeak")
 	private class IncomingMessageHandler extends Handler {
 		@Override
-		public void handleMessage(Message msg) {
-			// Log.d(LOGTAG,"IncomingHandler:handleMessage");
-			switch (msg.what) {
-			case ChassipService.MSG_NEW_MESSAGE:
-				Log.i(LOGTAG, "MSG_NEW_MESSAGE");
-				InstantMessage im = new InstantMessage(msg.getData().getLong("chat_id"), msg.getData().getLong(
-						"thread_id"), new User(msg.getData().getString("user_name")), msg.getData()
-						.getString("message"), msg.getData().getLong("time"));
-				addInstantMessage(im);
-				break;
-			case ChassipService.MSG_NEW_MEMBERS:
-				Log.i(LOGTAG, "MSG_NEW_MEMBERS");
-				long chatId2 = msg.getData().getLong("chat_id");
-				long threadId2 = msg.getData().getLong("thread_id");
-				String[] userNames2 = msg.getData().getStringArray("user_names");
-				long[] userNamesIds = msg.getData().getLongArray("user_ids");
-				addMembers(chatId2, threadId2, User.build(userNames2, userNamesIds));
-				break;
-			case ChassipService.MSG_NEW_THREAD:
-				Log.i(LOGTAG, "MSG_NEW_THREAD");
-				long chatId3 = msg.getData().getLong("chat_id");
-				long threadId3 = msg.getData().getLong("thread_id");
-				ThreadType type3 = ThreadType.getFromValue(msg.getData().getInt("thread_type"));
-				String threadName3 = msg.getData().getString("thread_name");
-				String[] userNames3 = msg.getData().getStringArray("user_names");
-				joinThread(chatId3, threadId3, type3, threadName3, User.build(userNames3));
-				break;
-			case ChassipService.MSG_NEW_CHAT:
-				Log.i(LOGTAG, "MSG_NEW_CHAT");
-				long chatId4 = msg.getData().getLong("chat_id");
-				long threadId4 = msg.getData().getLong("thread_id");
-				String threadName4 = msg.getData().getString("thread_name");
-				String[] userNames4 = msg.getData().getStringArray("user_names");
-				joinNewChat(chatId4, threadId4, threadName4, User.build(userNames4));
-				break;
-			default:
-				super.handleMessage(msg);
+		public void handleMessage(android.os.Message msg) {
+
+			try {
+
+				JSONObject json = bundleToJson(msg.getData());
+				Log.d(LOGTAG, "Handling message: " + json);
+
+				switch (msg.what) {
+				case ChassipService.MSG_NEW_MESSAGE:
+					addGroupMessage(json);
+					break;
+				case ChassipService.MSG_NEW_GROUP_MEMBER:
+//					addGroupMember(json, false);
+					break;
+				case ChassipService.MSG_NEW_GROUP_MEMBER_LAST:
+//					addGroupMember(json, true);
+					break;
+				case ChassipService.MSG_NEW_THREAD:
+					break;
+				case ChassipService.MSG_NEW_CHAT:
+					addGroup(json);
+					break;
+				default:
+					super.handleMessage(msg);
+				}
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
 			}
+
 		}
 	}
 
@@ -613,171 +472,64 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 			mBar.setSelectedNavigationItem(position);
 		}
 
-		protected void clearTabs() {
+		protected void setChat(Group chat) {
+			clear();
+			ChatsDrawerFragment.setCurrentChat(chat);
+			ThreadFragment mainFrag = generateMainThreadFragment(chat);
+			mCurrrentThreads.add(mainFrag);
+			notifyDataSetChanged();
+			ThreadFragment[] sideConvoFrags = generateSideConvoThreadFragments(chat);
+			for (ThreadFragment frag : sideConvoFrags) {
+				mCurrrentThreads.add(frag);
+				notifyDataSetChanged();
+			}
+			ThreadFragment[] whisperFrags = generateWhisperThreadFragments(chat);
+			for (ThreadFragment frag : whisperFrags) {
+				mCurrrentThreads.add(frag);
+				notifyDataSetChanged();
+			}
+			for (ThreadFragment frag : mCurrrentThreads) {
+				Tab tab = mBar.newTab().setText(frag.getName()).setTabListener(this);
+				mBar.addTab(tab);
+				addToThreadDrawer(frag);
+			}
+			mPager.setCurrentItem(0);
+		}
+
+		private ThreadFragment generateMainThreadFragment(Group chat) {
+			return new ThreadFragment(chat.getGlobalId(), mCurrrentThreads.size(), ThreadType.MAIN_CHAT, chat.getName(), mChatsDrawerFragment.getMembers(chat.getGlobalId()));
+		}
+
+		private ThreadFragment[] generateSideConvoThreadFragments(Group chat) {
+			// JSONObject sidechats = new JSONObject(chat.getSideChats());
+			// GroupMember[] members = getGroupMembers(mCtx, chat.getGlobalId());
+			return new ThreadFragment[] {};
+		}
+
+		private ThreadFragment[] generateWhisperThreadFragments(Group chat) {
+			// JSONObject sidechats = new JSONObject(chat.getWhispers());
+			// GroupMember[] members = getGroupMembers(mCtx, chat.getGlobalId());
+			return new ThreadFragment[] {};
+		}
+
+		private void clear() {
 			mBar.removeAllTabs();
 			removeAllThreadsFromDrawer();
 			mCurrrentThreads.clear();
 			notifyDataSetChanged();
 		}
-
-		protected void displayCurrentTabs() {
-			for (ThreadFragment frag : mChatManager.getCurrentChat().getThreads()) {
-				addTab(frag);
-			}
-			mPager.setCurrentItem(0);
-			notifyDataSetChanged();
-		}
-
-		protected void addChat(long chatId, long threadId, String name, User... members) {
-			mAddChatTask = new AddChatTask(chatId, threadId, name, members);
-			mAddChatTask.execute();
-		}
-
-		protected void addThread(long chatId, long threadId, ThreadType type, String name, User... members) {
-			mAddThreadTask = new AddThreadTask(chatId, threadId, type, name, members);
-			mAddThreadTask.execute();
-		}
-
-		protected void addInstantMessage(InstantMessage im) {
-			mAddInstantMessagrTask = new AddInstantMessageTask(im);
-			mAddInstantMessagrTask.execute();
-		}
-
-		protected void addMember(long chatId, long threadId, User user) {
-			mMemberTask = new AddMemberTask(chatId, threadId, user);
-			mMemberTask.execute();
-		}
-
-		protected void addTab(ThreadFragment frag) {
-
-			Tab tab = mBar.newTab().setText(frag.getName()).setTabListener(this);
-			if (mChatManager.getCurrentChatId() == frag.getChatId()) {
-				mBar.addTab(tab);
-				mCurrrentThreads.add(frag);
-				notifyDataSetChanged();
-				mPager.setCurrentItem(mCurrrentThreads.size() - 1);
-				addToThreadDrawer(frag);
-			}
-			notifyDataSetChanged();
-		}
 	}
 
-	private class AddChatTask extends AsyncTask<Void, Void, Void> {
-
-		private long mChatId;
-		private long mThreadId;
-		private User[] mUsers;
-		private String mName;
-		private ThreadFragment mMainChatFrag;
-
-		protected AddChatTask(long chatId, long threadId, String name, User[] users) {
-			mChatId = chatId;
-			mThreadId = threadId;
-			mName = name;
-			mUsers = users;
-		}
-
-		@Override
-		protected Void doInBackground(Void... arg0) {
-			Thread.currentThread().setName(getClass().getSimpleName());
-			return null;
-		}
-
-		@Override
-		protected void onPostExecute(Void result) {
-			mThreadPagerAdapter.clearTabs();
-			if (mChatManager.chatExists(mChatId)) {
-				mChatManager.setCurrentChat(mChatId);
-				mThreadPagerAdapter.displayCurrentTabs();
-			} else {
-				mMainChatFrag = new ThreadFragment(mChatId, mThreadId, ThreadType.MAIN_CHAT, mName, mUsers);
-				mChatManager.addChat(mMainChatFrag);
-				mThreadPagerAdapter.addTab(mMainChatFrag);
-				addToChatsDrawer(mChatManager.getChat(mChatId));
+	@Override
+	public void onDataChanged(PersistentObject o) {
+		if (o.getTableName().equals(User.TABLE_NAME)) {
+			fetchGroups();
+		} else if (o.getTableName().equals(Group.TABLE_NAME)) {
+			Group g = (Group) o;
+			if (ChatsDrawerFragment.getCurrentChat() == null) {
+				toggleChat(g);
 			}
-		}
-	}
-
-	private class AddThreadTask extends AsyncTask<Void, Void, Void> {
-
-		private long mChatId;
-		private long mThreadId;
-		private ThreadType mType;
-		private String mName;
-		private User[] mUsers;
-		private ThreadFragment mThreadFrag;
-
-		protected AddThreadTask(long chatId, long threadId, ThreadType type, String name, User[] users) {
-			mChatId = chatId;
-			mThreadId = threadId;
-			mType = type;
-			mName = name;
-			mUsers = users;
-		}
-
-		@Override
-		protected Void doInBackground(Void... arg0) {
-			Thread.currentThread().setName(getClass().getSimpleName());
-			return null;
-		}
-
-		@Override
-		protected void onPostExecute(Void result) {
-			mThreadFrag = new ThreadFragment(mChatId, mThreadId, mType, mName, mUsers);
-			mChatManager.addThread(mThreadFrag);
-			mThreadPagerAdapter.addTab(mThreadFrag);
-		}
-	}
-
-	private class AddInstantMessageTask extends AsyncTask<Void, Void, Void> {
-
-		private InstantMessage mIm;
-
-		protected AddInstantMessageTask(InstantMessage im) {
-			mIm = im;
-		}
-
-		@Override
-		protected Void doInBackground(Void... arg0) {
-			Thread.currentThread().setName(getClass().getSimpleName());
-			return null;
-		}
-
-		@Override
-		protected void onPostExecute(Void result) {
-			mChatManager.addInstantMessage(mIm);
-		}
-	}
-
-	private class AddMemberTask extends AsyncTask<Void, Void, Void> {
-
-		private long mChatId;
-		private long mThreadId;
-		private User mUser;
-
-		protected AddMemberTask(long chatId, long threadId, User user) {
-			mChatId = chatId;
-			mThreadId = threadId;
-			mUser = user;
-		}
-
-		@Override
-		protected Void doInBackground(Void... arg0) {
-			Thread.currentThread().setName(getClass().getSimpleName());
-			return null;
-		}
-
-		@Override
-		protected void onPostExecute(Void result) {
-			mChatManager.addMember(mChatId, mThreadId, mUser);
-			ThreadFragment frag = mChatManager.getThreadFragment(mChatId, mThreadId);
-			if (frag != null) {
-				frag.addMember(mUser);
-				String message = String.format(Locale.getDefault(), "Added new user: %s", mUser.getName());
-				Toast.makeText(getApplicationContext(), message, Toast.LENGTH_SHORT).show();
-			}
-			updateThreadsDrawer();
-			updateChatsDrawer();
+			fetchGroupMembers(g);
 		}
 	}
 }

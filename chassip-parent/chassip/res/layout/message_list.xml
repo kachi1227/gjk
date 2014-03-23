@@ -22,9 +22,8 @@
 	    android:layout_alignParentLeft="true"
 	    android:layout_toLeftOf="@+id/send"
 	    android:ems="10"
-	    android:inputType="textMultiLine"
-	    android:windowSoftInputMode="adjustResize" >
-	</EditText>
+	    android:windowSoftInputMode="adjustResize"
+	    android:inputType="text|textCapSentences" />
 
 	<Button
 	    android:id="@+id/send"

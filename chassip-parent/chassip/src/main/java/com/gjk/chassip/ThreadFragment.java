@@ -1,22 +1,21 @@
 package com.gjk.chassip;
 
-import java.util.Collection;
+import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
+import org.json.JSONArray;
 import org.json.JSONException;
-import org.json.JSONObject;
-
-import com.gjk.chassip.account.AccountManager;
-import com.gjk.chassip.model.ChatManager;
-import com.gjk.chassip.model.ImManagerFactory;
-import com.gjk.chassip.model.ThreadType;
-import com.gjk.chassip.model.User;
+import com.gjk.chassip.database.PersistentObject;
+import com.gjk.chassip.database.DatabaseManager.DataChangeListener;
+import com.gjk.chassip.database.objects.GroupMember;
+import com.gjk.chassip.database.objects.Message;
+import com.gjk.chassip.net.GetMessageTask;
 import com.gjk.chassip.net.SendMessageTask;
 import com.gjk.chassip.net.TaskResult;
 import com.gjk.chassip.net.HTTPTask.HTTPTaskListener;
-import com.gjk.chassip.service.ChassipService;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -32,13 +31,15 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import static com.gjk.chassip.helper.DatabaseHelper.*;
+
 /**
  * 
  * @author gpl
  * 
  */
 @SuppressLint("ValidFragment")
-public class ThreadFragment extends ListFragment {
+public class ThreadFragment extends ListFragment implements DataChangeListener {
 
 	private final String LOGTAG = getClass().getSimpleName();
 
@@ -47,9 +48,9 @@ public class ThreadFragment extends ListFragment {
 	private String mName;
 	private ThreadType mThreadType;
 	private MessagesAdapter mAdapter;
-	private Set<User> mUsers;
+	private Set<GroupMember> mMembers;
 	private boolean mInitialized;
-	private List<InstantMessage> mPendingMessages;
+	private List<Message> mPendingMessages;
 
 	private View mView;
 	private EditText mPendingMessage;
@@ -60,30 +61,37 @@ public class ThreadFragment extends ListFragment {
 	public ThreadFragment() {
 		super();
 		setRetainInstance(true);
-		mUsers = Sets.newHashSet();
+		mMembers = Sets.newHashSet();
 		mInitialized = false;
 	}
 
-	public ThreadFragment(long chatId, long threadId, ThreadType threadType, String name, User[] members) {
+	public ThreadFragment(long chatId, long threadId, ThreadType threadType, String name, GroupMember... members) {
 		super();
 		mChatId = chatId;
 		mThreadId = threadId;
 		mThreadType = threadType;
 		mName = name;
-		mUsers = Sets.newHashSet();
+		mMembers = Sets.newHashSet();
+		mMembers.addAll(Arrays.asList(members));
 		mInitialized = false;
 		setRetainInstance(true);
-		addMembers(members);
-		ImManagerFactory.getImManger(chatId).addThread(threadId);
 		mPendingMessages = Lists.newLinkedList();
 	}
 
 	@Override
 	public void onActivityCreated(Bundle savedInstanceState) {
 		super.onActivityCreated(savedInstanceState);
-		mAdapter = new MessagesAdapter(getActivity(), mChatId, mThreadId, ImManagerFactory.getImManger(mChatId)
-				.getList());
+		mAdapter = new MessagesAdapter(getActivity(), mChatId, mThreadId, new LinkedList<Message>());
 		setListAdapter(mAdapter);
+		getMessagesFromDb();
+		fetchMessages();
+		for (Message im : mPendingMessages) {
+			mAdapter.add(im);
+		}
+		mPendingMessages.clear();
+		mMembers.addAll(Arrays.asList(getGroupMembers(mChatId)));
+		Application.get().getDatabaseManager().registerDataChangeListener(GroupMember.TABLE_NAME, this);
+		Application.get().getDatabaseManager().registerDataChangeListener(Message.TABLE_NAME, this);
 		mSend.setOnClickListener(new OnClickListener() {
 			@Override
 			public void onClick(View v) {
@@ -103,8 +111,58 @@ public class ThreadFragment extends ListFragment {
 				}
 			}
 		});
+		updateView();
 	}
-
+	
+	private void getMessagesFromDb() {
+		List<Message> messages = getMessages(mChatId);
+		if (messages != null && messages.size() > 0) {
+			if (mAdapter != null) {
+				mAdapter.addAll(messages);
+			}
+			else {
+				mPendingMessages.addAll(messages);
+			}
+		}
+	}
+	
+	private void fetchMessages() {
+		
+		JSONArray jsonArray = new JSONArray();
+		long id = getLastStoredMessageId();
+		try {
+			jsonArray.put(0, id).put(1, -1);
+		} catch (JSONException e) {
+			e.printStackTrace();
+		}
+		new GetMessageTask(getActivity(), new HTTPTaskListener() {
+			
+			@Override
+			public void onTaskComplete(TaskResult result) {
+				if (result.getResponseCode() == 1) {
+					JSONArray messages = (JSONArray) result.getExtraInfo();
+					try {
+						addGroupMessages(messages);
+					} catch (Exception e) {
+						handleGetMessagesError(e);
+					}
+				} else {
+					handleGetMessagesFail(result);
+				}
+			}
+		}, getAccountUserId(), ChatsDrawerFragment.getCurrentChat().getGlobalId(), jsonArray);
+	}
+	
+	private void handleGetMessagesError(Exception e) {
+		Log.e(LOGTAG, String.format(Locale.getDefault(), "Get Messages errored: %s", e.getMessage()));
+		showLongToast(String.format(Locale.getDefault(), "Get Messages errored: %s", e.getMessage()));
+	}
+	
+	private void handleGetMessagesFail(TaskResult result) {
+		Log.e(LOGTAG, String.format(Locale.getDefault(), "Get Messages failed: %s", result.getMessage()));
+		showLongToast(String.format(Locale.getDefault(), "Get Messages failed: %s", result.getMessage()));
+	}
+	
 	private void sendMessage() {
 
 		new SendMessageTask(getActivity(), new HTTPTaskListener() {
@@ -113,32 +171,19 @@ public class ThreadFragment extends ListFragment {
 			public void onTaskComplete(TaskResult result) {
 
 				if (result.getResponseCode() == 1) {
-					JSONObject response = (JSONObject) result.getExtraInfo();
-					try {
-
-						ChassipService.sendMessage(response.getLong("group_id"), response.getLong("message_type_id"),
-								response.getString("first_name") + " " + response.getString("last_name"),
-								response.getString("content"), response.getLong("date"));
-
-					} catch (JSONException e) {
-						handleSendMessagerError(e);
-					} finally {
-						mPendingMessage.setText("");
-					}
+					fetchMessages();
+					mPendingMessage.setText("");
 				} else {
 					handleSendMessageFail(result);
 				}
 			}
-		}, AccountManager.getInstance().getUser().getId(), ChatManager.getInstance().getCurrentChatId(), mMessage);
+		}, getAccountUserId(), ChatsDrawerFragment.getCurrentChat().getGlobalId(), mMessage);
 	}
 
 	@Override
 	public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
 		if (savedInstanceState != null) {
 			mThreadId = savedInstanceState.getLong("mThreadId");
-		}
-		for (InstantMessage im : mPendingMessages) {
-			mAdapter.add(im);
 		}
 		mView = inflater.inflate(R.layout.message_list, null);
 		mPendingMessage = (EditText) mView.findViewById(R.id.pendingMessage);
@@ -190,40 +235,41 @@ public class ThreadFragment extends ListFragment {
 		return mThreadId;
 	}
 
-	public void addMember(User user) {
-		mUsers.add(user);
+	public void addMember(GroupMember user) {
+		mMembers.add(user);
 	}
 
-	public void addMembers(User[] members) {
-		for (User member : members) {
+	public void addMembers(GroupMember[] members) {
+		for (GroupMember member : members) {
 			addMember(member);
 		}
 	}
 
-	public Set<User> getMembers() {
-		return mUsers;
-	}
-
-	public void addMessage(InstantMessage im) {
-		if (mChatId != im.getChatId()) {
-			Log.d(LOGTAG, "WELLL..");
-		}
-		if (mAdapter == null) {
-			mPendingMessages.add(im);
-		} else {
-			mAdapter.add(im);
-		}
-	}
-
-	public void addMessages(Collection<InstantMessage> ims) {
-		for (InstantMessage im : ims) {
-			addMessage(im);
-		}
+	public Set<GroupMember> getMembers() {
+		return mMembers;
 	}
 
 	public void updateView() {
 		if (mAdapter != null) {
 			mAdapter.notifyDataSetChanged();
+		}
+	}
+
+	@Override
+	public void onDataChanged(PersistentObject o) {
+		if (o.getTableName().equals(GroupMember.TABLE_NAME)) {
+			GroupMember gm = (GroupMember) o;
+			if (gm.getGroupId() == mChatId) { //TODO: will need to include thread id!!
+				mMembers.add(gm);
+			}
+		}
+		else if (o.getTableName().equals(Message.TABLE_NAME)) {
+			Message m = (Message) o;
+			if (mAdapter == null) {
+				mPendingMessages.add(m);
+			} else {
+				mAdapter.add(m);
+			}
 		}
 	}
 }

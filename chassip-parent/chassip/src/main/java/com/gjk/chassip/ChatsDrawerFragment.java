@@ -5,8 +5,11 @@ import static com.gjk.chassip.Constants.*;
 import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -14,6 +17,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import android.annotation.TargetApi;
+import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -35,28 +39,34 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.gjk.chassip.account.AccountManager;
-import com.gjk.chassip.model.User;
-import com.gjk.chassip.model.Chat;
+import com.gjk.chassip.database.PersistentObject;
+import com.gjk.chassip.database.DatabaseManager.DataChangeListener;
+import com.gjk.chassip.database.objects.Group;
+import com.gjk.chassip.database.objects.GroupMember;
 import com.gjk.chassip.net.CreateGroupTask;
+import com.gjk.chassip.net.GetSpecificGroupTask;
 import com.gjk.chassip.net.TaskResult;
 import com.gjk.chassip.net.HTTPTask.HTTPTaskListener;
 import com.gjk.chassip.service.ChassipService;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+
+import static com.gjk.chassip.helper.DatabaseHelper.*;
 
 /**
  *
  * @author gpl
  */
-public class ChatsDrawerFragment extends ListFragment {
+public class ChatsDrawerFragment extends ListFragment implements DataChangeListener {
 
 	private final String LOGTAG = getClass().getSimpleName();
 	
-	private AccountManager mAccountManager = AccountManager.getInstance();
-	
+	private Context mCtx;
+	private static Group mCurrentChat;
 	private ChatAdapter mAdapter;
 	private AlertDialog mDialog;
-	private Map<Integer, Long> mPositionToChatId;
+	private Map<Integer, Group> mPositionToChat;
+	private Map<Long, List<GroupMember>> mChatIdToMembers;
 	
 	private View mView;
 	private Button mCreateChat;
@@ -107,12 +117,16 @@ public class ChatsDrawerFragment extends ListFragment {
 
 	public void onActivityCreated(Bundle savedInstanceState) {
 		super.onActivityCreated(savedInstanceState);
-		mPositionToChatId = Maps.newHashMap();
-		mAdapter = new ChatAdapter(getActivity());
+		mPositionToChat = Maps.newHashMap();
+		mChatIdToMembers = Maps.newHashMap();
+		mCtx = getActivity();
+		mAdapter = new ChatAdapter(mCtx);
 		setListAdapter(mAdapter);
+		Application.get().getDatabaseManager().registerDataChangeListener(Group.TABLE_NAME, this);
+		Application.get().getDatabaseManager().registerDataChangeListener(GroupMember.TABLE_NAME, this);
 	}
 	
-	public void addChat(Chat chat) {
+	public void addChat(Group chat) {
 		mAdapter.add(chat);
 	}
 	
@@ -120,8 +134,8 @@ public class ChatsDrawerFragment extends ListFragment {
 		mAdapter.notifyDataSetChanged();
 	}
 	
-	public Long getChatIdFromPosition(int position) {
-		return mPositionToChatId.get(position);
+	public Group getChatIdFromPosition(int position) {
+		return mPositionToChat.get(position);
 	}
 	
 	private void displayImageChooser() {
@@ -170,20 +184,39 @@ public class ChatsDrawerFragment extends ListFragment {
 				if (result.getResponseCode() == 1) {
 					JSONObject response = (JSONObject) result.getExtraInfo();
 					try {
-						ChassipService.createChat(response.getLong("id"), mChatName);
-					} catch (JSONException e) {
+						fetchGroup(response.getLong("id"));
+					} catch (Exception e) {
 						handleCreateChatError(e);
 					}
 				} else {
 					handleCreateChatFail(result);
 				}
 			}
-		}, mAccountManager.getUser().getId(), mChatName, fieldMapping); 
+		}, getAccountUserId(), mChatName, fieldMapping); 
+	}
+	
+	private void fetchGroup(long chatId) {
+		new GetSpecificGroupTask(mCtx, new HTTPTaskListener() {
+			
+			@Override
+			public void onTaskComplete(TaskResult result) {
+				if (result.getResponseCode() == 1) {
+					JSONObject response = (JSONObject) result.getExtraInfo();
+					try {
+						addGroup(response);
+					} catch (Exception e) {
+						handleCreateChatError(e);
+					}
+				} else {
+					handleCreateChatFail(result);
+				}
+			}
+		}, getAccountUserId(), chatId);
 	}
 	
 	private void handleAviError(Exception e) {
-		Log.e(LOGTAG, e.toString());
-		showLongToast(e.toString());
+		Log.e(LOGTAG, String.format(Locale.getDefault(), "Avi errored: %s", e.getMessage()));
+		showLongToast(String.format(Locale.getDefault(), "Avi errored: %s", e.getMessage()));
 	}
 	
 	private void handleCreateChatFail(TaskResult result) {
@@ -191,7 +224,7 @@ public class ChatsDrawerFragment extends ListFragment {
 		showLongToast(String.format(Locale.getDefault(), "Creating Chat failed: %s", result.getMessage()));
 	}
 
-	private void handleCreateChatError(JSONException e) {
+	private void handleCreateChatError(Exception e) {
 		Log.e(LOGTAG, String.format(Locale.getDefault(), "Creating Chat errored: %s", e.getMessage()));
 		showLongToast(String.format(Locale.getDefault(), "Creating Chat errored: %s", e.getMessage()));
 	}
@@ -203,7 +236,7 @@ public class ChatsDrawerFragment extends ListFragment {
 	@Override
 	public void onActivityResult(int requestCode, int resultCode, Intent data) {
 
-		if (resultCode == getActivity().RESULT_OK) {
+		if (resultCode == Activity.RESULT_OK) {
 			if (requestCode == GALLERY_REQUEST || requestCode == CAMERA_REQUEST) {
 				try {
 					if (requestCode == GALLERY_REQUEST) {
@@ -298,7 +331,7 @@ public class ChatsDrawerFragment extends ListFragment {
 		return result;
 	}
 
-	private class ChatAdapter extends ArrayAdapter<Chat> {
+	private class ChatAdapter extends ArrayAdapter<Group> {
 
 		public ChatAdapter(Context context) {
 			super(context, 0);
@@ -310,29 +343,65 @@ public class ChatsDrawerFragment extends ListFragment {
 				convertView = LayoutInflater.from(getContext()).inflate(R.layout.chats_drawer_row, null);
 			}
 			
-			if (!mPositionToChatId.containsKey(position)) {
-				mPositionToChatId.put(position, getItem(position).getChatId());
+			if (!mPositionToChat.containsKey(position)) {
+				mPositionToChat.put(position, getItem(position));
 			}
 			
 			TextView chatLabel = (TextView) convertView.findViewById(R.id.chatLabel);
-			chatLabel.setText(getItem(position).getChatName());
+			chatLabel.setText(mPositionToChat.get(position).getName());
 			TextView members = (TextView) convertView.findViewById(R.id.chatMembers);
 			members.setText(getMembers(position));
 
 			return convertView;
 		}
 		
-		private String getLabel(int position) {
-			return String.format(Locale.getDefault(), "Chat #%d", position);
-		}
-		
 		private String getMembers(int position) {
 			String tempMembers = "";
-			for (User member : getItem(position).getMembers()) {
-				tempMembers = tempMembers.concat(member.getName()).concat(" ");
+			List<GroupMember> groupMembers = mChatIdToMembers.get(mPositionToChat.get(position).getGlobalId());
+			if (groupMembers != null) {
+				for (GroupMember member : mChatIdToMembers.get(mPositionToChat.get(position).getGlobalId())) {
+					tempMembers = tempMembers.concat(member.getFullName()).concat(" ");
+				}
 			}
 			return tempMembers;
 		}
 
+	}
+
+	public static void setCurrentChat(Group chat) {
+		mCurrentChat = chat;
+	}
+	
+	public static Group getCurrentChat() {
+		return mCurrentChat;
+	}
+	
+	public GroupMember[] getMembers(long chatId) {
+		if (mChatIdToMembers.get(chatId) == null) {
+			return new GroupMember[0];
+		}
+		return mChatIdToMembers.get(chatId).toArray(new GroupMember[mChatIdToMembers.get(chatId).size()]);
+	}
+	
+	@Override
+	public void onDataChanged(PersistentObject o) {
+		if (o.getTableName().equals(Group.TABLE_NAME)) {
+			Group g = (Group) o;
+			if (mPositionToChat.containsValue(g)) {
+				int position = mAdapter.getPosition(g);
+				mAdapter.getItem(position).setName(g.getName());
+				mAdapter.getItem(position).setImageUrl(g.getImageUrl());
+				mAdapter.getItem(position).setSideChats(g.getSideChats());
+				mAdapter.getItem(position).setWhispers(g.getWhispers());
+			}
+			else {
+				mAdapter.add(g);
+			}
+		}
+		else if (o.getTableName().equals(GroupMember.TABLE_NAME)) {
+			GroupMember gm = (GroupMember) o;
+			mChatIdToMembers.put(gm.getGroupId(), Arrays.asList(getGroupMembers(gm.getGroupId())));
+			updateView();
+		}
 	}
 }

@@ -1,4 +1,4 @@
-package com.gjk.chassip.model;
+package com.gjk.chassip;
 
 /**
  * 

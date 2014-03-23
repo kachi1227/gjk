@@ -24,11 +24,11 @@
     <string name="no">No</string>
     <string name="cancel">Cancel</string>
     <string name="join_whisper_title">Whipser Invite</string>
-    <string name="join_whisper_message">You\'ve been invited to a whisper with %s. Would you like to join?</string>
+    <string name="join_whisper_message">You\'ve been invited to a whisper by %s. Would you like to join?</string>
     <string name="join_sideconvo_title">Side-Convo Invite</string>
-    <string name="join_sideconvo_message">You\'ve been invited to a side-convo with %s. Would you like to join?</string>
+    <string name="join_sideconvo_message">You\'ve been invited to a side-convo by %s. Would you like to join?</string>
     <string name="join_chat_title">Chat Invite</string>
-    <string name="join_chat_message">You\'ve been invited to a chat with %s. Would you like to join?</string>
+    <string name="join_chat_message">You\'ve been invited to a chat by %s. Would you like to join?</string>
     <string name="create_chat">Create a New Chat</string>
     <string name="create_chat_title">Chat Name</string>
     <string name="create_chat_hint">Enter chat name</string>

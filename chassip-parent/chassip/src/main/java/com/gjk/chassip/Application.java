@@ -1,6 +1,8 @@
 package com.gjk.chassip;
 
 
+import com.gjk.chassip.database.DatabaseManager;
+
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -16,12 +18,10 @@ import android.widget.Toast;
 		private SharedPreferences mPrefs;
 		private ConnectivityManager mConnManager;
 		private ProgressDialog mProgressDialog;
-		
+		private DatabaseManager mDm;
 		
 		public void onCreate() {
 			
-//			android.os.Debug.waitForDebugger();
-	    	
 			super.onCreate();
 			mInstance = this;
 			
@@ -44,7 +44,12 @@ import android.widget.Toast;
 			return mInstance;
 		}
 		
-		
+		public DatabaseManager getDatabaseManager() {
+			if (mDm == null) {
+				mDm = new DatabaseManager(this);
+			}
+			return mDm;
+		}
 		
 		public static SharedPreferences getPreferences(Context context) {
 			return context.getSharedPreferences(Constants.PREF_FILE_NAME, Context.MODE_PRIVATE);

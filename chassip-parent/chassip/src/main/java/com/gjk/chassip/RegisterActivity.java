@@ -9,10 +9,12 @@ import java.util.Locale;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import com.gjk.chassip.database.DatabaseManager;
 import com.gjk.chassip.net.HTTPTask.HTTPTaskListener;
 import com.gjk.chassip.net.LoginTask;
 import com.gjk.chassip.net.RegisterTask;
 import com.gjk.chassip.net.TaskResult;
+import com.gjk.chassip.net.UpdateGCMRegTask;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesUtil;
 import com.google.android.gms.gcm.GoogleCloudMessaging;
@@ -33,6 +35,7 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -62,6 +65,8 @@ public class RegisterActivity extends Activity {
 	private String mAviPath;
 	private SharedPreferences mPrefs;
 	private AlertDialog mAviSelectorDialog;
+
+	private boolean mLoginWasPressed;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -182,7 +187,11 @@ public class RegisterActivity extends Activity {
 					if (mGcm == null) {
 						mGcm = GoogleCloudMessaging.getInstance(mCtx);
 					}
-					String regid = mGcm.register(SENDER_ID);
+					if (getRegistrationId(getApplicationContext()).isEmpty()) {
+						String regid = mGcm.register(SENDER_ID);
+						// Persist the regID - no need to register again.
+						storeRegistrationId(mCtx, regid);
+					}
 
 					// You should send the registration ID to your server over
 					// HTTP,
@@ -191,16 +200,12 @@ public class RegisterActivity extends Activity {
 					// The request to your server should be authenticated if
 					// your app
 					// is using accounts.
-					sendRegistrationIdToBackend();
-
-					// For this demo: we don't need to send it because the
-					// device
-					// will send upstream messages to a server that echo back
-					// the
-					// message using the 'from' address in the message.
-
-					// Persist the regID - no need to register again.
-					storeRegistrationId(mCtx, regid);
+					if (mLoginWasPressed) {
+						login();
+					}
+					else {
+						register();
+					}
 
 				} catch (IOException e) {
 					Log.e(LOGTAG, String.format("GCM egistration unsuccessful: %s", e));
@@ -215,8 +220,23 @@ public class RegisterActivity extends Activity {
 		gcmRegister.execute();
 	}
 
-	private void sendRegistrationIdToBackend() {
-		// TODO: FILL IN!!!
+	private void updateChassipGcm(long id, String gcm) {
+		try {
+			new UpdateGCMRegTask(this, new HTTPTaskListener() {
+
+				@Override
+				public void onTaskComplete(TaskResult result) {
+
+					if (result.getResponseCode() == 1) {
+						done();
+					} else {
+						handleRegistrationFail(result);
+					}
+				}
+			}, id, gcm, "ANDROID");
+		} catch (Exception e) {
+			handleRegistrationError(e);
+		}
 	}
 
 	/**
@@ -239,10 +259,8 @@ public class RegisterActivity extends Activity {
 	}
 
 	private boolean checkIfAlreadyLoggedIn() {
-
 		mPrefs = getSharedPreferences(Constants.PREF_FILE_NAME, Context.MODE_PRIVATE);
-		return mPrefs.contains(Constants.CHASSIP_ID) && mPrefs.contains(Constants.FIRST_NAME)
-				&& mPrefs.contains(Constants.LAST_NAME) && getGCMPreferences(mCtx).contains(PROPERTY_REG_ID);
+		return mPrefs.contains(Constants.JSON) && getGCMPreferences(mCtx).contains(PROPERTY_REG_ID);
 	}
 
 	@Override
@@ -273,27 +291,22 @@ public class RegisterActivity extends Activity {
 
 	private void initialize() {
 
+		new DatabaseManager(this).clear();
+		
 		mLogin.setOnClickListener(new OnClickListener() {
 
 			@Override
 			public void onClick(View v) {
-
-				// Check device for Play Services APK.
-				if (getRegistrationId(getApplicationContext()).isEmpty()) {
-					registerGcmInBackground();
-				}
-				login();
+				mLoginWasPressed = true;
+				registerGcmInBackground();
 			}
 		});
 		mRegister.setOnClickListener(new OnClickListener() {
 
 			@Override
 			public void onClick(View v) {
-
-				if (getRegistrationId(getApplicationContext()).isEmpty()) {
-					registerGcmInBackground();
-				}
-				register();
+				mLoginWasPressed = false;
+				registerGcmInBackground();
 			}
 		});
 		mSelectAvi.setOnClickListener(new OnClickListener() {
@@ -423,14 +436,8 @@ public class RegisterActivity extends Activity {
 					if (result.getResponseCode() == 1) {
 						JSONObject response = (JSONObject) result.getExtraInfo();
 						try {
-							mPrefs.edit().putLong(Constants.CHASSIP_ID, response.getLong("id")).commit();
-							mPrefs.edit().putString(Constants.FIRST_NAME, response.getString("first_name")).commit();
-							mPrefs.edit().putString(Constants.LAST_NAME, response.getString("last_name")).commit();
-							done();
-							// {last_name=testLast, id=2,
-							// image=resources/users/user-2//images/img20140224042542.jpg,
-							// first_name=testFirst, bio=null,
-							// email=test@email.com}
+							mPrefs.edit().putString(Constants.JSON, response.toString()).commit();
+							updateChassipGcm(response.getLong("id"), getGCMPreferences(mCtx).getString(PROPERTY_REG_ID, "abc"));
 
 						} catch (JSONException e) {
 							handleLoginError(e);
@@ -467,14 +474,8 @@ public class RegisterActivity extends Activity {
 					if (result.getResponseCode() == 1) {
 						JSONObject response = (JSONObject) result.getExtraInfo();
 						try {
-							mPrefs.edit().putLong(Constants.CHASSIP_ID, response.getLong("id")).commit();
-							mPrefs.edit().putString(Constants.FIRST_NAME, response.getString("first_name")).commit();
-							mPrefs.edit().putString(Constants.LAST_NAME, response.getString("last_name")).commit();
-							done();
-							// {last_name=testLast, id=2,
-							// image=resources/users/user-2//images/img20140224042542.jpg,
-							// first_name=testFirst, bio=null,
-							// email=test@email.com}
+							mPrefs.edit().putString(JSON, response.toString()).commit();
+							updateChassipGcm(response.getLong("id"), getGCMPreferences(mCtx).getString(PROPERTY_REG_ID, "abc"));
 
 						} catch (JSONException e) {
 							handleRegistrationError(e);
@@ -585,10 +586,7 @@ public class RegisterActivity extends Activity {
 
 	private void done() {
 		Intent i = new Intent(this, MainActivity.class);
-		i.putExtra(Constants.CHASSIP_ID, mPrefs.getLong(Constants.CHASSIP_ID, Long.MIN_VALUE));
-		i.putExtra(Constants.FIRST_NAME, mPrefs.getString(Constants.FIRST_NAME, "John"));
-		i.putExtra(Constants.LAST_NAME, mPrefs.getString(Constants.LAST_NAME, "Hoe"));
-		i.putExtra(Constants.GCM_ID, getGCMPreferences(mCtx).getString(PROPERTY_REG_ID, "abc"));
+		i.putExtra(JSON, mPrefs.getString(JSON, "Whoa buddy"));
 		startActivity(i);
 		finish();
 	}

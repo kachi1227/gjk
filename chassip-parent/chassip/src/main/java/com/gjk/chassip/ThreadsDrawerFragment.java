@@ -6,9 +6,6 @@ import java.util.List;
 import java.util.Locale;
 
 import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -24,21 +21,23 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.gjk.chassip.model.ChatManager;
-import com.gjk.chassip.model.User;
 import com.gjk.chassip.net.AddMemberTask;
-import com.gjk.chassip.net.CreateGroupTask;
 import com.gjk.chassip.net.GetGroupMembersTask;
 import com.gjk.chassip.net.TaskResult;
 import com.gjk.chassip.net.HTTPTask.HTTPTaskListener;
-import com.gjk.chassip.service.ChassipService;
 import com.google.common.collect.Maps;
+
+import com.gjk.chassip.database.DatabaseManager.DataChangeListener;
+import com.gjk.chassip.database.PersistentObject;
+import com.gjk.chassip.database.objects.Group;
+import com.gjk.chassip.database.objects.GroupMember;
+import com.gjk.chassip.helper.DatabaseHelper;
 
 /**
  * 
  * @author gpl
  */
-public class ThreadsDrawerFragment extends ListFragment {
+public class ThreadsDrawerFragment extends ListFragment implements DataChangeListener {
 
 	private final String LOGTAG = getClass().getSimpleName();
 
@@ -46,6 +45,7 @@ public class ThreadsDrawerFragment extends ListFragment {
 	private Button mAddChatMembers;
 	private ThreadAdapter mAdapter;
 	private AlertDialog mDialog;
+	private List<GroupMember> mMainMembers;
 	private List<Long> mSelectedMembers;
 	private String[] mSelectedMembersNames;
 	private long[] mSelectedMembersIds;
@@ -55,8 +55,9 @@ public class ThreadsDrawerFragment extends ListFragment {
 
 	public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
 		if (mapping.isEmpty()) {
-			mapping.put("Kachi", 6L);
+			mapping.put("Greg", 3L);
 			mapping.put("Jeff", 8L);
+			mapping.put("Kachi", 6L);
 		}
 		mView = inflater.inflate(R.layout.threads_drawer_list, null);
 		mAddChatMembers = (Button) mView.findViewById(R.id.addChatMembers);
@@ -122,13 +123,13 @@ public class ThreadsDrawerFragment extends ListFragment {
 					handleCreateChatFail(result);
 				}
 			}
-		}, ChatManager.getInstance().getCurrentChatId(), members);
+		}, ChatsDrawerFragment.getCurrentChat().getCreatorId(), members);
 	}
 
 	private void loadMembers() {
-		
-		mSelectedMembersNames = new String[mSelectedMembers.size()+1];
-		mSelectedMembersIds = new long[mSelectedMembers.size()+1];
+
+		mSelectedMembersNames = new String[mSelectedMembers.size() + 1];
+		mSelectedMembersIds = new long[mSelectedMembers.size() + 1];
 
 		new GetGroupMembersTask(getActivity(), new HTTPTaskListener() {
 
@@ -138,22 +139,16 @@ public class ThreadsDrawerFragment extends ListFragment {
 				if (result.getResponseCode() == 1) {
 					JSONArray response = (JSONArray) result.getExtraInfo();
 					try {
-
-						for (int i=0; i<response.length(); i++) {
-							JSONObject member = response.getJSONObject(i);
-							mSelectedMembersNames[i] = member.getString("first_name") + " " + member.getString("last_name");
-							mSelectedMembersIds[i] = member.getLong("id");
-						}
-						ChassipService.addChatMembers(ChatManager.getInstance().getCurrentChatId(), mSelectedMembersNames, mSelectedMembersIds);
-
-					} catch (JSONException e) {
+						DatabaseHelper.addGroupMembers(response, ChatsDrawerFragment.getCurrentChat().getGlobalId());
+					} catch (Exception e) {
 						handleGetGroupMembersError(e);
 					}
+
 				} else {
 					handleGetGroupMembersFail(result);
 				}
 			}
-		}, ChatManager.getInstance().getCurrentChatId()); 
+		}, ChatsDrawerFragment.getCurrentChat().getCreatorId());
 	}
 
 	private void handleCreateChatFail(TaskResult result) {
@@ -161,17 +156,12 @@ public class ThreadsDrawerFragment extends ListFragment {
 		showLongToast(String.format(Locale.getDefault(), "Adding Chat Members failed: %s", result.getMessage()));
 	}
 
-	private void handleCreateChatError(JSONException e) {
-		Log.e(LOGTAG, String.format(Locale.getDefault(), "Adding Chat Members errored: %s", e.getMessage()));
-		showLongToast(String.format(Locale.getDefault(), "Adding Chat Members errored: %s", e.getMessage()));
-	}
-	
 	private void handleGetGroupMembersFail(TaskResult result) {
 		Log.e(LOGTAG, String.format(Locale.getDefault(), "Getting Chat Members failed: %s", result.getMessage()));
 		showLongToast(String.format(Locale.getDefault(), "Getting Chat Members failed: %s", result.getMessage()));
 	}
 
-	private void handleGetGroupMembersError(JSONException e) {
+	private void handleGetGroupMembersError(Exception e) {
 		Log.e(LOGTAG, String.format(Locale.getDefault(), "Getting Chat Members errored: %s", e.getMessage()));
 		showLongToast(String.format(Locale.getDefault(), "Getting Chat Members errored: %s", e.getMessage()));
 	}
@@ -221,26 +211,25 @@ public class ThreadsDrawerFragment extends ListFragment {
 			return convertView;
 		}
 
-		private String getLabel(int position) {
-			switch (getItem(position).getThreadType()) {
-			case MAIN_CHAT:
-				return "MAIN";
-			case SIDE_CONVO:
-				return "SIDE CONVO";
-			case WHISPER:
-				return "WHISPER";
-			default:
-				return "WTF...";
-			}
-		}
-
 		private String getMembers(int position) {
 			String tempMembers = "";
-			for (User member : getItem(position).getMembers()) {
-				tempMembers = tempMembers.concat(member.getName()).concat(" ");
+			if (getItem(position).getMembers() != null) {
+				for (GroupMember member : getItem(position).getMembers()) {
+					tempMembers = tempMembers.concat(member.getFullName()).concat(" ");
+				}
 			}
 			return tempMembers;
 		}
 
+	}
+
+	@Override
+	public void onDataChanged(PersistentObject o) {
+		if (o.getTableName().equals(Group.TABLE_NAME)) {
+//			Group g = (Group) o;
+			// do something for whispers and sideconvos
+		} else if (o.getTableName().equals(GroupMember.TABLE_NAME)) {
+			updateView();
+		}
 	}
 }
