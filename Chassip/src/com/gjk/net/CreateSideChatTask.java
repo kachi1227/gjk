@@ -1,12 +1,36 @@
 package com.gjk.net;
 
+/*---------------------------------------------
+
+Create Side Chat
+
+API endpoint: http://skip2milu.com/gjk/api/createSideChat
+
+Sample JSON request:
+Required fields:
+{"group_id":1, "creator_id": 4,  "members": [5, 6]}
+
+
+
+Optional fields:
+"name" - the name of the side chat
+
+Sample JSON response:
+
+{"side_chat":{"id":"1","group_id":"1","name":"","creator_id":"4","first_name":"Kachi","last_name":"Nwaobasi", "collapsed":0},"success":true}
+
+-------------------------------------------------*/
+
+
 import java.util.Arrays;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import com.gjk.net.MiluHttpRequest.DBHttpResponse;
 
 import android.content.Context;
+
 
 public class CreateSideChatTask extends MiluHTTPTask {
 	//members
@@ -38,7 +62,7 @@ public class CreateSideChatTask extends MiluHTTPTask {
 	public TaskResult handleSuccessfulJSONResponse(DBHttpResponse response,
 			JSONObject json) throws Exception {
 		// TODO Auto-generated method stub
-		return new TaskResult(this, TaskResult.RC_SUCCESS,null,json.getJSONObject("sidechat"));
+		return new TaskResult(this, TaskResult.RC_SUCCESS,null,json.getJSONObject("side_chat"));
 	}
 
 	@Override
@@ -47,7 +71,14 @@ public class CreateSideChatTask extends MiluHTTPTask {
 		JSONObject payload = new JSONObject();
 		payload.put("group_id", mGroup_id);
 		payload.put("creator_id", mCreator_id);
-		payload.put("members", mMembers);
+		
+		//change long [] to JSONarray
+		JSONArray ids = new JSONArray();
+		for(long id : mMembers){
+			ids.put(id);
+		}//end change array
+		
+		payload.put("members", ids);
 		if(mName != null)
 			payload.put("name", mName);
 		

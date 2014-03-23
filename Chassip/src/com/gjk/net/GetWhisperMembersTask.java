@@ -1,5 +1,21 @@
 package com.gjk.net;
 
+/*-------------------------------------------------------------------------------
+
+Get Whisper Members
+
+API endpoint: http://skip2milu.com/gjk/api/getWhisperMembers
+
+Sample JSON request:
+Required fields:
+ {"whisper_id":2}
+
+Sample JSON response:
+
+{"members":[{"id":"4","first_name":"Kachi","last_name":"Nwaobasi","image":""},{"id":"6","first_name":"Kachi","last_name":"Nwaobasi","image":"resources\/6\/images\/img20140213064951.jpg"}],"success":true}
+
+----------------------------------------------------------------*/
+
 import org.json.JSONObject;
 
 import com.gjk.net.MiluHttpRequest.DBHttpResponse;
@@ -21,7 +37,7 @@ public class GetWhisperMembersTask extends MiluHTTPTask {
 	public TaskResult handleSuccessfulJSONResponse(DBHttpResponse response,
 			JSONObject json) throws Exception {
 		// TODO Auto-generated method stub
-		return new TaskResult(this, TaskResult.RC_SUCCESS,null,json.getJSONObject("whisper"));
+		return new TaskResult(this, TaskResult.RC_SUCCESS,null,json.getJSONObject("members"));
 
 	}
 
