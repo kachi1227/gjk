@@ -1,5 +1,6 @@
 package com.gjk.chassip.net;
 
+<<<<<<< HEAD
 import java.util.HashMap;
 import java.util.Set;
 
@@ -12,6 +13,10 @@ import com.google.common.collect.Maps;
 import android.content.Context;
 
 /*Creating Group
+=======
+/*--------------------------------------------
+Creating Group
+>>>>>>> 0af198c1a8a9fb33cbcd7f61d436533aec8c5c0f
 
 API endpoint: http://skip2milu.com/gjk/api/createGroup
 
@@ -21,7 +26,18 @@ Sample JSON request:
 Sample JSON response:
 
 {"group":{"id": "1", "name":"GJK", "creator_id":"1", "first_name":"Kachi", "last_name":"Nwaobasi", "image":"resources\/groups\/group-1\/img20140224010119.png"},"success":true}
+-----------------------------------------------
 */
+
+import java.util.HashMap;
+
+import org.json.JSONObject;
+
+import com.gjk.chassip.net.MiluHttpRequest.DBHttpResponse;
+
+import android.content.Context;
+
+
 
 public class CreateGroupTask extends MiluHTTPTask {
 	private String mNameOfGroup;//group name
@@ -57,6 +73,7 @@ public class CreateGroupTask extends MiluHTTPTask {
 		JSONObject payload = new JSONObject();
 		payload.put("name", mNameOfGroup);
 		payload.put("creator_id", mUserID);
+<<<<<<< HEAD
 		JSONArray ids = new JSONArray();
 		for (long id : mMembers) {
 			ids.put(id);
@@ -66,6 +83,9 @@ public class CreateGroupTask extends MiluHTTPTask {
 		for(String key : keys){
 			payload.put(key, mFieldMapping.get(key));
 		}
+=======
+		
+>>>>>>> 0af198c1a8a9fb33cbcd7f61d436533aec8c5c0f
 		
 		return payload;
 	}

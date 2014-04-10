@@ -1,5 +1,20 @@
 package com.gjk.chassip.net;
 
+/*------------------------------------
+ Update GCM Registration
+
+API endpoint: http://skip2milu.com/gjk/api/updateGCMRegistration
+
+Sample JSON request:
+Updating GCM - Required fields:
+ {"id":4, "registration_id":"test_reg", "phone_type": "ANDROID"}
+ 
+ 
+Sample JSON response:
+{"success":true}
+ -------------------------------------
+*/
+
 import org.json.JSONObject;
 
 import com.gjk.chassip.net.MiluHttpRequest.DBHttpResponse;
@@ -27,7 +42,7 @@ public class UpdateGCMRegTask extends MiluHTTPTask {
 	public TaskResult handleSuccessfulJSONResponse(DBHttpResponse response,
 			JSONObject json) throws Exception {
 		// TODO Auto-generated method stub
-		return new TaskResult(this, TaskResult.RC_SUCCESS,null,json);
+		return new TaskResult(this, TaskResult.RC_SUCCESS,null,json.getBoolean("success"));
 	}
 
 	@Override

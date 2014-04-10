@@ -1,8 +1,6 @@
 package com.gjk.chassip.net;
 
 import java.io.File;
-import java.math.BigInteger;
-import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -14,12 +12,11 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import android.content.Context;
-import com.gjk.chassip.Application;
 import com.gjk.chassip.Constants;
 import com.gjk.chassip.R;
 import com.gjk.chassip.net.MiluHttpRequest.DBHttpUploadFile;
 
-@SuppressWarnings("unused")
+
 public abstract class MiluHTTPTask extends HTTPTask {
 	
 	List<DBHttpUploadFile> mFiles = null;
@@ -35,7 +32,7 @@ public abstract class MiluHTTPTask extends HTTPTask {
 	protected void executeWithJson(String uri, JSONObject json) {
 		String url = Constants.BASE_URL + uri;
 		try {
-			long currTime = System.currentTimeMillis();
+//			long currTime = System.currentTimeMillis();
 			MiluHttpRequest req = null;
 				if(!mHasPotentialFiles)
 					req = MiluHttpRequest.generateStringEntityPostRequest(
@@ -69,10 +66,10 @@ public abstract class MiluHTTPTask extends HTTPTask {
 
 	public void execute()  {
 		try {
-			if(Application.get().isNetworkAvailableWithMessage())
+			//if(Application.get().isNetworkAvailableWithMessage())
 				executeWithJson(getUri(), getPayload());
-			else if(mListener != null)
-				mListener.onTaskComplete(new TaskResult(this, TaskResult.RC_FAILURE, mCtx.getString(R.string.error_no_connection) , null));
+		//	else if(mListener != null)
+			//	mListener.onTaskComplete(new TaskResult(this, TaskResult.RC_FAILURE, mCtx.getString(R.string.error_no_connection) , null));
 				
 		} catch (Exception e) {
 			throw new RuntimeException(e);
@@ -125,25 +122,6 @@ public abstract class MiluHTTPTask extends HTTPTask {
 		return new TaskResult(this, TaskResult.RC_FAILURE, response.getResponseText(), null);
 	}
 
-	private String createSignature(String payload) throws Exception  {
-	
-		MessageDigest m = MessageDigest.getInstance("MD5");
-		m.reset();
-		//m.update(payload.getBytes("UTF-8"));
-		byte[] digest = m.digest(payload.getBytes("UTF-8"));
-		
-		BigInteger bigInt = new BigInteger(1,digest);
-		String hashtext = bigInt.toString(16);
-		//String hashtext = bytesToHex(digest);
-		// Now we need to zero pad it if you actually want the full 32 chars.
-		while(hashtext.length() < 32 ){
-			hashtext = "0"+hashtext;
-		}
-
-		return hashtext;
-
-	}
-	
 	  public static String bytesToHex(byte[] data) {
 	        StringBuffer buf = new StringBuffer();
 	        for (int i = 0; i < data.length; i++) {

@@ -1,12 +1,7 @@
 package com.gjk.net;
 
-import org.json.JSONObject;
-
-import com.gjk.net.MiluHttpRequest.DBHttpResponse;
-
-import android.content.Context;
-
-/*Creating Group
+/*--------------------------------------------
+Creating Group
 
 API endpoint: http://skip2milu.com/gjk/api/createGroup
 
@@ -16,7 +11,16 @@ Sample JSON request:
 Sample JSON response:
 
 {"group":{"id": "1", "name":"GJK", "creator_id":"1", "first_name":"Kachi", "last_name":"Nwaobasi", "image":"resources\/groups\/group-1\/img20140224010119.png"},"success":true}
+-----------------------------------------------
 */
+
+import org.json.JSONObject;
+
+import com.gjk.net.MiluHttpRequest.DBHttpResponse;
+
+import android.content.Context;
+
+
 
 public class CreateGroupTask extends MiluHTTPTask {
 	private String mNameOfGroup;//group name

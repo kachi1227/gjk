@@ -1,12 +1,34 @@
 package com.gjk.net;
 
+/*-----------------------------------------------------------------------
+
+Add Whisper Members
+
+API endpoint: http://skip2milu.com/gjk/api/addWhisperMembers
+
+Sample JSON request:
+Required fields:
+ {"whisper_id":1, "recipients": [7]}
+
+
+
+Sample JSON response:
+
+{"success":true} (if we were able to successfully add all members that we attempted to the whisper)
+
+-------------------------------------------------------------------------------
+*/
+
 import java.util.Arrays;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import com.gjk.net.MiluHttpRequest.DBHttpResponse;
 
 import android.content.Context;
+
+
 
 public class AddWhisperMembersTask extends MiluHTTPTask{
 	
@@ -36,6 +58,13 @@ public class AddWhisperMembersTask extends MiluHTTPTask{
 		// TODO Auto-generated method stub
 		JSONObject payload = new JSONObject();
 		payload.put("whisper_id", mWhisperID);
+		
+		//change long [] to JSONarray
+		JSONArray ids = new JSONArray();
+		for (long id : mRecipients){
+			ids.put(id);
+		}//end change array 
+		
 		payload.put("recipients", mRecipients);
 		
 		return payload;

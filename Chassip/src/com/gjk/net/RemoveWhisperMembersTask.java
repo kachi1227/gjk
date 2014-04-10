@@ -1,7 +1,24 @@
 package com.gjk.net;
 
-import java.util.Arrays;
+/*----------------------------------------------------------------
 
+Remove Whisper Members
+
+API endpoint: http://skip2milu.com/gjk/api/removeWhisperMembers
+
+Sample JSON request:
+Required fields:
+{"whisper_id":1, "members": [7]}
+
+Sample JSON response:
+
+{"success":true} (if we were able to successfully remove members or if we tried to remove a member that wasnt in whisper)
+
+--------------------------------------------------------------------
+*/
+
+import java.util.Arrays;
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import com.gjk.net.MiluHttpRequest.DBHttpResponse;
@@ -35,7 +52,15 @@ public class RemoveWhisperMembersTask extends MiluHTTPTask {
 		// TODO Auto-generated method stub
 		JSONObject payload = new JSONObject();
 		payload.put("whisper_id", mWhisperID);
+		
+		//convert long [] to JSONArray
+		JSONArray ids = new JSONArray();
+		for(long id : mMembers){
+			ids.put(id);
+		}//end convert array
+		
 		payload.put("members", mMembers);
+		
 		return payload;
 	}
 
