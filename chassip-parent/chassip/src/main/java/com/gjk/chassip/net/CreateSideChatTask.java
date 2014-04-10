@@ -71,20 +71,11 @@ public class CreateSideChatTask extends MiluHTTPTask {
 		JSONObject payload = new JSONObject();
 		payload.put("group_id", mGroup_id);
 		payload.put("creator_id", mCreator_id);
-<<<<<<< HEAD
-		JSONArray ids = new JSONArray();
-		for (long id : mMembers) {
-			ids.put(id);
-		}
-=======
-		
 		//change long [] to JSONarray
 		JSONArray ids = new JSONArray();
 		for(long id : mMembers){
 			ids.put(id);
 		}//end change array
-		
->>>>>>> 0af198c1a8a9fb33cbcd7f61d436533aec8c5c0f
 		payload.put("members", ids);
 		if(mName != null)
 			payload.put("name", mName);

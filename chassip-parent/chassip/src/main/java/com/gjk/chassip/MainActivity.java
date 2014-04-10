@@ -762,7 +762,8 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 
 		@Override
 		public Fragment getItem(int position) {
-			showLongToast(String.format(Locale.getDefault(), "Showing position=%d threadId=%d", position, mCurrrentThreads.get(position).getThreadId()));
+			showLongToast(String.format(Locale.getDefault(), "Showing position=%d threadId=%d", position,
+					mCurrrentThreads.get(position).getArguments().getLong("threadId")));
 			return mCurrrentThreads.get(position);
 		}
 
@@ -815,7 +816,7 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 			for (ThreadFragment frag : frags) {
 				mCurrrentThreads.add(frag);
 				notifyDataSetChanged();
-				Tab tab = mBar.newTab().setText(frag.getName()).setTabListener(this);
+				Tab tab = mBar.newTab().setText(frag.getArguments().getString("name")).setTabListener(this);
 				mBar.addTab(tab);
 				addToThreadDrawer(frag);
 				mThreadsDrawerFragment.updateView();

@@ -20,13 +20,6 @@ import com.gjk.chassip.database.objects.GroupMember;
 import com.gjk.chassip.database.objects.Message;
 import com.gjk.chassip.database.objects.User;
 
-<<<<<<< HEAD
-import android.database.Cursor;
-import android.os.Bundle;
-import static com.gjk.chassip.Constants.*;
-
-=======
->>>>>>> 0af198c1a8a9fb33cbcd7f61d436533aec8c5c0f
 public final class DatabaseHelper {
 
 	private final static DatabaseManager sDm = Application.get().getDatabaseManager();

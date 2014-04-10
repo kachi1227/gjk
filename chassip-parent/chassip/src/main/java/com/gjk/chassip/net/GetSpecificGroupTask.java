@@ -1,7 +1,5 @@
 package com.gjk.chassip.net;
 
-<<<<<<< HEAD
-=======
 /*---------------------------------------------
 
 Get Group
@@ -25,7 +23,6 @@ Knock|3:Who's There"},"success":true}
 
 -------------------------------------------*/
 
->>>>>>> 0af198c1a8a9fb33cbcd7f61d436533aec8c5c0f
 import org.json.JSONObject;
 
 import com.gjk.chassip.net.MiluHttpRequest.DBHttpResponse;

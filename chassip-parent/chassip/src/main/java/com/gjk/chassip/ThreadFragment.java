@@ -54,7 +54,7 @@ public class ThreadFragment extends ListFragment implements DataChangeListener {
 	private MessagesAdapter mAdapter;
 	private Set<GroupMember> mMembers;
 	private boolean mInitialized;
-	private List<Message> mPendingMessages;
+	private List<Message> mPendingMessages = Lists.newLinkedList();
 
 	private View mView;
 	private EditText mPendingMessage;

@@ -37,11 +37,7 @@ public class GetSideChatMembersTask extends MiluHTTPTask {
 	public TaskResult handleSuccessfulJSONResponse(DBHttpResponse response,
 			JSONObject json) throws Exception {
 		// TODO Auto-generated method stub
-<<<<<<< HEAD
 		return new TaskResult(this, TaskResult.RC_SUCCESS,null,json.getJSONArray("members"));
-=======
-		return new TaskResult(this, TaskResult.RC_SUCCESS,null,json.getJSONObject("members"));
->>>>>>> 0af198c1a8a9fb33cbcd7f61d436533aec8c5c0f
 	}
 
 	@Override

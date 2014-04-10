@@ -28,15 +28,9 @@ import com.gjk.chassip.net.MiluHttpRequest.DBHttpResponse;
 
 import android.content.Context;
 
-<<<<<<< HEAD
-public class AddWhisperMembersTask extends MiluHTTPTask {
-
-=======
-
 
 public class AddWhisperMembersTask extends MiluHTTPTask{
 	
->>>>>>> 0af198c1a8a9fb33cbcd7f61d436533aec8c5c0f
 	private long mWhisperID;
 	private long[] mRecipients;
 
@@ -61,23 +55,12 @@ public class AddWhisperMembersTask extends MiluHTTPTask{
 		// TODO Auto-generated method stub
 		JSONObject payload = new JSONObject();
 		payload.put("whisper_id", mWhisperID);
-<<<<<<< HEAD
 		JSONArray ids = new JSONArray();
 		for (long id : mRecipients) {
 			ids.put(id);
 		}
 		payload.put("recipients", ids);
-=======
 		
-		//change long [] to JSONarray
-		JSONArray ids = new JSONArray();
-		for (long id : mRecipients){
-			ids.put(id);
-		}//end change array 
-		
-		payload.put("recipients", mRecipients);
-		
->>>>>>> 0af198c1a8a9fb33cbcd7f61d436533aec8c5c0f
 		return payload;
 	}
 
