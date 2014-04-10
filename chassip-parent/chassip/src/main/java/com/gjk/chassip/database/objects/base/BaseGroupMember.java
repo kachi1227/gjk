@@ -14,7 +14,7 @@ import android.database.sqlite.SQLiteOpenHelper;
 import android.database.sqlite.SQLiteStatement;
 
 public abstract class BaseGroupMember extends PersistentObject {
-	
+
 	private static final String ERROR_MSG_CLOSED_CURSOR = "Tried to hyrdate entity from closed cursor.";
 
 	private static final String ERROR_MSG_HYDRATE_NO_ID = "Error fetching column 'id' from table 'group_member'";
@@ -32,31 +32,31 @@ public abstract class BaseGroupMember extends PersistentObject {
 	public static final String F_FIRST_NAME = "first_name";
 	public static final String F_LAST_NAME = "last_name";
 	public static final String F_IMAGE_URL = "image_url";
-	
-	public static final String[] ALL_COLUMN_NAMES = new String[] {F_ID, F_GLOBAL_ID, F_GROUP_ID, F_FIRST_NAME, F_LAST_NAME, F_IMAGE_URL};
-	
+
+	public static final String[] ALL_COLUMN_NAMES = new String[] { F_ID, F_GLOBAL_ID, F_GROUP_ID, F_FIRST_NAME,
+			F_LAST_NAME, F_IMAGE_URL };
+
 	public static final String CREATE_TABLE_STATEMENT = "CREATE TABLE \"group_member\"(   \"_id\" INTEGER PRIMARY KEY NOT NULL,	\"global_id\" INTEGER NOT NULL,		\"group_id\" INTEGER NOT NULL,		\"first_name\" VARCHAR(256),	\"last_name\" VARCHAR(256),   \"image_url\" VARCHAR(2000))";
 	public static final String DROP_TABLE_STATEMENT = "DROP TABLE IF EXISTS 'group_member';";
-	
+
 	private static final String COUNT_STATEMENT = "SELECT COUNT(" + F_ID + ") FROM group_member";
-	
+
 	private static final String EMPTY_STRING = "";
-	
 
 	private long mGlobalId;
 	private long mGroupId;
 	private String mFirstName;
 	private String mLastName;
 	private String mImageUrl;
-	
+
 	public BaseGroupMember(SQLiteOpenHelper dbm, Cursor c, boolean skipOk) {
 		super(dbm, c, skipOk);
 	}
-	
+
 	public BaseGroupMember(SQLiteOpenHelper dbm, String jsonString, boolean skipOk) {
 		super(dbm, jsonString, skipOk);
 	}
-	
+
 	public BaseGroupMember(SQLiteOpenHelper dbm, JSONObject obj, boolean skipOk) {
 		super(dbm, obj, skipOk);
 	}
@@ -105,8 +105,6 @@ public abstract class BaseGroupMember extends PersistentObject {
 		if (c.isClosed()) {
 			throw new PersistentObjectHydrateException(ERROR_MSG_CLOSED_CURSOR);
 		}
-		
-		
 
 		try {
 			setId(c.getLong(c.getColumnIndexOrThrow(F_ID)));
@@ -158,7 +156,7 @@ public abstract class BaseGroupMember extends PersistentObject {
 				setIsComplete(false);
 			}
 		}
-		
+
 		try {
 			setImageUrl(c.getString(c.getColumnIndexOrThrow(F_IMAGE_URL)));
 		} catch (Exception e) {
@@ -169,10 +167,10 @@ public abstract class BaseGroupMember extends PersistentObject {
 				setIsComplete(false);
 			}
 		}
-		
+
 		setIsDirty(false);
 	}
-	
+
 	@Override
 	public void hydrate(JSONObject obj, boolean skipOk) {
 
@@ -239,7 +237,7 @@ public abstract class BaseGroupMember extends PersistentObject {
 		setIsDirty(true);
 		setIsNew(true);
 	}
-	
+
 	@Override
 	public JSONObject getJSONObject() {
 		try {
@@ -271,11 +269,11 @@ public abstract class BaseGroupMember extends PersistentObject {
 
 		return cv;
 	}
-	
+
 	public static long getCount(SQLiteOpenHelper dbm) {
 		return getCount(dbm, null);
 	}
-	
+
 	public static long getCount(SQLiteOpenHelper dbm, String whereClause) {
 		long count = 0;
 		SQLiteStatement stmt = null;
@@ -288,30 +286,31 @@ public abstract class BaseGroupMember extends PersistentObject {
 		stmt.close();
 		return count;
 	}
-	
+
 	public static boolean isTableEmpty(SQLiteOpenHelper dbm) {
 		return getCount(dbm, null) == 0;
 	}
-	
+
 	public static int deleteById(SQLiteOpenHelper dbm, long id, boolean notEqual) {
 		return dbm.getWritableDatabase().delete(TABLE_NAME, F_ID + (notEqual ? " <> " : " = ") + id, null);
 	}
-	
+
 	public static int deleteByIds(SQLiteOpenHelper dbm, List<Long> idsToDelete, boolean notIn) {
 		String idList = "";
-		for (int i = 0; i<idsToDelete.size(); i++) {
+		for (int i = 0; i < idsToDelete.size(); i++) {
 			if (!idList.equals(EMPTY_STRING)) {
 				idList += ", ";
 			}
 			idList += "" + idsToDelete.get(i);
 		}
-		return dbm.getWritableDatabase().delete(TABLE_NAME, F_ID + (notIn ? " NOT" : "") + " IN (" + idList + ")", null);
+		return dbm.getWritableDatabase()
+				.delete(TABLE_NAME, F_ID + (notIn ? " NOT" : "") + " IN (" + idList + ")", null);
 	}
-	
+
 	public static int deleteWhere(SQLiteOpenHelper dbm, String whereClause) {
 		return deleteWhere(dbm, whereClause, null);
 	}
-	
+
 	public static int deleteWhere(SQLiteOpenHelper dbm, String whereClause, String[] whereArgs) {
 		return dbm.getWritableDatabase().delete(TABLE_NAME, whereClause, whereArgs);
 	}
@@ -323,9 +322,8 @@ public abstract class BaseGroupMember extends PersistentObject {
 		if (c.isAfterLast()) {
 			c.close();
 			return objList;
-		} 
-		
-		
+		}
+
 		while (!c.isAfterLast()) {
 			objList.add(new GroupMember(dbm, c, false));
 			c.moveToNext();
@@ -333,20 +331,19 @@ public abstract class BaseGroupMember extends PersistentObject {
 		c.close();
 		return objList;
 	}
-	
+
 	public static GroupMember findById(SQLiteOpenHelper dbm, long id) {
-		Cursor c = dbm.getReadableDatabase().query(TABLE_NAME, ALL_COLUMN_NAMES, F_ID + " = " + id, null, null, null, null, "1");
+		Cursor c = dbm.getReadableDatabase().query(TABLE_NAME, ALL_COLUMN_NAMES, F_ID + " = " + id, null, null, null,
+				null, "1");
 		c.moveToFirst();
 		if (c.isAfterLast()) {
 			c.close();
 			return null;
-		} 
+		}
 		GroupMember obj = new GroupMember(dbm, c, false);
 		c.close();
 		return obj;
 	}
-
-
 
 	public long getGlobalId() {
 		return mGlobalId;
@@ -355,28 +352,42 @@ public abstract class BaseGroupMember extends PersistentObject {
 	public void setGlobalId(long val) {
 		this.mGlobalId = val;
 		setIsDirty(true);
-	}	
-	
+	}
+
 	public static GroupMember findOneByGlobalId(SQLiteOpenHelper dbm, long val) {
-		Cursor c = dbm.getReadableDatabase().query(TABLE_NAME, ALL_COLUMN_NAMES, F_GLOBAL_ID + " = " + val, null, null, null, null);
+		Cursor c = dbm.getReadableDatabase().query(TABLE_NAME, ALL_COLUMN_NAMES, F_GLOBAL_ID + " = " + val, null, null,
+				null, null);
 		c.moveToFirst();
 		if (c.isAfterLast()) {
 			c.close();
 			return null;
-		} 
+		}
 		GroupMember obj = new GroupMember(dbm, c, false);
 		c.close();
 		return obj;
 	}
-	
+
+	public static GroupMember findOneByGlobalAndGroupId(SQLiteOpenHelper dbm, long val, long groupId) {
+		Cursor c = dbm.getReadableDatabase().query(TABLE_NAME, ALL_COLUMN_NAMES,
+				F_GLOBAL_ID + " = " + val + " and " + F_GROUP_ID + " = " + groupId, null, null, null, null);
+		c.moveToFirst();
+		if (c.isAfterLast()) {
+			c.close();
+			return null;
+		}
+		GroupMember obj = new GroupMember(dbm, c, false);
+		c.close();
+		return obj;
+	}
+
 	public static int deleteByGlobalId(SQLiteOpenHelper dbm, long val) {
 		return dbm.getWritableDatabase().delete(TABLE_NAME, F_GLOBAL_ID + "=" + val, null);
 	}
-	
+
 	public long getGroupId() {
 		return mGroupId;
 	}
-	
+
 	public void setGroupId(long val) {
 		mGroupId = val;
 		setIsDirty(true);
@@ -390,7 +401,7 @@ public abstract class BaseGroupMember extends PersistentObject {
 		this.mFirstName = val;
 		setIsDirty(true);
 	}
-	
+
 	public String getLastName() {
 		return mLastName;
 	}
@@ -399,7 +410,7 @@ public abstract class BaseGroupMember extends PersistentObject {
 		this.mLastName = val;
 		setIsDirty(true);
 	}
-		
+
 	public String getImageUrl() {
 		return mImageUrl;
 	}

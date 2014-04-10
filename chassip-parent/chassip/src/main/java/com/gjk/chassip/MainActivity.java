@@ -1,19 +1,26 @@
 package com.gjk.chassip;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import android.annotation.SuppressLint;
+import android.app.AlertDialog;
 import android.app.Service;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.DialogInterface;
+import android.content.DialogInterface.OnClickListener;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.Bundle;
-import android.os.Debug;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Messenger;
@@ -26,23 +33,33 @@ import android.support.v4.app.FragmentTransaction;
 import android.support.v4.view.ViewPager;
 import android.util.Log;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.ListView;
 import android.widget.Toast;
 
 import com.actionbarsherlock.app.ActionBar;
 import com.actionbarsherlock.app.ActionBar.Tab;
-import com.gjk.chassip.database.DatabaseManager;
 import com.gjk.chassip.database.DatabaseManager.DataChangeListener;
 import com.gjk.chassip.database.PersistentObject;
 import com.gjk.chassip.database.objects.Group;
 import com.gjk.chassip.database.objects.GroupMember;
-import com.gjk.chassip.database.objects.User;
+import com.gjk.chassip.helper.DatabaseHelper;
+import com.gjk.chassip.net.AddMemberTask;
+import com.gjk.chassip.net.AddSideChatMembersTask;
+import com.gjk.chassip.net.AddWhisperMembersTask;
 import com.gjk.chassip.net.GetGroupMembersTask;
+import com.gjk.chassip.net.GetMessageTask;
 import com.gjk.chassip.net.GetMultipleGroupsTask;
+import com.gjk.chassip.net.GetSideChatMembersTask;
+import com.gjk.chassip.net.GetWhisperMembersTask;
+import com.gjk.chassip.net.NotifyGroupInviteesTask;
+import com.gjk.chassip.net.NotifySideChatInviteesTask;
+import com.gjk.chassip.net.NotifyWhisperInviteesTask;
 import com.gjk.chassip.net.TaskResult;
 import com.gjk.chassip.net.HTTPTask.HTTPTaskListener;
 import com.gjk.chassip.service.ChassipService;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.jeremyfeinstein.slidingmenu.lib.SlidingMenu;
 import com.jeremyfeinstein.slidingmenu.lib.app.SlidingFragmentActivity;
 
@@ -54,28 +71,41 @@ import static com.gjk.chassip.helper.DatabaseHelper.*;
  * @author gpl
  * 
  */
-public class MainActivity extends SlidingFragmentActivity implements ServiceConnection, DataChangeListener {
+public class MainActivity extends SlidingFragmentActivity implements ServiceConnection, DataChangeListener,
+		LoginDialog.NoticeDialogListener, RegisterDialog.NoticeDialogListener {
 
 	private final String LOGTAG = getClass().getSimpleName();
+
+	public static Object dummyActive;
 
 	private ViewPager mViewPager;
 	private ActionBar mActionBar;
 	private ThreadPagerAdapter mThreadPagerAdapter;
-	// private AddChatTask mAddChatTask;
-	// private AddThreadTask mAddThreadTask;
-	// private AddInstantMessageTask mAddInstantMessagrTask;
-	// private AddMemberTask mMemberTask;
-	// private AlertDialog mDialog;
 	private ChatsDrawerFragment mChatsDrawerFragment;
 	private ThreadsDrawerFragment mThreadsDrawerFragment;
+
+	private LoginDialog mLoginDialog;
+	private RegisterDialog mRegDialog;
 
 	private Messenger mServiceMessenger = null;
 	boolean mIsBound;
 
-	private Context mCtx;
 	private final Messenger mClientMessager = new Messenger(new IncomingMessageHandler());
 
 	private ServiceConnection mConnection = this;
+
+	// TODO: Temporary!!
+	private final static HashMap<String, Long> mapping = Maps.newHashMap();
+	private List<Long> mSelectedMembers;
+
+	@Override
+	public void onNewIntent(Intent i) {
+		Log.d(LOGTAG, "Swag");
+		if (i.getExtras() != null && i.getExtras().containsKey("group_id")) {
+			long chatId = i.getExtras().getLong("group_id");
+			Application.get().getPreferences().edit().putLong("current_group_id", chatId).commit();
+		}
+	}
 
 	/*
 	 * (non-Javadoc)
@@ -86,24 +116,7 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 
-//		Debug.waitForDebugger();
-
-		mCtx = this;
-
-		// Listen for table changes
-		Application.get().getDatabaseManager().registerDataChangeListener(User.TABLE_NAME, this);
-		Application.get().getDatabaseManager().registerDataChangeListener(Group.TABLE_NAME, this);
-		Application.get().getDatabaseManager().registerDataChangeListener(GroupMember.TABLE_NAME, this);
-		try {
-			setAccountUser(getIntent().getExtras());
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		String fullName = getAccountUserFullName();
-		String message1 = String.format(Locale.getDefault(), "Welcome, %s! You're swagged out!", fullName);
-		Toast.makeText(getApplicationContext(), message1, Toast.LENGTH_SHORT).show();
-		// mAccountUserId = getAccountUserId(mCtx);
+		// Debug.waitForDebugger();
 
 		// Instantiate sliding menu
 		final SlidingMenu sm = getSlidingMenu();
@@ -111,41 +124,6 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 
 		// set the Behind View
 		setBehindContentView(R.layout.chats_drawer);
-
-		// commit/get drawer fragments
-		if (savedInstanceState == null) {
-
-			mChatsDrawerFragment = new ChatsDrawerFragment() {
-				@Override
-				public void onListItemClick(ListView l, View v, int position, long id) {
-					super.onListItemClick(l, v, position, id);
-					sm.toggle();
-					toggleChat(this.getChatIdFromPosition(position));
-				}
-			};
-			mThreadsDrawerFragment = new ThreadsDrawerFragment() {
-				@Override
-				public void onListItemClick(ListView l, View v, int position, long id) {
-					super.onListItemClick(l, v, position, id);
-					sm.toggle();
-					// TODO: fill me in!!
-				}
-			};
-
-			getSupportFragmentManager().beginTransaction().replace(R.id.chats_menu_frame, mChatsDrawerFragment)
-					.commit();
-
-			sm.setSecondaryMenu(getLayoutInflater().inflate(R.layout.threads_drawer, null));
-			getSupportFragmentManager().beginTransaction().replace(R.id.threads_menu_frame, mThreadsDrawerFragment)
-					.commit();
-
-		} else {
-
-			mChatsDrawerFragment = (ChatsDrawerFragment) this.getSupportFragmentManager().findFragmentById(
-					R.id.chats_menu_frame);
-			mThreadsDrawerFragment = (ThreadsDrawerFragment) this.getSupportFragmentManager().findFragmentById(
-					R.id.threads_menu_frame);
-		}
 
 		// customize
 		sm.setShadowWidthRes(R.dimen.shadow_width);
@@ -169,20 +147,297 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 		setContentView(mViewPager);
 		mViewPager.setOffscreenPageLimit(Constants.OFFSCREEN_PAGE_LIMIT);
 
-		startService(new Intent(MainActivity.this, ChassipService.class));
-		doBindService();
+		mChatsDrawerFragment = new ChatsDrawerFragment() {
+			@Override
+			public void onListItemClick(ListView l, View v, int position, long id) {
+				super.onListItemClick(l, v, position, id);
+				sm.toggle();
+				toggleChat((Group) l.getItemAtPosition(position));
+			}
+		};
+		mThreadsDrawerFragment = new ThreadsDrawerFragment() {
+			@Override
+			public void onListItemClick(ListView l, View v, int position, long id) {
+				super.onListItemClick(l, v, position, id);
+				final ThreadFragment frag = (ThreadFragment) l.getItemAtPosition(position);
+				String message = "Are you sure you'd like to add more members to " + frag.getName() + "?";
+				AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+				builder.setMessage(message).setPositiveButton("Yes", new OnClickListener() {
+					@Override
+					public void onClick(DialogInterface dialog, int which) {
+						mSelectedMembers = new ArrayList<Long>(); // Where we track the selected items
+						AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+						// Set the dialog title
+						builder.setTitle(R.string.add_members_to_chat_title)
+						// Specify the list array, the items to be selected by default (null for none),
+						// and the listener through which to receive callbacks when items are selected
+								.setMultiChoiceItems(R.array.contacts, null,
+										new DialogInterface.OnMultiChoiceClickListener() {
+											@Override
+											public void onClick(DialogInterface dialog, int which, boolean isChecked) {
+												String name = getResources().getStringArray(R.array.contacts)[which];
+												if (isChecked) {
+													// If the user checked the item, add it to the selected items
+													mSelectedMembers.add(mapping.get(name));
+												} else if (mSelectedMembers.contains(which)) {
+													// Else, if the item is already in the array, remove it
+													mSelectedMembers.remove(mapping.get(name));
+												}
+											}
+										})
+								// Set the action buttons
+								.setPositiveButton(R.string.ok, new DialogInterface.OnClickListener() {
+									@Override
+									public void onClick(DialogInterface dialog, int id) {
+										// User clicked OK, so save the mSelectedItems results somewhere
+										// or return them to the component that opened the dialog
+										if (frag.getThreadType() == ThreadType.MAIN_CHAT) {
+											addChatMembers();
+										} else if (frag.getThreadType() == ThreadType.SIDE_CONVO) {
+											addSideConvoMembers(frag);
+										} else if (frag.getThreadType() == ThreadType.WHISPER) {
+											addWhisperMembers(frag);
+										}
+									}
+								}).setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
+									@Override
+									public void onClick(DialogInterface dialog, int id) {
+									}
+								});
+						// Create the AlertDialog
+						AlertDialog dialog2 = builder.create();
+						dialog2.setCanceledOnTouchOutside(true);
+						dialog2.show();
+					}
+				}).setNegativeButton("No", new OnClickListener() {
+					@Override
+					public void onClick(DialogInterface dialog, int which) {
+					}
+				}).show();
+				sm.toggle();
+			}
+		};
+		getSupportFragmentManager().beginTransaction().replace(R.id.chats_menu_frame, mChatsDrawerFragment).commit();
+		sm.setSecondaryMenu(getLayoutInflater().inflate(R.layout.threads_drawer, null));
+		getSupportFragmentManager().beginTransaction().replace(R.id.threads_menu_frame, mThreadsDrawerFragment)
+				.commit();
+
+		Application.get().getDatabaseManager().registerDataChangeListener(Group.TABLE_NAME, this);
+		Application.get().getDatabaseManager().registerDataChangeListener(Group.TABLE_NAME, mThreadPagerAdapter);
+		Application.get().getDatabaseManager().registerDataChangeListener(GroupMember.TABLE_NAME, this);
+
+		mLoginDialog = new LoginDialog();
+		mRegDialog = new RegisterDialog();
+
+		if (mapping.isEmpty()) {
+			mapping.put("Greg", 3L);
+			mapping.put("Jeff", 8L);
+			mapping.put("Kachi", 6L);
+		}
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see android.support.v4.app.FragmentActivity#onResume()
-	 */
+	@Override
+	public void onStart() {
+		super.onStart();
+	}
+
+	@Override
+	public void onStop() {
+		super.onStop();
+	}
+
+	private void addChatMembers() {
+		final long[] members = new long[mSelectedMembers.size()];
+		for (int i = 0; i < mSelectedMembers.size(); i++) {
+			members[i] = mSelectedMembers.get(i);
+		}
+		new AddMemberTask(this, new HTTPTaskListener() {
+			@Override
+			public void onTaskComplete(TaskResult result) {
+				if (result.getResponseCode() == 1) {
+					loadMembers(members);
+				} else {
+					handleAddChatMembersFail(result);
+				}
+			}
+		}, ChatsDrawerFragment.getCurrentChat().getGlobalId(), members);
+	}
+
+	private void loadMembers(final long[] members) {
+		new GetGroupMembersTask(this, new HTTPTaskListener() {
+			@Override
+			public void onTaskComplete(TaskResult result) {
+				if (result.getResponseCode() == 1) {
+					JSONArray response = (JSONArray) result.getExtraInfo();
+					try {
+						DatabaseHelper.addGroupMembers(response, ChatsDrawerFragment.getCurrentChat().getGlobalId());
+						notifyNewChatMembers(members);
+					} catch (Exception e) {
+						handleGetGroupMembersError(e);
+					}
+				} else {
+					handleGetGroupMembersFail(result);
+				}
+			}
+		}, ChatsDrawerFragment.getCurrentChat().getGlobalId());
+	}
+
+	private void notifyNewChatMembers(final long[] members) {
+		new NotifyGroupInviteesTask(this, new HTTPTaskListener() {
+			@Override
+			public void onTaskComplete(TaskResult result) {
+				if (result.getResponseCode() == 1) {
+					Log.i(LOGTAG, "Notified group invitees");
+				} else {
+					handleNotifyGroupInviteFail(result);
+				}
+			}
+		}, DatabaseHelper.getAccountUserId(), ChatsDrawerFragment.getCurrentChat().getGlobalId(), members);
+	}
+
+	private void addSideConvoMembers(final ThreadFragment frag) {
+		final long[] members = new long[mSelectedMembers.size()];
+		for (int i = 0; i < mSelectedMembers.size(); i++) {
+			members[i] = mSelectedMembers.get(i);
+		}
+		new AddSideChatMembersTask(this, new HTTPTaskListener() {
+			long[] ids = members;
+
+			@Override
+			public void onTaskComplete(TaskResult result) {
+				if (result.getResponseCode() == 1) {
+					for (long id : ids) {
+						frag.addMember(getGroupMember(id));
+					}
+					mThreadsDrawerFragment.updateView();
+					notifyNewSideConvoMembers(frag.getThreadId());
+				} else {
+					handleAddSideConvoMembersFail(result);
+				}
+			}
+		}, frag.getThreadId(), members);
+	}
+
+	private void notifyNewSideConvoMembers(long id) {
+		Set<GroupMember> ms = mThreadPagerAdapter.getMainThread().getMembers();
+		long[] members = new long[ms.size()];
+		int index = 0;
+		for (GroupMember m : ms) {
+			members[index++] = m.getGlobalId();
+		}
+		new NotifySideChatInviteesTask(this, new HTTPTaskListener() {
+			@Override
+			public void onTaskComplete(TaskResult result) {
+				if (result.getResponseCode() == 1) {
+					Log.i(LOGTAG, "Notified side convo invitees");
+				} else {
+					handleNotifySideConvoInviteFail(result);
+				}
+			}
+		}, DatabaseHelper.getAccountUserId(), id, members);
+	}
+
+	private void addWhisperMembers(final ThreadFragment frag) {
+		final long[] members = new long[mSelectedMembers.size()];
+		for (int i = 0; i < mSelectedMembers.size(); i++) {
+			members[i] = mSelectedMembers.get(i);
+		}
+		new AddWhisperMembersTask(this, new HTTPTaskListener() {
+			long[] ids = members;
+
+			@Override
+			public void onTaskComplete(TaskResult result) {
+				if (result.getResponseCode() == 1) {
+					for (long id : ids) {
+						frag.addMember(getGroupMember(id));
+					}
+					mThreadsDrawerFragment.updateView();
+					notifyNewWhisperMembers(frag.getThreadId());
+				} else {
+					handleAddWhisperMembersFail(result);
+				}
+			}
+		}, frag.getThreadId(), members);
+	}
+
+	private void notifyNewWhisperMembers(long id) {
+		Set<GroupMember> ms = mThreadPagerAdapter.getMainThread().getMembers();
+		long[] members = new long[ms.size()];
+		int index = 0;
+		for (GroupMember m : ms) {
+			members[index++] = m.getGlobalId();
+		}
+		new NotifyWhisperInviteesTask(this, new HTTPTaskListener() {
+			@Override
+			public void onTaskComplete(TaskResult result) {
+				if (result.getResponseCode() == 1) {
+					Log.i(LOGTAG, "Notified side convo invitees");
+				} else {
+					handleNotifyWhisperInviteFail(result);
+				}
+			}
+		}, DatabaseHelper.getAccountUserId(), id, members);
+	}
+
+	private void handleAddChatMembersFail(TaskResult result) {
+		Log.e(LOGTAG, String.format(Locale.getDefault(), "Adding Chat Members failed: %s", result.getMessage()));
+		showLongToast(String.format(Locale.getDefault(), "Adding Chat Members failed: %s", result.getMessage()));
+	}
+
+	private void handleNotifyGroupInviteFail(TaskResult result) {
+		Log.e(LOGTAG, String.format(Locale.getDefault(), "Notifying Chat Members failed: %s", result.getMessage()));
+		showLongToast(String.format(Locale.getDefault(), "Notifying Chat Members failed: %s", result.getMessage()));
+	}
+
+	private void handleAddSideConvoMembersFail(TaskResult result) {
+		Log.e(LOGTAG, String.format(Locale.getDefault(), "Adding Side Convo Members failed: %s", result.getMessage()));
+		showLongToast(String.format(Locale.getDefault(), "Adding Side Convo Members failed: %s", result.getMessage()));
+	}
+
+	private void handleNotifySideConvoInviteFail(TaskResult result) {
+		Log.e(LOGTAG,
+				String.format(Locale.getDefault(), "Notifying Side Convo Members failed: %s", result.getMessage()));
+		showLongToast(String
+				.format(Locale.getDefault(), "Notifying Side Convo Members failed: %s", result.getMessage()));
+	}
+
+	private void handleAddWhisperMembersFail(TaskResult result) {
+		Log.e(LOGTAG, String.format(Locale.getDefault(), "Adding Whisper Members failed: %s", result.getMessage()));
+		showLongToast(String.format(Locale.getDefault(), "Adding Whisper Members failed: %s", result.getMessage()));
+	}
+
+	private void handleNotifyWhisperInviteFail(TaskResult result) {
+		Log.e(LOGTAG, String.format(Locale.getDefault(), "Notifying Whisper Members failed: %s", result.getMessage()));
+		showLongToast(String.format(Locale.getDefault(), "Notifying Whisper Members failed: %s", result.getMessage()));
+	}
+
 	@Override
 	protected void onResume() {
 		super.onResume();
-		// automaticBind();
+		Application.get().activityResumed();
+		if (!Application.get().getPreferences().contains(Constants.JSON)
+				|| !Application.get().getPreferences().contains(Constants.PROPERTY_REG_ID)) {
+			if (!mLoginDialog.isAdded() && !mRegDialog.isAdded()) {
+				mLoginDialog.show(getSupportFragmentManager(), "LoginDialog");
+			}
+		} else {
+			getGroupsFromDb();
+			dummyActive = new Object();
+		}
 	}
+
+	// @Override
+	// public void onSaveInstanceState(Bundle outState) {
+	// super.onSaveInstanceState(outState);
+	// getSupportFragmentManager().putFragment(outState, "chats_drawer", mChatsDrawerFragment);
+	// getSupportFragmentManager().putFragment(outState, "threads_drawer", mThreadsDrawerFragment);
+	// List<ThreadFragment> currentThreads = mThreadPagerAdapter.getCurrentThread();
+	// outState.putInt("number_of_threads", currentThreads.size());
+	// for (int i = 0; i < currentThreads.size(); i++) {
+	// getSupportFragmentManager().putFragment(outState, "threads" + i, currentThreads.get(i));
+	// }
+	// }
+	//
 
 	/*
 	 * (non-Javadoc)
@@ -192,7 +447,11 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 	@Override
 	protected void onPause() {
 		super.onPause();
-		// mHandler.removeCallbacks(mInjectorThread);
+		Application.get().activityPaused();
+		if (ChatsDrawerFragment.getCurrentChat() != null) {
+			Application.get().getPreferences().edit()
+					.putLong("current_group_id", ChatsDrawerFragment.getCurrentChat().getGlobalId()).commit();
+		}
 	}
 
 	@Override
@@ -218,6 +477,10 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 	@Override
 	protected void onDestroy() {
 		super.onDestroy();
+		Application.get().getDatabaseManager().unregisterDataChangeListener(Group.TABLE_NAME, this);
+		Application.get().getDatabaseManager().unregisterDataChangeListener(Group.TABLE_NAME, mThreadPagerAdapter);
+		Application.get().getDatabaseManager().unregisterDataChangeListener(GroupMember.TABLE_NAME, this);
+
 		try {
 			doUnbindService();
 		} catch (Throwable t) {
@@ -291,16 +554,35 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 		}
 	}
 
+	private void getGroupsFromDb() {
+		List<Group> groups = getGroups();
+		for (Group g : groups) {
+			mChatsDrawerFragment.addChat(g);
+		}
+		if (ChatsDrawerFragment.getCurrentChat() == null & !groups.isEmpty()) {
+			long chatId;
+			if (getIntent().getExtras() != null && getIntent().getExtras().containsKey("group_id")) {
+				chatId = getIntent().getExtras().getLong("group_id");
+			} else {
+				chatId = Application.get().getPreferences().getLong("current_group_id", groups.get(0).getGlobalId());
+			}
+			toggleChat(getGroup(chatId));
+		}
+	}
+
 	private void fetchGroups() {
 		new GetMultipleGroupsTask(this, new HTTPTaskListener() {
-
 			@Override
 			public void onTaskComplete(TaskResult result) {
 
 				if (result.getResponseCode() == 1) {
 					JSONArray response = (JSONArray) result.getExtraInfo();
 					try {
-						addGroups(response);
+						if (response.length() == 0) {
+							getSlidingMenu().toggle();
+						} else {
+							addGroups(response);
+						}
 					} catch (Exception e) {
 						handleGetGroupsError(e);
 					}
@@ -313,14 +595,18 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 
 	private void fetchGroupMembers(final Group chat) {
 		new GetGroupMembersTask(this, new HTTPTaskListener() {
-
 			@Override
 			public void onTaskComplete(TaskResult result) {
-
 				if (result.getResponseCode() == 1) {
 					JSONArray response = (JSONArray) result.getExtraInfo();
 					try {
 						addGroupMembers(response, chat.getGlobalId());
+						runOnUiThread(new Runnable() {
+							@Override
+							public void run() {
+								mThreadsDrawerFragment.updateView();
+							}
+						});
 					} catch (Exception e) {
 						handleGetGroupMembersError(e);
 					}
@@ -330,6 +616,31 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 				}
 			}
 		}, chat.getGlobalId());
+	}
+
+	private void fetchGroupMessages(final Group chat) {
+		JSONArray jsonArray = new JSONArray();
+		long id = getLastStoredMessageId(chat.getGlobalId());
+		try {
+			jsonArray.put(0, id).put(1, -1);
+		} catch (JSONException e) {
+			e.printStackTrace();
+		}
+		new GetMessageTask(this, new HTTPTaskListener() {
+			@Override
+			public void onTaskComplete(TaskResult result) {
+				if (result.getResponseCode() == 1) {
+					JSONArray messages = (JSONArray) result.getExtraInfo();
+					try {
+						addGroupMessages(messages);
+					} catch (Exception e) {
+						handleGetGroupMessagesError(e);
+					}
+				} else {
+					handleGetGroupMessagesFail(result);
+				}
+			}
+		}, getAccountUserId(), chat.getGlobalId(), jsonArray);
 	}
 
 	private void handleGetGroupsFail(TaskResult result) {
@@ -352,14 +663,25 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 		showLongToast(String.format(Locale.getDefault(), "Getting Chat Members errored: %s", e.getMessage()));
 	}
 
+	private void handleGetGroupMessagesFail(TaskResult result) {
+		Log.e(LOGTAG, String.format(Locale.getDefault(), "Getting Chat Messages failed: %s", result.getMessage()));
+		showLongToast(String.format(Locale.getDefault(), "Getting Chat Messages failed: %s", result.getMessage()));
+	}
+
+	private void handleGetGroupMessagesError(Exception e) {
+		Log.e(LOGTAG, String.format(Locale.getDefault(), "Getting Chat Messages errored: %s", e.getMessage()));
+		showLongToast(String.format(Locale.getDefault(), "Getting Chat Messages errored: %s", e.getMessage()));
+	}
+
 	private void showLongToast(String message) {
 		Toast.makeText(this, message, Toast.LENGTH_LONG).show();
 	}
 
 	private void toggleChat(Group chat) {
-		if (ChatsDrawerFragment.getCurrentChat() == null || chat != ChatsDrawerFragment.getCurrentChat()) {
-			mThreadPagerAdapter.setChat(chat);
-		}
+		// if (ChatsDrawerFragment.getCurrentChat() == null || chat != ChatsDrawerFragment.getCurrentChat()) {
+		mChatsDrawerFragment.unnotifyGroup(chat);
+		mThreadPagerAdapter.setChat(chat);
+		// }
 	}
 
 	private void addToThreadDrawer(ThreadFragment frag) {
@@ -388,10 +710,10 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 					addGroupMessage(json);
 					break;
 				case ChassipService.MSG_NEW_GROUP_MEMBER:
-//					addGroupMember(json, false);
+					// addGroupMember(json, false);
 					break;
 				case ChassipService.MSG_NEW_GROUP_MEMBER_LAST:
-//					addGroupMember(json, true);
+					// addGroupMember(json, true);
 					break;
 				case ChassipService.MSG_NEW_THREAD:
 					break;
@@ -416,9 +738,11 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 	 * 
 	 */
 	private class ThreadPagerAdapter extends FragmentStatePagerAdapter implements ViewPager.OnPageChangeListener,
-			ActionBar.TabListener {
+			ActionBar.TabListener, DataChangeListener {
 
 		private List<ThreadFragment> mCurrrentThreads;
+		private String mWhispers;
+		private String mSideConvos;
 		private ViewPager mPager;
 		private ActionBar mBar;
 
@@ -438,6 +762,7 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 
 		@Override
 		public Fragment getItem(int position) {
+			showLongToast(String.format(Locale.getDefault(), "Showing position=%d threadId=%d", position, mCurrrentThreads.get(position).getThreadId()));
 			return mCurrrentThreads.get(position);
 		}
 
@@ -475,61 +800,286 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 		protected void setChat(Group chat) {
 			clear();
 			ChatsDrawerFragment.setCurrentChat(chat);
-			ThreadFragment mainFrag = generateMainThreadFragment(chat);
-			mCurrrentThreads.add(mainFrag);
-			notifyDataSetChanged();
+			ThreadFragment[] mainFrag = new ThreadFragment[] { generateMainThreadFragment(chat) };
 			ThreadFragment[] sideConvoFrags = generateSideConvoThreadFragments(chat);
-			for (ThreadFragment frag : sideConvoFrags) {
-				mCurrrentThreads.add(frag);
-				notifyDataSetChanged();
-			}
 			ThreadFragment[] whisperFrags = generateWhisperThreadFragments(chat);
-			for (ThreadFragment frag : whisperFrags) {
-				mCurrrentThreads.add(frag);
-				notifyDataSetChanged();
-			}
-			for (ThreadFragment frag : mCurrrentThreads) {
-				Tab tab = mBar.newTab().setText(frag.getName()).setTabListener(this);
-				mBar.addTab(tab);
-				addToThreadDrawer(frag);
-			}
+			addThreads(concatAll(mainFrag, sideConvoFrags, whisperFrags));
 			mPager.setCurrentItem(0);
 		}
 
+		protected ThreadFragment getMainThread() {
+			return mCurrrentThreads.get(0);
+		}
+
+		private void addThreads(ThreadFragment... frags) {
+			for (ThreadFragment frag : frags) {
+				mCurrrentThreads.add(frag);
+				notifyDataSetChanged();
+				Tab tab = mBar.newTab().setText(frag.getName()).setTabListener(this);
+				mBar.addTab(tab);
+				addToThreadDrawer(frag);
+				mThreadsDrawerFragment.updateView();
+			}
+		}
+
 		private ThreadFragment generateMainThreadFragment(Group chat) {
-			return new ThreadFragment(chat.getGlobalId(), mCurrrentThreads.size(), ThreadType.MAIN_CHAT, chat.getName(), mChatsDrawerFragment.getMembers(chat.getGlobalId()));
+			Bundle b = new Bundle();
+			b.putLong("chatId", chat.getGlobalId());
+			b.putLong("threadId", 0);
+			b.putInt("threadType", ThreadType.MAIN_CHAT.getValue());
+			b.putString("name", chat.getName());
+			ThreadFragment frag = new ThreadFragment();
+			frag.setArguments(b);
+			return frag;
 		}
 
 		private ThreadFragment[] generateSideConvoThreadFragments(Group chat) {
-			// JSONObject sidechats = new JSONObject(chat.getSideChats());
-			// GroupMember[] members = getGroupMembers(mCtx, chat.getGlobalId());
-			return new ThreadFragment[] {};
+			String sideConvosStr = chat.getSideChats();
+			mSideConvos = sideConvosStr;
+			if (sideConvosStr.isEmpty()) {
+				return new ThreadFragment[] {};
+			}
+			String[] sideConvosStrSplit = sideConvosStr.split("\\|");
+			ThreadFragment[] frags = new ThreadFragment[sideConvosStrSplit.length];
+			int index = 0;
+			for (String sideConvoStr : sideConvosStrSplit) {
+				frags[index++] = generateThreadFragment(sideConvoStr, ThreadType.SIDE_CONVO, chat.getGlobalId());
+			}
+			return frags;
 		}
 
 		private ThreadFragment[] generateWhisperThreadFragments(Group chat) {
-			// JSONObject sidechats = new JSONObject(chat.getWhispers());
-			// GroupMember[] members = getGroupMembers(mCtx, chat.getGlobalId());
-			return new ThreadFragment[] {};
+			String whispersStr = chat.getWhispers();
+			mWhispers = whispersStr;
+			if (whispersStr.isEmpty()) {
+				return new ThreadFragment[] {};
+			}
+			String[] whispersStrSplit = whispersStr.split("\\|");
+			ThreadFragment[] frags = new ThreadFragment[whispersStrSplit.length];
+			int index = 0;
+			for (String whisperStr : whispersStrSplit) {
+				frags[index++] = generateThreadFragment(whisperStr, ThreadType.WHISPER, chat.getGlobalId());
+			}
+			return frags;
+		}
+
+		private ThreadFragment generateThreadFragment(String thread, ThreadType type, final long chatId) {
+			String[] sideConvoStrSplit = thread.split(":");
+			long id = Long.valueOf(sideConvoStrSplit[0]);
+			String name = sideConvoStrSplit[1];
+			Bundle b = new Bundle();
+			b.putLong("chatId", chatId);
+			b.putLong("threadId", id);
+			b.putInt("threadType", type.getValue());
+			b.putString("name", name);
+			final ThreadFragment frag = new ThreadFragment();
+			frag.setArguments(b);
+			if (type == ThreadType.SIDE_CONVO) {
+				new GetSideChatMembersTask(getApplicationContext(), new HTTPTaskListener() {
+					@Override
+					public void onTaskComplete(TaskResult result) {
+						if (result.getResponseCode() == 1) {
+							try {
+								JSONArray response = (JSONArray) result.getExtraInfo();
+								for (int i = 0; i < response.length(); i++) {
+									GroupMember m = addGroupMember(response.getJSONObject(i), chatId, true);
+									frag.addMember(m);
+									mThreadsDrawerFragment.updateView();
+								}
+							} catch (Exception e) {
+								handleGetSideConvoMembersError(e);
+							}
+						} else {
+							handleGetSideConvoMembersFail(result);
+						}
+					}
+				}, id);
+			} else {
+				new GetWhisperMembersTask(getApplicationContext(), new HTTPTaskListener() {
+					@Override
+					public void onTaskComplete(TaskResult result) {
+						if (result.getResponseCode() == 1) {
+							try {
+								JSONArray response = (JSONArray) result.getExtraInfo();
+								for (int i = 0; i < response.length(); i++) {
+									GroupMember m = addGroupMember(response.getJSONObject(i), chatId, true);
+									frag.addMember(m);
+									mThreadsDrawerFragment.updateView();
+								}
+							} catch (Exception e) {
+								handleGetWhisperMembersError(e);
+							}
+						} else {
+							handleGetWhisperMembersFail(result);
+						}
+					}
+				}, id);
+			}
+			return frag;
 		}
 
 		private void clear() {
 			mBar.removeAllTabs();
 			removeAllThreadsFromDrawer();
+			dispatchOnDetach();
+			mPager.clearDisappearingChildren();
 			mCurrrentThreads.clear();
 			notifyDataSetChanged();
+		}
+
+		protected void dispatchOnDetach() {
+			if (mCurrrentThreads == null) {
+				return;
+			}
+			FragmentManager frMan = getSupportFragmentManager();
+			FragmentTransaction frTr = frMan.beginTransaction();
+			for (Fragment fr : mCurrrentThreads) {
+				if (fr != null) {
+					frTr.remove(fr);
+				}
+			}
+			frTr.commit();
+		}
+
+		private void handleGetSideConvoMembersFail(TaskResult result) {
+			Log.e(LOGTAG,
+					String.format(Locale.getDefault(), "Getting Side Convo Members failed: %s", result.getMessage()));
+			showLongToast(String.format(Locale.getDefault(), "Getting Side Convo Members failed: %s",
+					result.getMessage()));
+		}
+
+		private void handleGetSideConvoMembersError(Exception e) {
+			Log.e(LOGTAG, String.format(Locale.getDefault(), "Getting Side Convo Members errored: %s", e.getMessage()));
+			showLongToast(String.format(Locale.getDefault(), "Getting Side Convo Members errored: %s", e.getMessage()));
+		}
+
+		private void handleGetWhisperMembersFail(TaskResult result) {
+			Log.e(LOGTAG, String.format(Locale.getDefault(), "Getting Whisper Members failed: %s", result.getMessage()));
+			showLongToast(String.format(Locale.getDefault(), "Getting Whisper Members failed: %s", result.getMessage()));
+		}
+
+		private void handleGetWhisperMembersError(Exception e) {
+			Log.e(LOGTAG, String.format(Locale.getDefault(), "Getting Whisper Members errored: %s", e.getMessage()));
+			showLongToast(String.format(Locale.getDefault(), "Getting Whisper Members errored: %s", e.getMessage()));
+		}
+
+		@Override
+		public void onDataChanged(PersistentObject o) {
+			if (o.getTableName().equals(Group.TABLE_NAME)) {
+				final Group g = (Group) o;
+				if (ChatsDrawerFragment.getCurrentChat() != null) {
+					if (ChatsDrawerFragment.getCurrentChat().getGlobalId() == g.getGlobalId()) {
+						if (!g.getSideChats().equals(mSideConvos)) {
+							String[] threads = mSideConvos.isEmpty() ? new String[] { g.getSideChats() } : g
+									.getSideChats().substring(mSideConvos.length() + 1).split("\\|");
+							for (String thread : threads) {
+								addThreads(generateThreadFragment(thread, ThreadType.SIDE_CONVO, g.getGlobalId()));
+							}
+							mSideConvos = g.getSideChats();
+						}
+						if (!g.getWhispers().equals(mWhispers)) {
+							String[] threads = mWhispers.isEmpty() ? new String[] { g.getWhispers() } : g.getWhispers()
+									.substring(mWhispers.length() + 1).split("\\|");
+							for (String thread : threads) {
+								addThreads(generateThreadFragment(thread, ThreadType.WHISPER, g.getGlobalId()));
+							}
+							mWhispers = g.getWhispers();
+						}
+					}
+				}
+			}
 		}
 	}
 
 	@Override
 	public void onDataChanged(PersistentObject o) {
-		if (o.getTableName().equals(User.TABLE_NAME)) {
-			fetchGroups();
-		} else if (o.getTableName().equals(Group.TABLE_NAME)) {
-			Group g = (Group) o;
-			if (ChatsDrawerFragment.getCurrentChat() == null) {
-				toggleChat(g);
+		if (o.getTableName().equals(Group.TABLE_NAME)) {
+			final Group g = (Group) o;
+			if (ChatsDrawerFragment.getCurrentChat() == null || g.getCreatorId() == getAccountUserId()) {
+				runOnUiThread(new Runnable() {
+					@Override
+					public void run() {
+						toggleChat(g);
+					}
+				});
 			}
-			fetchGroupMembers(g);
+			new Thread(new Runnable() {
+				@Override
+				public void run() {
+					try {
+						Thread.sleep(50l);
+					} catch (InterruptedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+					fetchGroupMembers(g);
+					fetchGroupMessages(g);
+					// mThreadsDrawerFragment.updateView();
+				}
+			}).start();
 		}
+	}
+
+	@Override
+	public void onDialogPositiveClick(LoginDialog dialog) {
+
+		try {
+			setAccountUser(dialog.getMyArguments());
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		String fullName = getAccountUserFullName();
+		String message1 = String.format(Locale.getDefault(), "Welcome, %s! You're swagged out!", fullName);
+		Toast.makeText(getApplicationContext(), message1, Toast.LENGTH_SHORT).show();
+
+		getGroupsFromDb();
+		fetchGroups();
+
+		dummyActive = new Object();
+	}
+
+	@Override
+	public void onDialogNegativeClick(LoginDialog dialog) {
+		mLoginDialog.dismiss();
+		mRegDialog.show(getSupportFragmentManager(), "RegisterDialog");
+	}
+
+	@Override
+	public void onDialogPositiveClick(RegisterDialog dialog) {
+		try {
+			setAccountUser(dialog.getMyArguments());
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		String fullName = getAccountUserFullName();
+		String message1 = String.format(Locale.getDefault(), "Welcome, %s! You're swagged out!", fullName);
+		Toast.makeText(getApplicationContext(), message1, Toast.LENGTH_SHORT).show();
+
+		getGroupsFromDb();
+		fetchGroups();
+
+		dummyActive = new Object();
+	}
+
+	@Override
+	public void onDialogNegativeClick(RegisterDialog dialog) {
+		mRegDialog.dismiss();
+		mLoginDialog.show(getSupportFragmentManager(), "LoginDialog");
+	}
+
+	public static <T> T[] concatAll(T[] first, T[]... rest) {
+		int totalLength = first.length;
+		for (T[] array : rest) {
+			totalLength += array.length;
+		}
+		T[] result = Arrays.copyOf(first, totalLength);
+		int offset = first.length;
+		for (T[] array : rest) {
+			System.arraycopy(array, 0, result, offset, array.length);
+			offset += array.length;
+		}
+		return result;
 	}
 }

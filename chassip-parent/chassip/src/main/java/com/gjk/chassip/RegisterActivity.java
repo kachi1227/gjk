@@ -291,8 +291,6 @@ public class RegisterActivity extends Activity {
 
 	private void initialize() {
 
-		new DatabaseManager(this).clear();
-		
 		mLogin.setOnClickListener(new OnClickListener() {
 
 			@Override

@@ -186,16 +186,6 @@ public abstract class BaseGroup extends PersistentObject {
 			}
 		}
 		try {
-			setCreatorName(c.getString(c.getColumnIndexOrThrow(F_CREATOR_NAME)));
-		} catch (Exception e) {
-			if (!skipOk) {
-				e.printStackTrace();
-				throw new PersistentObjectHydrateException(ERROR_MSG_HYDRATE_NO_CREATOR_NAME, e);
-			} else {
-				setIsComplete(false);
-			}
-		}
-		try {
 			setSideChats(c.getString(c.getColumnIndexOrThrow(F_SIDE_CHATS)));
 		} catch (Exception e) {
 			if (!skipOk) {
@@ -274,7 +264,6 @@ public abstract class BaseGroup extends PersistentObject {
 				setIsComplete(false);
 			}
 		}
-
 		try {
 			mCreatorName = obj.getString(F_CREATOR_NAME);
 		} catch (Exception e) {

@@ -19,12 +19,14 @@ public class MessagesAdapter extends ArrayAdapter<Message> {
 	private final Context mContext;
 	private final long mChatId;
 	private final long mThreadId;
+	private final ThreadType mType;
 
-	public MessagesAdapter(Context context, long chatId, long threadId, List<Message> ims) {
+	public MessagesAdapter(Context context, long chatId, long threadId, ThreadType type, List<Message> ims) {
 		super(context, 0, ims);
 		mContext = context;
 		mChatId = chatId;
 		mThreadId = threadId;
+		mType = type;
 	}
 
 	@Override
@@ -40,14 +42,27 @@ public class MessagesAdapter extends ArrayAdapter<Message> {
 		TextView time = (TextView) convertView.findViewById(R.id.time);
 		time.setText(convertTimeToStr(getItem(position).getDate()));
 
-		Integer color = R.color.black;
-		if (color != null) {
-			userName.setTextColor(mContext.getResources().getColor(color));
-			message.setTextColor(mContext.getResources().getColor(color));
-			time.setTextColor(mContext.getResources().getColor(color));
-		}
+		int color = getColor(position);
+		userName.setTextColor(mContext.getResources().getColor(color));
+		message.setTextColor(mContext.getResources().getColor(color));
+		time.setTextColor(mContext.getResources().getColor(color));
 
 		return convertView;
+	}
+	
+	private int getColor(int position) {
+		if (getItem(position).getMessageTypeId() == ThreadType.MAIN_CHAT.getValue()) { // if message doesn't have message type id, then it must be from main chat
+			if (mType == ThreadType.MAIN_CHAT) {
+				return R.color.black;
+			}
+			return R.color.lightgrey;
+		}
+		else {
+			if (mThreadId == getItem(position).getTableId()) {
+				return R.color.black;
+			}
+			return R.color.lightgrey;
+		}
 	}
 
 	private CharSequence convertTimeToStr(long time) {

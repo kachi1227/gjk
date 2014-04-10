@@ -3,9 +3,11 @@ package com.gjk.chassip.net;
 import java.util.HashMap;
 import java.util.Set;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import com.gjk.chassip.net.MiluHttpRequest.DBHttpResponse;
+import com.google.common.collect.Maps;
 
 import android.content.Context;
 
@@ -25,14 +27,19 @@ public class CreateGroupTask extends MiluHTTPTask {
 	private String mNameOfGroup;//group name
 	private long mUserID; //creator_id
 	private HashMap<String, Object> mFieldMapping;
-	
+	private long[] mMembers;
+
 	public CreateGroupTask(Context ctx, HTTPTaskListener listener, long UserID, String nameOfGroup, HashMap<String, Object> fieldMapping) {
+		this(ctx, listener, UserID, nameOfGroup, null, fieldMapping);
+	}
+	
+	public CreateGroupTask(Context ctx, HTTPTaskListener listener, long UserID, String nameOfGroup, long[] members, HashMap<String, Object> fieldMapping) {
 		super(ctx, listener);
-		
 		mNameOfGroup = nameOfGroup;
 		mUserID = UserID;
-		mFieldMapping = fieldMapping; 
-		extractFiles(mFieldMapping, true);
+		mFieldMapping = Maps.newHashMap(fieldMapping);
+		mMembers = members;
+		extractFiles(fieldMapping, true);
 		execute();
 	}
 
@@ -50,6 +57,11 @@ public class CreateGroupTask extends MiluHTTPTask {
 		JSONObject payload = new JSONObject();
 		payload.put("name", mNameOfGroup);
 		payload.put("creator_id", mUserID);
+		JSONArray ids = new JSONArray();
+		for (long id : mMembers) {
+			ids.put(id);
+		}
+		payload.put("recipients", ids);
 		Set<String> keys = mFieldMapping.keySet();	
 		for(String key : keys){
 			payload.put(key, mFieldMapping.get(key));

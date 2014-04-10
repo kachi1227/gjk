@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.json.JSONObject;
 
+import com.gjk.chassip.ThreadType;
 import com.gjk.chassip.database.PersistentObject;
 import com.gjk.chassip.database.objects.Message;
 
@@ -122,7 +123,7 @@ public abstract class BaseMessage extends PersistentObject {
 		mTopicName = "";
 		mContent = "";
 		mAttachment = "";
-		mMessageTypeId = 0;
+		mMessageTypeId = ThreadType.MAIN_CHAT.getValue();
 		mTableId = 0;
 		mDate = System.currentTimeMillis();
 	}

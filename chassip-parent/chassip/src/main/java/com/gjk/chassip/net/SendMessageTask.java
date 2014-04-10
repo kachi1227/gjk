@@ -29,6 +29,11 @@ public class SendMessageTask extends MiluHTTPTask {
 			String content) {
 		this(ctx, listener, senderId, groupId, content, null, null, null, null, null);
 	}
+	
+	public SendMessageTask(Context ctx, HTTPTaskListener listener, long senderId, long groupId, int type, long tableId,
+			String content) {
+		this(ctx, listener, senderId, groupId, content, null, null, null, type, tableId);
+	}
 
 	public SendMessageTask(Context ctx, HTTPTaskListener listener, long senderId, long groupId,
 			String content, HashMap<String, Object> fieldMapping, Long recipientId, Long topicId,

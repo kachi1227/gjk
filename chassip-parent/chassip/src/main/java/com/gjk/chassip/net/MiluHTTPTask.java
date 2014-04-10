@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Locale;
 
 import org.apache.http.protocol.HTTP;
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import android.content.Context;

@@ -114,7 +114,7 @@ public class ChassipService extends Service {
 	
 	public static void createChat(JSONObject chat) {
 		Log.d(LOGTAG, "Got create chat");
-		sendMessage(new MutableInt(MSG_NEW_CHAT), DatabaseHelper.jsonToBundle(chat));
+//		sendMessage(new MutableInt(MSG_NEW_CHAT), DatabaseHelper.jsonToBundle(chat));
 	}
 	
 	public static void addChatMembers(long chatId, String[] memberNames, long[] memberIds) {

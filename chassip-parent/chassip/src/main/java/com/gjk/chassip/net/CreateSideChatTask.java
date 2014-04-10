@@ -2,6 +2,7 @@ package com.gjk.chassip.net;
 
 import java.util.Arrays;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import com.gjk.chassip.net.MiluHttpRequest.DBHttpResponse;
@@ -38,7 +39,7 @@ public class CreateSideChatTask extends MiluHTTPTask {
 	public TaskResult handleSuccessfulJSONResponse(DBHttpResponse response,
 			JSONObject json) throws Exception {
 		// TODO Auto-generated method stub
-		return new TaskResult(this, TaskResult.RC_SUCCESS,null,json.getJSONObject("sidechat"));
+		return new TaskResult(this, TaskResult.RC_SUCCESS,null,json.getJSONObject("side_chat"));
 	}
 
 	@Override
@@ -47,7 +48,11 @@ public class CreateSideChatTask extends MiluHTTPTask {
 		JSONObject payload = new JSONObject();
 		payload.put("group_id", mGroup_id);
 		payload.put("creator_id", mCreator_id);
-		payload.put("members", mMembers);
+		JSONArray ids = new JSONArray();
+		for (long id : mMembers) {
+			ids.put(id);
+		}
+		payload.put("members", ids);
 		if(mName != null)
 			payload.put("name", mName);
 		

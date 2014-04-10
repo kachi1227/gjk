@@ -32,24 +32,16 @@
             android:name="com.google.android.gms.version"
             android:value="@integer/google_play_services_version" />
         <activity
-		    android:name=".RegisterActivity"
-            android:label="@string/app_name"
-            android:configChanges="orientation|screenSize|screenLayout"
-            android:theme="@style/AppTheme" >
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
-        <activity
             android:name=".MainActivity"
             android:label="@string/app_name"
             android:configChanges="orientation|screenSize|screenLayout"
             android:theme="@style/AppTheme"
-            android:uiOptions="splitActionBarWhenNarrow" >
+            android:uiOptions="splitActionBarWhenNarrow"
+            android:clearTaskOnLaunch="true"
+			android:launchMode="singleTop" >
             <intent-filter>
 	            <action android:name="android.intent.action.MAIN" />
-	            <category android:name="android.intent.category.DEFAULT" />
+	            <category android:name="android.intent.category.LAUNCHER" />
 	        </intent-filter>
         </activity>
         <receiver
@@ -62,7 +54,6 @@
             </intent-filter>
         </receiver>
         <service android:name=".service.GcmIntentService" />
-        <service android:name=".service.ChassipService" />
     </application>
 
 </manifest>

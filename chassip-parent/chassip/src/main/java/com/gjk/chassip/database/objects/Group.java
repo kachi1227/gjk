@@ -7,8 +7,11 @@
  
 package com.gjk.chassip.database.objects;
 
+import java.util.Locale;
+
 import android.database.Cursor;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.util.Log;
 
 import org.json.JSONObject;
 
@@ -38,6 +41,13 @@ public class Group extends BaseGroup {
 		if(!json.isNull("whispers"))
 
 			group.setWhispers(json.getString("whispers"));
+		
+		if (!group.getSideChats().isEmpty()) {
+			Log.d("asd","asd");
+		}
+		if (!group.getWhispers().isEmpty()) {
+			Log.d("asd","asd");
+		}
 		group.save();
 		return group;
 	}
@@ -72,4 +82,10 @@ public class Group extends BaseGroup {
 	public boolean equals(Object o) {
 		return getGlobalId() == ((Group) o).getGlobalId();
 	}
+	
+	@Override
+	public String toString() {
+		return String.format(Locale.getDefault(), "#%d: %s", getGlobalId(), getName());
+	}
+
 }

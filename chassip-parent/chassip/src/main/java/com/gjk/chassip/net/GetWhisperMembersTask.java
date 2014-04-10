@@ -21,7 +21,7 @@ public class GetWhisperMembersTask extends MiluHTTPTask {
 	public TaskResult handleSuccessfulJSONResponse(DBHttpResponse response,
 			JSONObject json) throws Exception {
 		// TODO Auto-generated method stub
-		return new TaskResult(this, TaskResult.RC_SUCCESS,null,json.getJSONObject("whisper"));
+		return new TaskResult(this, TaskResult.RC_SUCCESS,null,json.getJSONArray("members"));
 
 	}
 

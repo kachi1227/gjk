@@ -13,6 +13,8 @@
     <string name="re_password_hint">Re-enter Password</string>
     <string name="login">Login</string>
     <string name="register">Register</string>
+    <string name="go_to_login">Go To Login</string>
+    <string name="go_to_register">Go To Registration</string>
     <string name="select_avi">Select Avatar</string>
     <string name="gallery">Load Existing Image</string>
     <string name="camera">Camera Capture</string>
@@ -34,4 +36,15 @@
     <string name="create_chat_hint">Enter chat name</string>
     <string name="add_members_to_chat">Add Chat Members</string>
     <string name="add_members_to_chat_title">Select Members</string>
+    <string name="pending_message_hint">Say something dope…</string>
+    <string name="create_sideconvo">Create a New Side-Convo</string>
+    <string name="create_sideconvo_title">Side-Convo Name</string>
+    <string name="create_sideconvo_hint">Enter side-convo name</string>
+    <string name="add_members_to_sideconvo">Add Side-Convo Members</string>
+    <string name="add_members_to_sideconvo_title">Select Members</string>
+    <string name="create_whisper">Create a New Whisper</string>
+    <string name="create_whisper_title">Whisper Name</string>
+    <string name="create_whisper_hint">Enter whisper name</string>
+    <string name="add_members_to_whisper">Add Whisper Members</string>
+    <string name="add_members_to_whisper_title">Select Members</string>
 </resources>

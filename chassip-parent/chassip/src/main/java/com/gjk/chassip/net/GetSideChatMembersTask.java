@@ -21,7 +21,7 @@ public class GetSideChatMembersTask extends MiluHTTPTask {
 	public TaskResult handleSuccessfulJSONResponse(DBHttpResponse response,
 			JSONObject json) throws Exception {
 		// TODO Auto-generated method stub
-		return new TaskResult(this, TaskResult.RC_SUCCESS,null,json.getJSONObject("sidechat"));
+		return new TaskResult(this, TaskResult.RC_SUCCESS,null,json.getJSONArray("members"));
 	}
 
 	@Override
@@ -29,8 +29,6 @@ public class GetSideChatMembersTask extends MiluHTTPTask {
 		// TODO Auto-generated method stub
 		JSONObject payload = new JSONObject();
 		payload.put("side_chat_id", mSideChatID);
-		
-		
 		return payload;
 	}
 

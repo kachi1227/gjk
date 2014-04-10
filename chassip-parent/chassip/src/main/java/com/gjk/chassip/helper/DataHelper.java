@@ -8,15 +8,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.util.Set;
-
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import android.content.Context;
-import android.os.Bundle;
 
-public class DataHelper {
+public final class DataHelper {
 	
 	public static String getTextFromResource(Context c, int resId) {
 		return getTextFromStream(c.getResources().openRawResource(resId));

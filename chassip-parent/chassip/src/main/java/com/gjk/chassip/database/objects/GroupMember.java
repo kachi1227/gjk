@@ -19,13 +19,13 @@ public class GroupMember extends BaseGroupMember {
 	
 	public static GroupMember insertOrUpdate(SQLiteOpenHelper dbm, JSONObject json, boolean isLast) throws Exception {
 		long id = json.getLong("id");
-		GroupMember groupMember = findOneByGlobalId(dbm, id);
+		long groupId = json.getLong("group_id");
+		GroupMember groupMember = findOneByGlobalAndGroupId(dbm, id, groupId);
 		if (groupMember == null) {
 			groupMember = new GroupMember(dbm);
 		}
 		groupMember.setGlobalId(id);
-		if(!json.isNull("group_id"))
-			groupMember.setGroupId(json.getLong("group_id"));
+		groupMember.setGroupId(groupId);
 		if(!json.isNull("first_name"))
 			groupMember.setFirstName(json.getString("first_name"));
 		if(!json.isNull("last_name"))
@@ -71,5 +71,15 @@ public class GroupMember extends BaseGroupMember {
 	@Override
 	public boolean equals(Object o) {
 		return getGlobalId() == ((GroupMember) o).getGlobalId();
+	}
+	
+	@Override
+	public String toString() {
+		return getFullName();
+	}
+	
+	@Override
+	public int hashCode() {
+		return (int) getGlobalId();
 	}
 }

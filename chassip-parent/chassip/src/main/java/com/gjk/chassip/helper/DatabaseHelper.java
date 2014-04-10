@@ -16,8 +16,6 @@ import com.gjk.chassip.database.objects.User;
 
 import android.database.Cursor;
 import android.os.Bundle;
-import android.util.Log;
-
 import static com.gjk.chassip.Constants.*;
 
 public final class DatabaseHelper {
@@ -28,11 +26,11 @@ public final class DatabaseHelper {
 		return User.insertOrUpdate(sDm, DatabaseHelper.bundleToJson(bundle));
 	}
 
-	public static long getAccountUserId() {
+	public static Long getAccountUserId() {
 		Cursor cursor = sDm.getReadableDatabase().query(User.TABLE_NAME, new String[] { User.F_GLOBAL_ID }, null, null,
 				null, null, null);
 		cursor.moveToFirst();
-		long id = cursor.getLong(0);
+		Long id = cursor.getLong(0);
 		cursor.close();
 		return id;
 	}
@@ -68,6 +66,10 @@ public final class DatabaseHelper {
 	public static Group getGroup(long chatId) {
 		return Group.findOneByGlobalId(sDm, chatId);
 	}
+	
+	public static List<Group> getGroups() {
+		return Group.findAllObjects(sDm, Group.F_ID + " ASC");
+	}
 
 	public static Group getFirstStoredGroup() {
 		Cursor cursor = sDm.getReadableDatabase().query(Group.TABLE_NAME, new String[] { Group.F_GLOBAL_ID }, null,
@@ -87,12 +89,12 @@ public final class DatabaseHelper {
 		return getGroup(id);
 	}
 
-	public static boolean chatExists(Group group) {
+	public static boolean groupExists(Group group) {
 		return Group.findOneByGlobalId(sDm, group.getGlobalId()) != null;
 	}
 
-	public static boolean chatDoesntExist(Group group) {
-		return !chatExists(group);
+	public static boolean groupDoesntExist(Group group) {
+		return !groupExists(group);
 	}
 
 	// public static void addGroupMembers(JSONArray members) throws Exception {
@@ -107,9 +109,9 @@ public final class DatabaseHelper {
 		}
 	}
 
-	public static void addGroupMember(JSONObject member, long chatId, boolean isLast) throws Exception {
+	public static GroupMember addGroupMember(JSONObject member, long chatId, boolean isLast) throws Exception {
 		member.put("group_id", chatId);
-		GroupMember.insertOrUpdate(sDm, member, isLast);
+		return GroupMember.insertOrUpdate(sDm, member, isLast);
 	}
 
 	public static GroupMember getGroupMember(long memberId) {
@@ -129,8 +131,8 @@ public final class DatabaseHelper {
 		return members;
 	}
 
-	public static void addGroupMessage(JSONObject message) throws Exception {
-		Message.insertOrUpdate(sDm, message);
+	public static Message addGroupMessage(JSONObject message) throws Exception {
+		return Message.insertOrUpdate(sDm, message);
 	}
 
 	public static void addGroupMessages(JSONArray members) throws Exception {
@@ -156,13 +158,23 @@ public final class DatabaseHelper {
 		return objList;
 	}
 
-	public static Message getMessage(long messageId) {
-		return Message.findOneByGlobalId(sDm, messageId);
+	public static Message getLatestMessage(long chatId) {
+		Cursor cursor = sDm.getReadableDatabase().query(Message.TABLE_NAME, Message.ALL_COLUMN_NAMES,
+				Message.F_GROUP_ID + " = " + chatId, null, null, null, Group.F_ID + " DESC", "1");
+		cursor.moveToFirst();
+		Message m;
+		if (cursor.isAfterLast()) {
+			m = null;
+		} else {
+			m = new Message(sDm, cursor, false);
+		}
+		cursor.close();
+		return m;
 	}
 
-	public static long getLastStoredMessageId() {
-		Cursor cursor = sDm.getReadableDatabase().query(Message.TABLE_NAME, new String[] { Group.F_GLOBAL_ID }, null,
-				null, null, null, Group.F_ID + " DESC", "1");
+	public static long getLastStoredMessageId(long chatId) {
+		Cursor cursor = sDm.getReadableDatabase().query(Message.TABLE_NAME, new String[] { Group.F_GLOBAL_ID },
+				Message.F_GROUP_ID + " = " + chatId, null, null, null, Group.F_ID + " DESC", "1");
 		cursor.moveToFirst();
 		long id;
 		if (cursor.isAfterLast()) {
@@ -178,13 +190,12 @@ public final class DatabaseHelper {
 		return new JSONObject(bundle.getString(JSON));
 	}
 
-	public static Bundle jsonToBundle(JSONObject json) {
-		// try {
-		// return new JSONObject(bundle.getString(JSON));
-		// } catch (JSONException e) {
-		// return new JSONObject();
-		// }
-		return null;
-	}
+//	public static Bundle jsonToBundle(JSONObject json) {
+//		try {
+//			return new JSONObject(bundle.getString(JSON));
+//		} catch (JSONException e) {
+//			return new JSONObject();
+//		}
+//	}
 
 }
