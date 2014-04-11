@@ -1,21 +1,25 @@
-apply plugin: 'android'
-
 buildscript {
     repositories {
         maven { url 'http://download.crashlytics.com/maven' }
+        maven { url "http://jzaccone.github.io/SlidingMenu-aar" }
         mavenCentral()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:+'
+        classpath 'com.android.tools.build:gradle:0.8.+'
+        classpath 'com.crashlytics.tools.gradle:crashlytics-gradle:+'
     }
 }
 
 allprojects {
     repositories {
+        maven { url 'http://download.crashlytics.com/maven' }
         maven { url "http://jzaccone.github.io/SlidingMenu-aar" }
         mavenCentral()
     }
 }
+
+apply plugin: 'android'
+apply plugin: 'crashlytics'
 
 android {
     compileSdkVersion 19
@@ -40,4 +44,5 @@ dependencies {
     compile 'com.google.guava:guava:15.0'
     compile 'commons-lang:commons-lang:2.6'
     compile 'org.apache.httpcomponents:httpmime:4.1.3'
+    compile 'com.crashlytics.android:crashlytics:1.+'
 }
