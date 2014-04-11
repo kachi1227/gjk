@@ -1,0 +1,248 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>org.sonatype.oss</groupId>
+    <artifactId>oss-parent</artifactId>
+    <version>7</version>
+  </parent>
+
+  <groupId>com.gjk.chassip</groupId>
+  <artifactId>chassip-parent</artifactId>
+  <version>0.0.1-SNAPSHOT</version>
+  <packaging>pom</packaging>
+  
+  <name>Chassip (Parent)</name>
+  <description>Android parent for Chassip maven project.</description>
+
+  <modules>
+      <module>actionbarsherlock</module>
+      <module>slidingmenu</module>
+      <module>chassip</module>
+  </modules>
+
+  <developers>
+    <developer>
+      <name>gpl</name>
+      <email>gdplouis@gmail.com</email>
+      <timezone>-5</timezone>
+      <roles>
+        <role>developer</role>
+      </roles>
+    </developer>
+  </developers>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
+    <gradle.version>4.4.0</gradle.version>
+
+    <java.version>1.6</java.version>
+    <android.platform>14</android.platform>
+
+    <!-- Compilation dependencies -->
+    <android.version>4.4.2</android.version>
+    <android-support.version>19.0.1</android-support.version>
+    <fest.android.version>1.0.5</fest.android.version>
+
+    <!-- Sample dependencies -->
+    <nineoldandroids.version>2.4.0</nineoldandroids.version>
+    <roboguice-sherlock.version>1.5</roboguice-sherlock.version>
+
+    <!-- Test dependencies -->
+    <junit.version>4.10</junit.version>
+    <fest.version>2.0M10</fest.version>
+    <robolectric.version>2.0</robolectric.version>
+    
+    		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<platform.version> 4.1.1.4
+			</platform.version>
+		<android.plugin.version>3.6.0</android.plugin.version>
+  </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>com.google.android</groupId>
+        <artifactId>android</artifactId>
+        <version>${android.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.google.android</groupId>
+        <artifactId>support-v4</artifactId>
+        <version>${android-support.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.nineoldandroids</groupId>
+        <artifactId>library</artifactId>
+        <version>${nineoldandroids.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.github.rtyley</groupId>
+        <artifactId>roboguice-sherlock</artifactId>
+        <version>${roboguice-sherlock.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>junit</groupId>
+        <artifactId>junit</artifactId>
+        <version>${junit.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.easytesting</groupId>
+        <artifactId>fest-assert-core</artifactId>
+        <version>${fest.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.robolectric</groupId>
+        <artifactId>robolectric</artifactId>
+        <version>${robolectric.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.squareup</groupId>
+        <artifactId>fest-android</artifactId>
+        <version>${fest.android.version}</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <build>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <version>3.0</version>
+          <configuration>
+            <source>${java.version}</source>
+            <target>${java.version}</target>
+            <showWarnings>true</showWarnings>
+            <compilerArguments>
+              <Xlint />
+            </compilerArguments>
+          </configuration>
+        </plugin>
+
+        <plugin>
+          <groupId>com.jayway.maven.plugins.android.generation2</groupId>
+          <artifactId>android-maven-plugin</artifactId>
+          <version>3.8.0</version>
+          <configuration>
+            <nativeLibrariesDirectory>ignored</nativeLibrariesDirectory>
+            <sdk>
+              <platform>${android.platform}</platform>
+            </sdk>
+          </configuration>
+        </plugin>
+
+        <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>build-helper-maven-plugin</artifactId>
+          <version>1.8</version>
+        </plugin>
+
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-javadoc-plugin</artifactId>
+          <version>2.9</version>
+          <configuration>
+            <failOnError>false</failOnError>
+          </configuration>
+        </plugin>
+
+        <plugin>
+          <groupId>org.holoeverywhere</groupId>
+          <artifactId>resbuilder</artifactId>
+          <version>1.5.0</version>
+        </plugin>
+
+        <plugin>
+          <groupId>com.google.code.maven-replacer-plugin</groupId>
+          <artifactId>maven-replacer-plugin</artifactId>
+          <version>1.4.0</version>
+        </plugin>
+        
+        <plugin>
+        <groupId>org.eclipse.m2e</groupId>
+        <artifactId>lifecycle-mapping</artifactId>
+        <version>1.0.0</version>
+        <configuration>
+          <lifecycleMappingMetadata>
+            <pluginExecutions>
+              <pluginExecution>
+                <pluginExecutionFilter>
+                  <groupId>org.apache.maven.plugins</groupId>
+                  <artifactId>maven-enforcer-plugin</artifactId>
+                  <versionRange>[1.0.0,)</versionRange>
+                  <goals>
+                    <goal>enforce</goal>
+                  </goals>
+                </pluginExecutionFilter>
+                <action>
+                  <ignore />
+                </action>
+              </pluginExecution>
+            </pluginExecutions>
+          </lifecycleMappingMetadata>
+        </configuration>
+      </plugin>
+        
+      </plugins>
+    </pluginManagement>
+
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-release-plugin</artifactId>
+        <configuration>
+          <autoVersionSubmodules>true</autoVersionSubmodules>
+        </configuration>
+      </plugin>
+
+<!--       <plugin> -->
+<!--         <groupId>org.apache.maven.plugins</groupId> -->
+<!--         <artifactId>maven-checkstyle-plugin</artifactId> -->
+<!--         <version>2.10</version> -->
+<!--         <configuration> -->
+<!--           <failsOnError>true</failsOnError> -->
+<!--           <consoleOutput>true</consoleOutput> -->
+<!--           <configLocation>checkstyle.xml</configLocation> -->
+<!--         </configuration> -->
+<!--         <executions> -->
+<!--           <execution> -->
+<!--             <phase>verify</phase> -->
+<!--             <goals> -->
+<!--               <goal>checkstyle</goal> -->
+<!--             </goals> -->
+<!--           </execution> -->
+<!--         </executions> -->
+<!--       </plugin> -->
+
+<!--       <plugin> -->
+<!--         <groupId>org.codehaus.mojo</groupId> -->
+<!--         <artifactId>exec-maven-plugin</artifactId> -->
+<!--         <version>1.2.1</version> -->
+<!--         <inherited>false</inherited> -->
+<!--         <executions> -->
+<!--           <execution> -->
+<!--             <phase>package</phase> -->
+<!--             <goals> -->
+<!--               <goal>exec</goal> -->
+<!--             </goals> -->
+<!--             <configuration> -->
+<!--               <executable>gradle</executable> -->
+<!--               <arguments> -->
+<!--                 <argument>clean</argument> -->
+<!--                 <argument>assemble</argument> -->
+<!--               </arguments> -->
+<!--             </configuration> -->
+<!--           </execution> -->
+<!--         </executions> -->
+<!--       </plugin> -->
+    </plugins>
+  </build>
+</project>
+  
+  
+</project>

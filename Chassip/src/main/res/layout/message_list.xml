@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:transcriptMode="alwaysScroll" >
+
+	<ListView 
+	    android:id="@android:id/list"
+	    android:layout_width="match_parent"
+	    android:layout_height="wrap_content"
+	    android:paddingLeft="@dimen/list_padding"
+	    android:paddingRight="@dimen/list_padding"
+	    android:transcriptMode="alwaysScroll"
+	    android:layout_above="@+id/pendingMessage" />
+
+	<EditText
+	    android:id="@+id/pendingMessage"
+	    android:layout_width="wrap_content"
+	    android:layout_height="wrap_content"
+	    android:layout_alignParentBottom="true"
+	    android:layout_alignParentLeft="true"
+	    android:layout_toLeftOf="@+id/send"
+	    android:ems="10"
+	    android:windowSoftInputMode="adjustResize"
+	    android:inputType="text|textCapSentences|textMultiLine"
+	    android:hint="@string/pending_message_hint"/>
+
+	<Button
+	    android:id="@+id/send"
+	    style="?android:attr/buttonStyleSmall"
+	    android:layout_width="wrap_content"
+	    android:layout_height="wrap_content"
+	    android:layout_alignParentBottom="true"
+	    android:layout_alignParentRight="true"
+	    android:text="@string/send" />
+
+</RelativeLayout>
