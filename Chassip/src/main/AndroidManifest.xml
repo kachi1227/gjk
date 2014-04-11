@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.gjk.chassip"
+    package="com.gjk"
     android:versionCode="1"
     android:versionName="0.1.0" >
     
@@ -14,9 +14,9 @@
 	<uses-permission android:name="android.permission.GET_ACCOUNTS" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="com.google.android.c2dm.permission.RECEIVE" />
-    <permission android:name="com.gjk.chassip.permission.C2D_MESSAGE"
+    <permission android:name="com.gjk.permission.C2D_MESSAGE"
         android:protectionLevel="signature" />
-    <uses-permission android:name="com.gjk.chassip.permission.C2D_MESSAGE" />
+    <uses-permission android:name="com.gjk.permission.C2D_MESSAGE" />
 	
     <uses-sdk
         android:minSdkVersion="16"
@@ -49,10 +49,11 @@
             <intent-filter>
                 <action android:name="com.google.android.c2dm.intent.RECEIVE" />
                 <action android:name="com.google.android.c2dm.intent.REGISTRATION" />
-                <category android:name="com.gjk.chassip" />
+                <category android:name="com.gjk" />
             </intent-filter>
         </receiver>
         <service android:name=".service.GcmIntentService" />
+        <meta-data android:name="com.crashlytics.ApiKey" android:value="7666486dbef3f859749c5af781ee6bde623a94e0"/>
     </application>
 
 </manifest>
