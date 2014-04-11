@@ -1,5 +1,0 @@
--kill service after done with injections
--trim messages
--fix keyboard messing up the screen
--display messages when the user sends
--escaped client, app restarted but service didn't, fix onResume stuff
