@@ -1,5 +1,6 @@
 package com.gjk;
 
+import com.crashlytics.android.Crashlytics;
 import org.json.JSONArray;
 import org.json.JSONException;
 
@@ -16,7 +17,8 @@ public class MainActivity extends ActionBarActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.main);
+        Crashlytics.start(this);
+		setContentView(R.layout.main);
         try {
 			new GetMessageTask(this, null, 4, 1, new JSONArray("[4, -1]"));
 		} catch (JSONException e) {
