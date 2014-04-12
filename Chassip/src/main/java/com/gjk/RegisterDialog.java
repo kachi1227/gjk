@@ -99,7 +99,7 @@ public class RegisterDialog extends DialogFragment {
 		AlertDialog.Builder builder = new AlertDialog.Builder(mCtx);
 		// Get the layout inflater
 		LayoutInflater inflater = getActivity().getLayoutInflater();
-		View view = inflater.inflate(R.layout.register_layout2, null);
+		View view = inflater.inflate(R.layout.register_layout, null);
 
 		mFirstNameReg = (EditText) view.findViewById(R.id.firstNameReg);
 		mLastNameReg = (EditText) view.findViewById(R.id.lastNameReg);

@@ -5,6 +5,7 @@ import android.os.Bundle;
 import android.support.v4.app.ListFragment;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.text.format.DateFormat;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -29,7 +30,6 @@ import com.google.common.collect.Sets;
 import org.json.JSONArray;
 import org.json.JSONException;
 
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
@@ -73,12 +73,10 @@ public class ThreadFragment extends ListFragment implements DataChangeListener {
 		mThreadType = ThreadType.getFromValue(getArguments().getInt("threadType"));
 		mName = getArguments().getString("name");
         mMembers = Sets.newHashSet();
-		mAdapter = new MessagesAdapter(mCtx, mChatId, mThreadId, mThreadType, new LinkedList<Message>());
+		mAdapter = new MessagesAdapter(mCtx, mChatId, mThreadId, mThreadType, Lists.newArrayList());
 		setListAdapter(mAdapter);
 		getMessagesFromDb();
-		for (Message im : mPendingMessages) {
-			mAdapter.add(im);
-		}
+		addMessages(mPendingMessages);
 		mPendingMessages.clear();
 		Application.get().getDatabaseManager().registerDataChangeListener(GroupMember.TABLE_NAME, this);
 		Application.get().getDatabaseManager().registerDataChangeListener(Message.TABLE_NAME, this);
@@ -119,7 +117,7 @@ public class ThreadFragment extends ListFragment implements DataChangeListener {
 		List<Message> messages = getMessages(mChatId);
 		if (messages != null && messages.size() > 0) {
 			if (mAdapter != null) {
-				mAdapter.addAll(messages);
+				addMessages(messages);
 			} else {
 				mPendingMessages.addAll(messages);
 			}
@@ -203,20 +201,8 @@ public class ThreadFragment extends ListFragment implements DataChangeListener {
 		outState.putLong("mThreadId", mThreadId);
 	}
 
-	public long getChatId() {
-		return mChatId;
-	}
-
 	public String getName() {
 		return mName;
-	}
-
-	public boolean isInitialized() {
-		return mInitialized;
-	}
-
-	public MessagesAdapter getMessageAdapter() {
-		return mAdapter;
 	}
 
 	public ThreadType getThreadType() {
@@ -239,6 +225,29 @@ public class ThreadFragment extends ListFragment implements DataChangeListener {
 			addMember(member);
 		}
 	}
+
+    public void addMessages(List<Message> ms) {
+        for (Message m : ms) {
+            addMessage(m);
+        }
+    }
+
+    public void addMessage(Message m) {
+        if (mAdapter.getCount() > 1) {
+            Object prev = mAdapter.getItem(mAdapter.getCount()-1);
+            if (prev instanceof Message) {
+                String prevD = String.valueOf(DateFormat.format("yyyyMMdd", ((Message) prev).getDate()));
+                String thisD = String.valueOf(DateFormat.format("yyyyMMdd", m.getDate()));
+                if (!prevD.equals(thisD)) {
+                    mAdapter.add(Long.valueOf(m.getDate()));
+                }
+            }
+        }
+        else {
+            mAdapter.add(m.getDate());
+        }
+        mAdapter.add(m);
+    }
 
 	public Set<GroupMember> getMembers() {
 		return mMembers;
@@ -287,7 +296,7 @@ public class ThreadFragment extends ListFragment implements DataChangeListener {
                         if (mAdapter == null) {
                             mPendingMessages.add(m);
                         } else {
-                            mAdapter.add(m);
+                            addMessage(m);
                         }
                     }
                 }

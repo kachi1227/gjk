@@ -1,22 +1,15 @@
 package com.gjk;
 
-import android.annotation.SuppressLint;
 import android.app.ActionBar;
 import android.app.ActionBar.Tab;
 import android.app.AlertDialog;
 import android.app.FragmentTransaction;
 import android.app.Service;
-import android.content.ComponentName;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.DialogInterface.OnClickListener;
 import android.content.Intent;
-import android.content.ServiceConnection;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.IBinder;
-import android.os.Messenger;
-import android.os.RemoteException;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentPagerAdapter;
@@ -47,7 +40,6 @@ import com.gjk.net.NotifyGroupInviteesTask;
 import com.gjk.net.NotifySideChatInviteesTask;
 import com.gjk.net.NotifyWhisperInviteesTask;
 import com.gjk.net.TaskResult;
-import com.gjk.service.ChassipService;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.jeremyfeinstein.slidingmenu.lib.SlidingMenu;
@@ -55,22 +47,17 @@ import com.jeremyfeinstein.slidingmenu.lib.app.SlidingFragmentActivity;
 
 import org.json.JSONArray;
 import org.json.JSONException;
-import org.json.JSONObject;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
-import static com.gjk.helper.DatabaseHelper.addGroup;
 import static com.gjk.helper.DatabaseHelper.addGroupMember;
 import static com.gjk.helper.DatabaseHelper.addGroupMembers;
-import static com.gjk.helper.DatabaseHelper.addGroupMessage;
 import static com.gjk.helper.DatabaseHelper.addGroupMessages;
 import static com.gjk.helper.DatabaseHelper.addGroups;
-import static com.gjk.helper.DatabaseHelper.bundleToJson;
 import static com.gjk.helper.DatabaseHelper.getAccountUserFullName;
 import static com.gjk.helper.DatabaseHelper.getAccountUserId;
 import static com.gjk.helper.DatabaseHelper.getGroup;
@@ -86,7 +73,7 @@ import static com.gjk.helper.DatabaseHelper.setAccountUser;
  * @author gpl
  * 
  */
-public class MainActivity extends SlidingFragmentActivity implements ServiceConnection, DataChangeListener,
+public class MainActivity extends SlidingFragmentActivity implements DataChangeListener,
 		LoginDialog.NoticeDialogListener, RegisterDialog.NoticeDialogListener {
 
 	private final static String LOGTAG = "MainActivity";
@@ -101,13 +88,6 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 
 	private LoginDialog mLoginDialog;
 	private RegisterDialog mRegDialog;
-
-	private Messenger mServiceMessenger = null;
-	boolean mIsBound;
-
-	private final Messenger mClientMessager = new Messenger(new IncomingMessageHandler());
-
-	private ServiceConnection mConnection = this;
 
 	// TODO: Temporary!!
 	private final static HashMap<String, Long> mapping = Maps.newHashMap();
@@ -412,24 +392,6 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 		}
 	}
 
-	// @Override
-	// public void onSaveInstanceState(Bundle outState) {
-	// super.onSaveInstanceState(outState);
-	// getSupportFragmentManager().putFragment(outState, "chats_drawer", mChatsDrawerFragment);
-	// getSupportFragmentManager().putFragment(outState, "threads_drawer", mThreadsDrawerFragment);
-	// List<ThreadFragment> currentThreads = mThreadPagerAdapter.getCurrentThread();
-	// outState.putInt("number_of_threads", currentThreads.size());
-	// for (int i = 0; i < currentThreads.size(); i++) {
-	// getSupportFragmentManager().putFragment(outState, "threads" + i, currentThreads.get(i));
-	// }
-	// }
-	//
-
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see com.actionbarsherlock.app.SherlockFragmentActivity#onPause()
-	 */
 	@Override
 	protected void onPause() {
 		super.onPause();
@@ -441,103 +403,11 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 	}
 
 	@Override
-	public void onServiceConnected(ComponentName name, IBinder service) {
-		mServiceMessenger = new Messenger(service);
-		Log.i(LOGTAG, "onServiceConnected()");
-		try {
-			android.os.Message msg = android.os.Message.obtain(null, ChassipService.MSG_REGISTER_CLIENT);
-			msg.replyTo = mClientMessager;
-			mServiceMessenger.send(msg);
-		} catch (RemoteException e) {
-			// In this case the service has crashed before we could even do anything with it
-		}
-	}
-
-	@Override
-	public void onServiceDisconnected(ComponentName name) {
-		// This is called when the connection with the service has been unexpectedly disconnected - process crashed.
-		mServiceMessenger = null;
-		Log.i(LOGTAG, "onServiceDisconnected()");
-	}
-
-	@Override
 	protected void onDestroy() {
 		super.onDestroy();
 		Application.get().getDatabaseManager().unregisterDataChangeListener(Group.TABLE_NAME, this);
 		Application.get().getDatabaseManager().unregisterDataChangeListener(Group.TABLE_NAME, mThreadPagerAdapter);
 		Application.get().getDatabaseManager().unregisterDataChangeListener(GroupMember.TABLE_NAME, this);
-
-		try {
-			doUnbindService();
-		} catch (Throwable t) {
-			Log.e(LOGTAG, "Failed to unbind from the service", t);
-		}
-	}
-
-	/**
-	 * Check if the service is running. If the service is running when the activity starts, we want to automatically
-	 * bind to it.
-	 */
-	@SuppressWarnings("unused")
-	private void automaticBind() {
-		if (ChassipService.isRunning()) {
-			doBindService();
-		}
-	}
-
-	/**
-	 * Bind this Activity to MyService
-	 */
-	private void doBindService() {
-		bindService(new Intent(this, ChassipService.class), mConnection, Context.BIND_AUTO_CREATE);
-		mIsBound = true;
-		Log.i(LOGTAG, "doBindService()");
-	}
-
-	/**
-	 * Un-bind this Activity to MyService
-	 */
-	private void doUnbindService() {
-		if (mIsBound) {
-			// If we have received the service, and hence registered with it, then now is the time to unregister.
-			if (mServiceMessenger != null) {
-				try {
-					android.os.Message msg = android.os.Message.obtain(null, ChassipService.MSG_UNREGISTER_CLIENT);
-					msg.replyTo = mClientMessager;
-					mServiceMessenger.send(msg);
-				} catch (RemoteException e) {
-					// There is nothing special we need to do if the service has crashed.
-				}
-			}
-			// Detach our existing connection.
-			unbindService(mConnection);
-			mIsBound = false;
-			Log.i(LOGTAG, "doUnbindService()");
-		}
-	}
-
-	@SuppressWarnings("unused")
-	private void pauseService() {
-		Log.i(LOGTAG, "pauseService()");
-		try {
-			android.os.Message msg = android.os.Message.obtain(null, ChassipService.MSG_PAUSE);
-			msg.replyTo = mClientMessager;
-			mServiceMessenger.send(msg);
-		} catch (RemoteException e) {
-			// In this case the service has crashed before we could even do anything with it
-		}
-	}
-
-	@SuppressWarnings("unused")
-	private void goService() {
-		Log.i(LOGTAG, "goService()");
-		try {
-			android.os.Message msg = android.os.Message.obtain(null, ChassipService.MSG_GO);
-			msg.replyTo = mClientMessager;
-			mServiceMessenger.send(msg);
-		} catch (RemoteException e) {
-			// In this case the service has crashed before we could even do anything with it
-		}
 	}
 
 	private void getGroupsFromDb() {
@@ -560,7 +430,6 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 		new GetMultipleGroupsTask(this, new HTTPTaskListener() {
 			@Override
 			public void onTaskComplete(TaskResult result) {
-
 				if (result.getResponseCode() == 1) {
 					JSONArray response = (JSONArray) result.getExtraInfo();
 					try {
@@ -642,45 +511,6 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 	}
 
 	/**
-	 * Handle incoming messages from MyService
-	 */
-	@SuppressLint("HandlerLeak")
-	private class IncomingMessageHandler extends Handler {
-		@Override
-		public void handleMessage(android.os.Message msg) {
-
-			try {
-
-				JSONObject json = bundleToJson(msg.getData());
-				Log.d(LOGTAG, "Handling message: " + json);
-
-				switch (msg.what) {
-				case ChassipService.MSG_NEW_MESSAGE:
-					addGroupMessage(json);
-					break;
-				case ChassipService.MSG_NEW_GROUP_MEMBER:
-					// addGroupMember(json, false);
-					break;
-				case ChassipService.MSG_NEW_GROUP_MEMBER_LAST:
-					// addGroupMember(json, true);
-					break;
-				case ChassipService.MSG_NEW_THREAD:
-					break;
-				case ChassipService.MSG_NEW_CHAT:
-					addGroup(json);
-					break;
-				default:
-					super.handleMessage(msg);
-				}
-			} catch (Exception e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-
-		}
-	}
-
-	/**
 	 * Implementation of {@link FragmentPagerAdapter}
 	 * 
 	 * @author gpl
@@ -754,7 +584,7 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 			ThreadFragment[] mainFrag = new ThreadFragment[] { generateMainThreadFragment(chat) };
 			ThreadFragment[] sideConvoFrags = generateSideConvoThreadFragments(chat);
 			ThreadFragment[] whisperFrags = generateWhisperThreadFragments(chat);
-			addThreads(concatAll(mainFrag, sideConvoFrags, whisperFrags));
+			addThreads(GeneralHelper.concatAll(mainFrag, sideConvoFrags, whisperFrags));
 			mPager.setCurrentItem(0);
 		}
 
@@ -928,7 +758,6 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 					}
 					fetchGroupMembers(g);
 					fetchGroupMessages(g);
-					// mThreadsDrawerFragment.updateView();
 				}
 			}).start();
 		}
@@ -962,7 +791,6 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 		try {
 			setAccountUser(dialog.getMyArguments());
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		String fullName = getAccountUserFullName();
@@ -977,19 +805,5 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 	public void onDialogNegativeClick(RegisterDialog dialog) {
 		mRegDialog.dismiss();
 		mLoginDialog.show(getSupportFragmentManager(), "LoginDialog");
-	}
-
-	public static <T> T[] concatAll(T[] first, T[]... rest) {
-		int totalLength = first.length;
-		for (T[] array : rest) {
-			totalLength += array.length;
-		}
-		T[] result = Arrays.copyOf(first, totalLength);
-		int offset = first.length;
-		for (T[] array : rest) {
-			System.arraycopy(array, 0, result, offset, array.length);
-			offset += array.length;
-		}
-		return result;
 	}
 }
