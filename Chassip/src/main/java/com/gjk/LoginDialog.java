@@ -1,15 +1,5 @@
 package com.gjk;
 
-import static com.gjk.Constants.*;
-
-import org.json.JSONObject;
-
-import com.gjk.net.LoginTask;
-import com.gjk.net.TaskResult;
-import com.gjk.net.UpdateGCMRegTask;
-import com.gjk.net.HTTPTask.HTTPTaskListener;
-import com.google.android.gms.gcm.GoogleCloudMessaging;
-
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
@@ -24,7 +14,19 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.Toast;
+
+import com.gjk.helper.GeneralHelper;
+import com.gjk.net.HTTPTask.HTTPTaskListener;
+import com.gjk.net.LoginTask;
+import com.gjk.net.TaskResult;
+import com.gjk.net.UpdateGCMRegTask;
+import com.google.android.gms.gcm.GoogleCloudMessaging;
+
+import org.json.JSONObject;
+
+import static com.gjk.Constants.PROPERTY_APP_VERSION;
+import static com.gjk.Constants.PROPERTY_REG_ID;
+import static com.gjk.Constants.SENDER_ID;
 
 public class LoginDialog extends DialogFragment {
 
@@ -165,9 +167,7 @@ public class LoginDialog extends DialogFragment {
 
 	/**
 	 * Stores the registration ID and app versionCode in the application's {@code SharedPreferences}.
-	 * 
-	 * @param context
-	 *            application's context.
+	 *
 	 * @param regId
 	 *            registration ID
 	 */
@@ -205,15 +205,18 @@ public class LoginDialog extends DialogFragment {
 							updateChassipGcm(response.getLong("id"),
 									Application.get().getPreferences().getString(PROPERTY_REG_ID, "abc"));
 						} catch (Exception e) {
-							handleLoginError(e);
+                            GeneralHelper.reportMessage(mCtx, LOGTAG, e.getMessage());
+                            mPasswordLogin.setText("");
 						}
 					} else {
-						handleLoginFail(result);
+                        GeneralHelper.reportMessage(mCtx, LOGTAG, result.getMessage());
+                        mPasswordLogin.setText("");
 					}
 				}
 			}, email, password);
 		} catch (Exception e) {
-			handleLoginError(e);
+            GeneralHelper.reportMessage(mCtx, LOGTAG, e.getMessage());
+            mPasswordLogin.setText("");
 		}
 	}
 
@@ -224,11 +227,11 @@ public class LoginDialog extends DialogFragment {
 
 		boolean ready = true;
 		if (email.isEmpty()) {
-			showLongToast("Email was left empty!");
+			GeneralHelper.showLongToast(mCtx, "Email was left empty!");
 			ready = false;
 		}
 		if (password.isEmpty()) {
-			showLongToast("Password was left empty!");
+            GeneralHelper.showLongToast(mCtx, "Password was left empty!");
 			ready = false;
 		}
 		return ready;
@@ -243,43 +246,13 @@ public class LoginDialog extends DialogFragment {
 						mListener.onDialogPositiveClick(mMe);
 						dismiss();
 					} else {
-						handleGcmRegistrationFail(result);
+                        GeneralHelper.reportMessage(mCtx, LOGTAG, result.getMessage());
 					}
 				}
 			}, id, gcm, "ANDROID");
 		} catch (Exception e) {
-			handleGcmRegistrationError(e);
+            GeneralHelper.reportMessage(mCtx, LOGTAG, e.getMessage());
 		}
-	}
-
-	private void handleLoginError(Exception e) {
-		Log.e(LOGTAG, String.format("Login unsuccessful: %s", e));
-		showLongToast(e.toString());
-		mPasswordLogin.setText("");
-	}
-
-	private void handleLoginFail(TaskResult result) {
-		Log.d(LOGTAG, String.format("Login unsuccessful: code %s", result.getMessage()));
-		showLongToast(String.format("Login unsuccessful: code %s", result.getMessage()));
-		mPasswordLogin.setText("");
-	}
-
-	private void handleGcmRegistrationError(Exception e) {
-		Log.e(LOGTAG, String.format("GCM Registration unsuccessful: %s", e));
-		showLongToast(e.toString());
-	}
-
-	private void handleGcmRegistrationFail(TaskResult result) {
-		Log.d(LOGTAG, String.format("GCM Registration unsuccessful: %s", result.getMessage()));
-		showLongToast(String.format("GCM Registration unsuccessful: %s", result.getMessage()));
-	}
-
-	private void showLongToast(final String message) {
-		getActivity().runOnUiThread(new Runnable() {
-			public void run() {
-				Toast.makeText(mCtx, message, Toast.LENGTH_LONG).show();
-			}
-		});
 	}
 
 	public Bundle getMyArguments() {

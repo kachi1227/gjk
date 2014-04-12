@@ -1,24 +1,5 @@
 package com.gjk;
 
-import static com.gjk.Constants.*;
-
-import java.io.File;
-import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Locale;
-
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import com.gjk.net.RegisterTask;
-import com.gjk.net.TaskResult;
-import com.gjk.net.UpdateGCMRegTask;
-import com.gjk.net.HTTPTask.HTTPTaskListener;
-import com.google.android.gms.gcm.GoogleCloudMessaging;
-import com.google.common.collect.Maps;
-
 import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -40,11 +21,35 @@ import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.Toast;
+
+import com.gjk.helper.GeneralHelper;
+import com.gjk.net.HTTPTask.HTTPTaskListener;
+import com.gjk.net.RegisterTask;
+import com.gjk.net.TaskResult;
+import com.gjk.net.UpdateGCMRegTask;
+import com.google.android.gms.gcm.GoogleCloudMessaging;
+import com.google.common.collect.Maps;
+
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.File;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Locale;
+
+import static com.gjk.Constants.CAMERA_REQUEST;
+import static com.gjk.Constants.GALLERY_REQUEST;
+import static com.gjk.Constants.JSON;
+import static com.gjk.Constants.PROPERTY_APP_VERSION;
+import static com.gjk.Constants.PROPERTY_REG_ID;
+import static com.gjk.Constants.SENDER_ID;
 
 public class RegisterDialog extends DialogFragment {
 
-	private final String LOGTAG = getClass().getSimpleName();
+	private static final String LOGTAG = "RegisterDialog";
 
 	private Context mCtx;
 	private RegisterDialog mMe = this;
@@ -186,9 +191,9 @@ public class RegisterDialog extends DialogFragment {
 						mediaScanIntent.setData(contentUri);
 						getActivity().sendBroadcast(mediaScanIntent);
 					}
-					showLongToast("Image path: " + mAviPath);
+					GeneralHelper.showLongToast(mCtx, "Image path: " + mAviPath);
 				} catch (Exception e) {
-					handleAviError(e);
+                    GeneralHelper.reportMessage(mCtx, LOGTAG, e.getMessage());
 				}
 			}
 		}
@@ -257,7 +262,7 @@ public class RegisterDialog extends DialogFragment {
 				mAviPath = photoFile.getAbsolutePath();
 			} catch (IOException ex) {
 				// Error occurred while creating the File
-				showLongToast("Saving temp image file failed, the fuck!?");
+                GeneralHelper.showLongToast(mCtx, "Saving temp image file failed, the fuck!?");
 			}
 			// Continue only if the File was successfully created
 			if (photoFile != null) {
@@ -315,9 +320,7 @@ public class RegisterDialog extends DialogFragment {
 
 	/**
 	 * Stores the registration ID and app versionCode in the application's {@code SharedPreferences}.
-	 * 
-	 * @param context
-	 *            application's context.
+	 *
 	 * @param regId
 	 *            registration ID
 	 */
@@ -360,15 +363,21 @@ public class RegisterDialog extends DialogFragment {
 							updateChassipGcm(response.getLong("id"),
 									Application.get().getPreferences().getString(PROPERTY_REG_ID, "abc"));
 						} catch (JSONException e) {
-							handleRegistrationError(e);
+                            GeneralHelper.reportMessage(mCtx, LOGTAG, e.getMessage());
+                            mPasswordReg.setText("");
+                            mRePasswordReg.setText("");
 						}
 					} else {
-						handleRegistrationFail(result);
+                        GeneralHelper.reportMessage(mCtx, LOGTAG, result.getMessage());
+                        mPasswordReg.setText("");
+                        mRePasswordReg.setText("");
 					}
 				}
 			}, firstName, lastName, email, password, fieldMapping);
 		} catch (Exception e) {
-			handleRegistrationError(e);
+            GeneralHelper.reportMessage(mCtx, LOGTAG, e.getMessage());
+            mPasswordReg.setText("");
+            mRePasswordReg.setText("");
 		}
 	}
 
@@ -382,56 +391,35 @@ public class RegisterDialog extends DialogFragment {
 
 		boolean ready = true;
 		if (firstName.isEmpty()) {
-			showLongToast("First Name was left empty!");
+            GeneralHelper.showLongToast(mCtx, "First Name was left empty!");
 			ready = false;
 		}
 		if (lastName.isEmpty()) {
-			showLongToast("Last Name was left empty!");
+            GeneralHelper.showLongToast(mCtx, "Last Name was left empty!");
 			ready = false;
 		}
 		if (email.isEmpty()) {
-			showLongToast("Email was left empty!");
+            GeneralHelper.showLongToast(mCtx, "Email was left empty!");
 			ready = false;
 		}
 		if (password.isEmpty()) {
-			showLongToast("Password was left empty!");
+            GeneralHelper.showLongToast(mCtx, "Password was left empty!");
 			ready = false;
 		}
 		if (rePassword.isEmpty()) {
-			showLongToast("Re-enter Password was left empty!");
+            GeneralHelper.showLongToast(mCtx, "Re-enter Password was left empty!");
 			ready = false;
 		}
 		if (!rePassword.isEmpty() && !password.equals(rePassword)) {
-			showLongToast("Passwords don't match!");
+            GeneralHelper.showLongToast(mCtx, "Passwords don't match!");
 			mRePasswordReg.setText("");
 			ready = false;
 		}
 		if (mAviPath == null) {
-			showLongToast("An avatar wasn't chosen!");
+            GeneralHelper.showLongToast(mCtx, "An avatar wasn't chosen!");
 			ready = false;
 		}
 		return ready;
-	}
-
-	private void handleAviError(Exception e) {
-		Log.e(LOGTAG, e.toString());
-		showLongToast(e.toString());
-		mPasswordReg.setText("");
-		mRePasswordReg.setText("");
-	}
-
-	private void handleRegistrationError(Exception e) {
-		Log.e(LOGTAG, String.format("Registration unsuccessful: %s", e));
-		showLongToast(e.toString());
-		mPasswordReg.setText("");
-		mRePasswordReg.setText("");
-	}
-
-	private void handleRegistrationFail(TaskResult result) {
-		Log.d(LOGTAG, String.format("Registration unsuccessful: %s", result.getMessage()));
-		showLongToast(String.format("Registration unsuccessful: %s", result.getMessage()));
-		mPasswordReg.setText("");
-		mRePasswordReg.setText("");
 	}
 
 	private void updateChassipGcm(long id, String gcm) {
@@ -443,31 +431,13 @@ public class RegisterDialog extends DialogFragment {
 						mListener.onDialogPositiveClick(mMe);
 						dismiss();
 					} else {
-						handleGcmRegistrationFail(result);
+                        GeneralHelper.reportMessage(mCtx, LOGTAG, result.getMessage());
 					}
 				}
 			}, id, gcm, "ANDROID");
 		} catch (Exception e) {
-			handleGcmRegistrationError(e);
+            GeneralHelper.reportMessage(mCtx, LOGTAG, e.getMessage());
 		}
-	}
-
-	private void handleGcmRegistrationError(Exception e) {
-		Log.e(LOGTAG, String.format("GCM Registration unsuccessful: %s", e));
-		showLongToast(e.toString());
-	}
-
-	private void handleGcmRegistrationFail(TaskResult result) {
-		Log.d(LOGTAG, String.format("GCM Registration unsuccessful: %s", result.getMessage()));
-		showLongToast(String.format("GCM Registration unsuccessful: %s", result.getMessage()));
-	}
-
-	private void showLongToast(final String message) {
-		getActivity().runOnUiThread(new Runnable() {
-			public void run() {
-				Toast.makeText(mCtx, message, Toast.LENGTH_LONG).show();
-			}
-		});
 	}
 
 	public Bundle getMyArguments() {

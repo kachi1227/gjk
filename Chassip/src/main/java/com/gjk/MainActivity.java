@@ -1,16 +1,5 @@
 package com.gjk;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Set;
-
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import android.annotation.SuppressLint;
 import android.app.ActionBar;
 import android.app.ActionBar.Tab;
@@ -39,12 +28,12 @@ import android.widget.ListView;
 import android.widget.Toast;
 
 import com.crashlytics.android.Crashlytics;
-
 import com.gjk.database.DatabaseManager.DataChangeListener;
 import com.gjk.database.PersistentObject;
 import com.gjk.database.objects.Group;
 import com.gjk.database.objects.GroupMember;
 import com.gjk.helper.DatabaseHelper;
+import com.gjk.helper.GeneralHelper;
 import com.gjk.net.AddMemberTask;
 import com.gjk.net.AddSideChatMembersTask;
 import com.gjk.net.AddWhisperMembersTask;
@@ -53,18 +42,43 @@ import com.gjk.net.GetMessageTask;
 import com.gjk.net.GetMultipleGroupsTask;
 import com.gjk.net.GetSideChatMembersTask;
 import com.gjk.net.GetWhisperMembersTask;
+import com.gjk.net.HTTPTask.HTTPTaskListener;
 import com.gjk.net.NotifyGroupInviteesTask;
 import com.gjk.net.NotifySideChatInviteesTask;
 import com.gjk.net.NotifyWhisperInviteesTask;
 import com.gjk.net.TaskResult;
-import com.gjk.net.HTTPTask.HTTPTaskListener;
 import com.gjk.service.ChassipService;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.jeremyfeinstein.slidingmenu.lib.SlidingMenu;
 import com.jeremyfeinstein.slidingmenu.lib.app.SlidingFragmentActivity;
 
-import static com.gjk.helper.DatabaseHelper.*;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
+
+import static com.gjk.helper.DatabaseHelper.addGroup;
+import static com.gjk.helper.DatabaseHelper.addGroupMember;
+import static com.gjk.helper.DatabaseHelper.addGroupMembers;
+import static com.gjk.helper.DatabaseHelper.addGroupMessage;
+import static com.gjk.helper.DatabaseHelper.addGroupMessages;
+import static com.gjk.helper.DatabaseHelper.addGroups;
+import static com.gjk.helper.DatabaseHelper.bundleToJson;
+import static com.gjk.helper.DatabaseHelper.getAccountUserFullName;
+import static com.gjk.helper.DatabaseHelper.getAccountUserId;
+import static com.gjk.helper.DatabaseHelper.getGroup;
+import static com.gjk.helper.DatabaseHelper.getGroupMember;
+import static com.gjk.helper.DatabaseHelper.getGroupMembers;
+import static com.gjk.helper.DatabaseHelper.getGroups;
+import static com.gjk.helper.DatabaseHelper.getLastStoredMessageId;
+import static com.gjk.helper.DatabaseHelper.setAccountUser;
 
 /**
  * Activity for chats. This extends {@link SlidingFragmentActivity} and implements {@link Service}.
@@ -76,6 +90,8 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 		LoginDialog.NoticeDialogListener, RegisterDialog.NoticeDialogListener {
 
 	private final static String LOGTAG = "MainActivity";
+
+    private Context mCtx;
 
 	private ViewPager mViewPager;
 	private ActionBar mActionBar;
@@ -116,7 +132,8 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 		super.onCreate(savedInstanceState);
 		// Debug.waitForDebugger();
 
-        Crashlytics.start(this);
+        mCtx = this;
+        Crashlytics.start(mCtx);
 
 		// Instantiate sliding menu
 		final SlidingMenu sm = getSlidingMenu();
@@ -261,8 +278,8 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 				if (result.getResponseCode() == 1) {
 					loadMembers(members);
 				} else {
-					handleAddChatMembersFail(result);
-				}
+                    GeneralHelper.reportMessage(mCtx, LOGTAG, result.getMessage());
+                }
 			}
 		}, ChatsDrawerFragment.getCurrentChat().getGlobalId(), members);
 	}
@@ -277,11 +294,11 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 						DatabaseHelper.addGroupMembers(response, ChatsDrawerFragment.getCurrentChat().getGlobalId());
 						notifyNewChatMembers(members);
 					} catch (Exception e) {
-						handleGetGroupMembersError(e);
+                        GeneralHelper.reportMessage(mCtx, LOGTAG, e.getMessage());
 					}
 				} else {
-					handleGetGroupMembersFail(result);
-				}
+                    GeneralHelper.reportMessage(mCtx, LOGTAG, result.getMessage());
+                }
 			}
 		}, ChatsDrawerFragment.getCurrentChat().getGlobalId());
 	}
@@ -293,8 +310,8 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 				if (result.getResponseCode() == 1) {
 					Log.i(LOGTAG, "Notified group invitees");
 				} else {
-					handleNotifyGroupInviteFail(result);
-				}
+                    GeneralHelper.reportMessage(mCtx, LOGTAG, result.getMessage());
+                }
 			}
 		}, DatabaseHelper.getAccountUserId(), ChatsDrawerFragment.getCurrentChat().getGlobalId(), members);
 	}
@@ -316,8 +333,7 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 					mThreadsDrawerFragment.updateView();
 					notifyNewSideConvoMembers(frag.getThreadId());
 				} else {
-					handleAddSideConvoMembersFail(result);
-				}
+                    GeneralHelper.reportMessage(mCtx, LOGTAG, result.getMessage());				}
 			}
 		}, frag.getThreadId(), members);
 	}
@@ -335,8 +351,7 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 				if (result.getResponseCode() == 1) {
 					Log.i(LOGTAG, "Notified side convo invitees");
 				} else {
-					handleNotifySideConvoInviteFail(result);
-				}
+                    GeneralHelper.reportMessage(mCtx, LOGTAG, result.getMessage());				}
 			}
 		}, DatabaseHelper.getAccountUserId(), id, members);
 	}
@@ -358,8 +373,8 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 					mThreadsDrawerFragment.updateView();
 					notifyNewWhisperMembers(frag.getThreadId());
 				} else {
-					handleAddWhisperMembersFail(result);
-				}
+                    GeneralHelper.reportMessage(mCtx, LOGTAG, result.getMessage());
+                }
 			}
 		}, frag.getThreadId(), members);
 	}
@@ -377,42 +392,10 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 				if (result.getResponseCode() == 1) {
 					Log.i(LOGTAG, "Notified side convo invitees");
 				} else {
-					handleNotifyWhisperInviteFail(result);
+                    GeneralHelper.reportMessage(mCtx, LOGTAG, result.getMessage());
 				}
 			}
 		}, DatabaseHelper.getAccountUserId(), id, members);
-	}
-
-	private void handleAddChatMembersFail(TaskResult result) {
-		Log.e(LOGTAG, String.format(Locale.getDefault(), "Adding Chat Members failed: %s", result.getMessage()));
-		showLongToast(String.format(Locale.getDefault(), "Adding Chat Members failed: %s", result.getMessage()));
-	}
-
-	private void handleNotifyGroupInviteFail(TaskResult result) {
-		Log.e(LOGTAG, String.format(Locale.getDefault(), "Notifying Chat Members failed: %s", result.getMessage()));
-		showLongToast(String.format(Locale.getDefault(), "Notifying Chat Members failed: %s", result.getMessage()));
-	}
-
-	private void handleAddSideConvoMembersFail(TaskResult result) {
-		Log.e(LOGTAG, String.format(Locale.getDefault(), "Adding Side Convo Members failed: %s", result.getMessage()));
-		showLongToast(String.format(Locale.getDefault(), "Adding Side Convo Members failed: %s", result.getMessage()));
-	}
-
-	private void handleNotifySideConvoInviteFail(TaskResult result) {
-		Log.e(LOGTAG,
-				String.format(Locale.getDefault(), "Notifying Side Convo Members failed: %s", result.getMessage()));
-		showLongToast(String
-				.format(Locale.getDefault(), "Notifying Side Convo Members failed: %s", result.getMessage()));
-	}
-
-	private void handleAddWhisperMembersFail(TaskResult result) {
-		Log.e(LOGTAG, String.format(Locale.getDefault(), "Adding Whisper Members failed: %s", result.getMessage()));
-		showLongToast(String.format(Locale.getDefault(), "Adding Whisper Members failed: %s", result.getMessage()));
-	}
-
-	private void handleNotifyWhisperInviteFail(TaskResult result) {
-		Log.e(LOGTAG, String.format(Locale.getDefault(), "Notifying Whisper Members failed: %s", result.getMessage()));
-		showLongToast(String.format(Locale.getDefault(), "Notifying Whisper Members failed: %s", result.getMessage()));
 	}
 
 	@Override
@@ -587,11 +570,9 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 							addGroups(response);
 						}
 					} catch (Exception e) {
-						handleGetGroupsError(e);
-					}
+                        GeneralHelper.reportMessage(mCtx, LOGTAG, e.getMessage());					}
 				} else {
-					handleGetGroupsFail(result);
-				}
+                    GeneralHelper.reportMessage(mCtx, LOGTAG, result.getMessage());				}
 			}
 		}, getAccountUserId());
 	}
@@ -611,11 +592,10 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 							}
 						});
 					} catch (Exception e) {
-						handleGetGroupMembersError(e);
+                        GeneralHelper.reportMessage(mCtx, LOGTAG, e.getMessage());
 					}
-
 				} else {
-					handleGetGroupMembersFail(result);
+                    GeneralHelper.reportMessage(mCtx, LOGTAG, result.getMessage());
 				}
 			}
 		}, chat.getGlobalId());
@@ -637,47 +617,13 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 					try {
 						addGroupMessages(messages);
 					} catch (Exception e) {
-						handleGetGroupMessagesError(e);
+                        GeneralHelper.reportMessage(mCtx, LOGTAG, e.getMessage());
 					}
 				} else {
-					handleGetGroupMessagesFail(result);
+                    GeneralHelper.reportMessage(mCtx, LOGTAG, result.getMessage());
 				}
 			}
 		}, getAccountUserId(), chat.getGlobalId(), jsonArray);
-	}
-
-	private void handleGetGroupsFail(TaskResult result) {
-		Log.e(LOGTAG, String.format(Locale.getDefault(), "Getting Groups failed: %s", result.getMessage()));
-		showLongToast(String.format(Locale.getDefault(), "Getting Groups failed: %s", result.getMessage()));
-	}
-
-	private void handleGetGroupsError(Exception e) {
-		Log.e(LOGTAG, String.format(Locale.getDefault(), "Getting Groups errored: %s", e.getMessage()));
-		showLongToast(String.format(Locale.getDefault(), "Getting Groups errored: %s", e.getMessage()));
-	}
-
-	private void handleGetGroupMembersFail(TaskResult result) {
-		Log.e(LOGTAG, String.format(Locale.getDefault(), "Getting Chat Members failed: %s", result.getMessage()));
-		showLongToast(String.format(Locale.getDefault(), "Getting Chat Members failed: %s", result.getMessage()));
-	}
-
-	private void handleGetGroupMembersError(Exception e) {
-		Log.e(LOGTAG, String.format(Locale.getDefault(), "Getting Chat Members errored: %s", e.getMessage()));
-		showLongToast(String.format(Locale.getDefault(), "Getting Chat Members errored: %s", e.getMessage()));
-	}
-
-	private void handleGetGroupMessagesFail(TaskResult result) {
-		Log.e(LOGTAG, String.format(Locale.getDefault(), "Getting Chat Messages failed: %s", result.getMessage()));
-		showLongToast(String.format(Locale.getDefault(), "Getting Chat Messages failed: %s", result.getMessage()));
-	}
-
-	private void handleGetGroupMessagesError(Exception e) {
-		Log.e(LOGTAG, String.format(Locale.getDefault(), "Getting Chat Messages errored: %s", e.getMessage()));
-		showLongToast(String.format(Locale.getDefault(), "Getting Chat Messages errored: %s", e.getMessage()));
-	}
-
-	private void showLongToast(String message) {
-		Toast.makeText(this, message, Toast.LENGTH_LONG).show();
 	}
 
 	private void toggleChat(Group chat) {
@@ -835,6 +781,7 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 			b.putString("name", chat.getName());
 			ThreadFragment frag = new ThreadFragment();
 			frag.setArguments(b);
+            frag.addMembers(getGroupMembers(chat.getGlobalId()));
 			return frag;
 		}
 
@@ -892,10 +839,10 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 									mThreadsDrawerFragment.updateView();
 								}
 							} catch (Exception e) {
-								handleGetSideConvoMembersError(e);
+                                GeneralHelper.reportMessage(mCtx, LOGTAG, e.getMessage());
 							}
 						} else {
-							handleGetSideConvoMembersFail(result);
+                            GeneralHelper.reportMessage(mCtx, LOGTAG, result.getMessage());
 						}
 					}
 				}, id);
@@ -912,10 +859,10 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 									mThreadsDrawerFragment.updateView();
 								}
 							} catch (Exception e) {
-								handleGetWhisperMembersError(e);
+                                GeneralHelper.reportMessage(mCtx, LOGTAG, e.getMessage());
 							}
 						} else {
-							handleGetWhisperMembersFail(result);
+                            GeneralHelper.reportMessage(mCtx, LOGTAG, result.getMessage());
 						}
 					}
 				}, id);
@@ -928,28 +875,6 @@ public class MainActivity extends SlidingFragmentActivity implements ServiceConn
 			removeAllThreadsFromDrawer();
 			mCurrrentThreads.clear();
 			notifyDataSetChanged();
-		}
-
-		private void handleGetSideConvoMembersFail(TaskResult result) {
-			Log.e(LOGTAG,
-					String.format(Locale.getDefault(), "Getting Side Convo Members failed: %s", result.getMessage()));
-			showLongToast(String.format(Locale.getDefault(), "Getting Side Convo Members failed: %s",
-					result.getMessage()));
-		}
-
-		private void handleGetSideConvoMembersError(Exception e) {
-			Log.e(LOGTAG, String.format(Locale.getDefault(), "Getting Side Convo Members errored: %s", e.getMessage()));
-			showLongToast(String.format(Locale.getDefault(), "Getting Side Convo Members errored: %s", e.getMessage()));
-		}
-
-		private void handleGetWhisperMembersFail(TaskResult result) {
-			Log.e(LOGTAG, String.format(Locale.getDefault(), "Getting Whisper Members failed: %s", result.getMessage()));
-			showLongToast(String.format(Locale.getDefault(), "Getting Whisper Members failed: %s", result.getMessage()));
-		}
-
-		private void handleGetWhisperMembersError(Exception e) {
-			Log.e(LOGTAG, String.format(Locale.getDefault(), "Getting Whisper Members errored: %s", e.getMessage()));
-			showLongToast(String.format(Locale.getDefault(), "Getting Whisper Members errored: %s", e.getMessage()));
 		}
 
 		@Override

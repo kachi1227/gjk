@@ -1,24 +1,5 @@
 package com.gjk;
 
-import static com.gjk.Constants.CAMERA_REQUEST;
-import static com.gjk.Constants.GALLERY_REQUEST;
-import static com.gjk.helper.DatabaseHelper.addGroup;
-import static com.gjk.helper.DatabaseHelper.getAccountUserId;
-import static com.gjk.helper.DatabaseHelper.getGroupMembers;
-
-import java.io.File;
-import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-
-import org.json.JSONObject;
-
 import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -41,7 +22,6 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.gjk.database.DatabaseManager.DataChangeListener;
 import com.gjk.database.PersistentObject;
@@ -49,13 +29,33 @@ import com.gjk.database.objects.Group;
 import com.gjk.database.objects.GroupMember;
 import com.gjk.database.objects.Message;
 import com.gjk.helper.DatabaseHelper;
+import com.gjk.helper.GeneralHelper;
 import com.gjk.net.CreateGroupTask;
 import com.gjk.net.GetSpecificGroupTask;
-import com.gjk.net.NotifyGroupInviteesTask;
 import com.gjk.net.HTTPTask.HTTPTaskListener;
+import com.gjk.net.NotifyGroupInviteesTask;
 import com.gjk.net.TaskResult;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+
+import org.json.JSONObject;
+
+import java.io.File;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+
+import static com.gjk.Constants.CAMERA_REQUEST;
+import static com.gjk.Constants.GALLERY_REQUEST;
+import static com.gjk.helper.DatabaseHelper.addGroup;
+import static com.gjk.helper.DatabaseHelper.getAccountUserId;
+import static com.gjk.helper.DatabaseHelper.getGroupMembers;
 
 /**
  * 
@@ -256,10 +256,10 @@ public class ChatsDrawerFragment extends ListFragment implements DataChangeListe
 						fetchGroup(response.getLong("id"));
 						notifyGroup(response.getLong("id"), ids);
 					} catch (Exception e) {
-						handleCreateChatError(e);
+                        GeneralHelper.reportMessage(getActivity(), LOGTAG, e.getMessage());
 					}
 				} else {
-					handleCreateChatFail(result);
+                    GeneralHelper.reportMessage(getActivity(), LOGTAG, result.getMessage());
 				}
 			}
 		}, getAccountUserId(), mChatName, members, fieldMapping);
@@ -274,11 +274,11 @@ public class ChatsDrawerFragment extends ListFragment implements DataChangeListe
 					try {
 						addGroup(response);
 					} catch (Exception e) {
-						handleCreateChatError(e);
-					}
+                        GeneralHelper.reportMessage(getActivity(), LOGTAG, e.getMessage());
+                    }
 				} else {
-					handleCreateChatFail(result);
-				}
+                    GeneralHelper.reportMessage(getActivity(), LOGTAG, result.getMessage());
+                }
 			}
 		}, getAccountUserId(), chatId);
 	}
@@ -290,34 +290,10 @@ public class ChatsDrawerFragment extends ListFragment implements DataChangeListe
 				if (result.getResponseCode() == 1) {
 					Log.i(LOGTAG, "Notified group invitees");
 				} else {
-					handleNotifyFail(result);
-				}
+                    GeneralHelper.reportMessage(getActivity(), LOGTAG, result.getMessage());
+                }
 			}
 		}, getAccountUserId(), chatId, ids);
-	}
-
-	private void handleAviError(Exception e) {
-		Log.e(LOGTAG, String.format(Locale.getDefault(), "Avi errored: %s", e.getMessage()));
-		showLongToast(String.format(Locale.getDefault(), "Avi errored: %s", e.getMessage()));
-	}
-
-	private void handleCreateChatFail(TaskResult result) {
-		Log.e(LOGTAG, String.format(Locale.getDefault(), "Creating Chat failed: %s", result.getMessage()));
-		showLongToast(String.format(Locale.getDefault(), "Creating Chat failed: %s", result.getMessage()));
-	}
-
-	private void handleCreateChatError(Exception e) {
-		Log.e(LOGTAG, String.format(Locale.getDefault(), "Creating Chat errored: %s", e.getMessage()));
-		showLongToast(String.format(Locale.getDefault(), "Creating Chat errored: %s", e.getMessage()));
-	}
-
-	private void handleNotifyFail(TaskResult result) {
-		Log.e(LOGTAG, String.format(Locale.getDefault(), "Notifying Chat failed: %s", result.getMessage()));
-		showLongToast(String.format(Locale.getDefault(), "Notifying Chat failed: %s", result.getMessage()));
-	}
-
-	private void showLongToast(String message) {
-		Toast.makeText(getActivity(), message, Toast.LENGTH_LONG).show();
 	}
 
 	@Override
@@ -338,10 +314,10 @@ public class ChatsDrawerFragment extends ListFragment implements DataChangeListe
 						mediaScanIntent.setData(contentUri);
 						getActivity().sendBroadcast(mediaScanIntent);
 					}
-					showLongToast("Image path: " + mAviPath);
+                    GeneralHelper.reportMessage(getActivity(), LOGTAG, "Image path: " + mAviPath);
 					createChat();
 				} catch (Exception e) {
-					handleAviError(e);
+                    GeneralHelper.reportMessage(getActivity(), LOGTAG, e.getMessage());
 				}
 			}
 		}
@@ -388,8 +364,7 @@ public class ChatsDrawerFragment extends ListFragment implements DataChangeListe
 				// Save a file: path for use with ACTION_VIEW intents
 				mAviPath = photoFile.getAbsolutePath();
 			} catch (IOException ex) {
-				// Error occurred while creating the File
-				showLongToast("Saving temp image file failed, the fuck!?");
+                GeneralHelper.reportMessage(getActivity(), LOGTAG, "Saving temp image file failed, the fuck!?");
 			}
 			// Continue only if the File was successfully created
 			if (photoFile != null) {

@@ -1,26 +1,5 @@
 package com.gjk.service;
 
-import static com.gjk.helper.DatabaseHelper.*;
-
-import java.util.Locale;
-
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import com.gjk.Application;
-import com.gjk.ChatsDrawerFragment;
-import com.gjk.MainActivity;
-import com.gjk.R;
-import com.gjk.database.objects.Group;
-import com.gjk.database.objects.Message;
-import com.gjk.helper.DatabaseHelper;
-import com.gjk.net.GetMessageTask;
-import com.gjk.net.GetSpecificGroupTask;
-import com.gjk.net.TaskResult;
-import com.gjk.net.HTTPTask.HTTPTaskListener;
-import com.google.android.gms.gcm.GoogleCloudMessaging;
-
 import android.app.IntentService;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -30,11 +9,35 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.support.v4.app.NotificationCompat;
 import android.util.Log;
-import android.widget.Toast;
+
+import com.gjk.Application;
+import com.gjk.ChatsDrawerFragment;
+import com.gjk.MainActivity;
+import com.gjk.R;
+import com.gjk.database.objects.Group;
+import com.gjk.database.objects.Message;
+import com.gjk.helper.DatabaseHelper;
+import com.gjk.helper.GeneralHelper;
+import com.gjk.net.GetMessageTask;
+import com.gjk.net.GetSpecificGroupTask;
+import com.gjk.net.HTTPTask.HTTPTaskListener;
+import com.gjk.net.TaskResult;
+import com.google.android.gms.gcm.GoogleCloudMessaging;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.util.Locale;
+
+import static com.gjk.helper.DatabaseHelper.addGroup;
+import static com.gjk.helper.DatabaseHelper.addGroupMessage;
+import static com.gjk.helper.DatabaseHelper.getAccountUserId;
+import static com.gjk.helper.DatabaseHelper.getLastStoredMessageId;
 
 public class GcmIntentService extends IntentService {
 
-	private final String LOGTAG = getClass().getSimpleName();
+	private static final String LOGTAG = "GcmIntentService";
 
 	public static final int NEW_MESSAGE_NOTIFACATION = 1;
 	public static final int NEW_GROUP_INVITE_NOTIFACATION = 2;
@@ -47,6 +50,8 @@ public class GcmIntentService extends IntentService {
 
 	@Override
 	protected void onHandleIntent(Intent intent) {
+
+        final Context ctx = getApplicationContext();
 
 		Bundle extras = intent.getExtras();
 		GoogleCloudMessaging gcm = GoogleCloudMessaging.getInstance(this);
@@ -100,15 +105,15 @@ public class GcmIntentService extends IntentService {
 											}
 										}
 									} catch (Exception e) {
-										handleGetMessagesError(e);
+                                        GeneralHelper.reportMessage(ctx, LOGTAG, e.getMessage());
 									}
 								} else {
-									handleGetMessagesFail(result);
+                                    GeneralHelper.reportMessage(ctx, LOGTAG, result.getMessage());
 								}
 							}
 						}, getAccountUserId(), chatId, jsonArray);
-					} catch (JSONException e) {
-						handleMessageError(e);
+					} catch (Exception e) {
+                        GeneralHelper.reportMessage(ctx, LOGTAG, e.getMessage());
 					}
 				}
 
@@ -121,7 +126,7 @@ public class GcmIntentService extends IntentService {
 						Group g = addGroup(group);
 						notifyNewGroup(g, inviter);
 					} catch (Exception e) {
-						handleGroupInviteError(e);
+                        GeneralHelper.reportMessage(ctx, LOGTAG, e.getMessage());
 					}
 				}
 
@@ -141,15 +146,15 @@ public class GcmIntentService extends IntentService {
 										Group newG = addGroup(response);
 										notifyNewSideConvo(newG, sideConvo, members, inviter);
 									} catch (Exception e) {
-										handleGetGroupError(e);
+                                        GeneralHelper.reportMessage(ctx, LOGTAG, e.getMessage());
 									}
 								} else {
-									handleGetGroupFail(result);
+                                    GeneralHelper.reportMessage(ctx, LOGTAG, result.getMessage());
 								}
 							}
 						}, getAccountUserId(), sideConvo.getLong("group_id"));
 					} catch (Exception e) {
-						handleSideConvoInviteError(e);
+                        GeneralHelper.reportMessage(ctx, LOGTAG, e.getMessage());
 					}
 
 				} else if (extras.getString("msg_type").equals("whisper_invite")) {
@@ -168,65 +173,21 @@ public class GcmIntentService extends IntentService {
 										Group newG = addGroup(response);
 										notifyNewWhisper(newG, whisper, members, inviter);
 									} catch (Exception e) {
-										handleGetGroupError(e);
+                                        GeneralHelper.reportMessage(ctx, LOGTAG, e.getMessage());
 									}
 								} else {
-									handleGetGroupFail(result);
+                                    GeneralHelper.reportMessage(ctx, LOGTAG, result.getMessage());
 								}
 							}
 						}, getAccountUserId(), whisper.getLong("group_id"));
 					} catch (Exception e) {
-						handleWhisperInviteError(e);
+                        GeneralHelper.reportMessage(ctx, LOGTAG, e.getMessage());
 					}
 				}
 			}
 		}
 		// Release the wake lock provided by the WakefulBroadcastReceiver.
 		GcmBroadcastReceiver.completeWakefulIntent(intent);
-	}
-
-	private void handleGetMessagesFail(TaskResult result) {
-		Log.e(LOGTAG, String.format(Locale.getDefault(), "Getting Chat failed: %s", result.getMessage()));
-		showLongToast(String.format(Locale.getDefault(), "Getting Chat failed: %s", result.getMessage()));
-	}
-
-	private void handleGetMessagesError(Exception e) {
-		Log.e(LOGTAG, String.format(Locale.getDefault(), "Getting Chat errored: %s", e.getMessage()));
-		showLongToast(String.format(Locale.getDefault(), "Getting Chat errored: %s", e.getMessage()));
-	}
-
-	private void handleGetGroupFail(TaskResult result) {
-		Log.e(LOGTAG, String.format(Locale.getDefault(), "Getting Group failed: %s", result.getMessage()));
-		showLongToast(String.format(Locale.getDefault(), "Getting Group failed: %s", result.getMessage()));
-	}
-
-	private void handleGetGroupError(Exception e) {
-		Log.e(LOGTAG, String.format(Locale.getDefault(), "Getting Group errored: %s", e.getMessage()));
-		showLongToast(String.format(Locale.getDefault(), "Getting Group errored: %s", e.getMessage()));
-	}
-
-	private void handleMessageError(Exception e) {
-		Log.e(LOGTAG, String.format(Locale.getDefault(), "GCM Message errored: %s", e.getMessage()));
-		showLongToast(String.format(Locale.getDefault(), "GCM Message errored: %s", e.getMessage()));
-	}
-
-	private void handleGroupInviteError(Exception e) {
-		Log.e(LOGTAG, String.format(Locale.getDefault(), "GCM Group Invite errored: %s", e.getMessage()));
-		showLongToast(String.format(Locale.getDefault(), "GCM Group Invite errored: %s", e.getMessage()));
-	}
-
-	private void handleSideConvoInviteError(Exception e) {
-		Log.e(LOGTAG, String.format(Locale.getDefault(), "GCM Side Convo Invite errored: %s", e.getMessage()));
-		showLongToast(String.format(Locale.getDefault(), "GCM Side Convo Invite errored: %s", e.getMessage()));
-	}
-
-	private void handleWhisperInviteError(Exception e) {
-		Log.e(LOGTAG, String.format(Locale.getDefault(), "GCM Whisper Invite errored: %s", e.getMessage()));
-		showLongToast(String.format(Locale.getDefault(), "GCM Whisper Invite errored: %s", e.getMessage()));
-	}
-
-	private void showLongToast(String message) {
-		Toast.makeText(getApplicationContext(), message, Toast.LENGTH_LONG).show();
 	}
 
 	// Put the message into a notification and post it.

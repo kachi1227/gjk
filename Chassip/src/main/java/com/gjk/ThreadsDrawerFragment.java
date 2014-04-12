@@ -1,16 +1,5 @@
 package com.gjk;
 
-import static com.gjk.helper.DatabaseHelper.addGroup;
-import static com.gjk.helper.DatabaseHelper.getAccountUserId;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Set;
-
-import org.json.JSONObject;
-
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -19,36 +8,45 @@ import android.support.v4.app.ListFragment;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.view.ViewGroup;
 import android.view.View.OnClickListener;
+import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
-import android.widget.Toast;
 
+import com.gjk.database.objects.GroupMember;
+import com.gjk.helper.DatabaseHelper;
+import com.gjk.helper.GeneralHelper;
 import com.gjk.net.CreateSideChatTask;
 import com.gjk.net.CreateWhisperTask;
 import com.gjk.net.GetSpecificGroupTask;
+import com.gjk.net.HTTPTask.HTTPTaskListener;
 import com.gjk.net.NotifySideChatInviteesTask;
 import com.gjk.net.NotifyWhisperInviteesTask;
 import com.gjk.net.TaskResult;
-import com.gjk.net.HTTPTask.HTTPTaskListener;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-import com.gjk.database.DatabaseManager.DataChangeListener;
-import com.gjk.database.PersistentObject;
-import com.gjk.database.objects.GroupMember;
-import com.gjk.helper.DatabaseHelper;
+import org.json.JSONObject;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Set;
+
+import static com.gjk.helper.DatabaseHelper.addGroup;
+import static com.gjk.helper.DatabaseHelper.getAccountUserId;
 
 /**
  * 
  * @author gpl
  */
-public class ThreadsDrawerFragment extends ListFragment implements DataChangeListener {
+public class ThreadsDrawerFragment extends ListFragment {
 
-	private final String LOGTAG = getClass().getSimpleName();
+	private static final String LOGTAG = "ThreadsDrawerFragment";
+
+    private Context mCtx;
 
 	private View mView;
 	private Button mCreateSideConvo;
@@ -63,9 +61,9 @@ public class ThreadsDrawerFragment extends ListFragment implements DataChangeLis
 	@Override
 	public void onActivityCreated(Bundle savedInstanceState) {
 		super.onActivityCreated(savedInstanceState);
-		mAdapter = new ThreadAdapter(getActivity());
+        mCtx = getActivity();
+		mAdapter = new ThreadAdapter(mCtx);
 		setListAdapter(mAdapter);
-		Application.get().getDatabaseManager().registerDataChangeListener(GroupMember.TABLE_NAME, this);
 		if (mapping.isEmpty()) {
 			mapping.put("Greg", 3L);
 			mapping.put("Jeff", 8L);
@@ -217,12 +215,6 @@ public class ThreadsDrawerFragment extends ListFragment implements DataChangeLis
 		return mView;
 	}
 
-	@Override
-	public void onDestroy() {
-		Application.get().getDatabaseManager().unregisterDataChangeListener(GroupMember.TABLE_NAME, this);
-		super.onDestroy();
-	}
-
 	private void createSideConvo(String name) {
 		final long[] members = new long[mSelectedMembers.size()];
 		for (int i = 0; i < mSelectedMembers.size(); i++) {
@@ -238,10 +230,10 @@ public class ThreadsDrawerFragment extends ListFragment implements DataChangeLis
 						fetchGroup();
 						notifyNewSideConvoMembers(response.getLong("id"));
 					} catch (Exception e) {
-						handleCreateSideConvoError(e);
+						GeneralHelper.reportMessage(mCtx, LOGTAG, e.getMessage());
 					}
 				} else {
-					handleCreateSideConvoFail(result);
+                    GeneralHelper.reportMessage(mCtx, LOGTAG, result.getMessage());
 				}
 			}
 		}, ChatsDrawerFragment.getCurrentChat().getGlobalId(), getAccountUserId(), members, name);
@@ -260,7 +252,7 @@ public class ThreadsDrawerFragment extends ListFragment implements DataChangeLis
 				if (result.getResponseCode() == 1) {
 					Log.i(LOGTAG, "Notified side convo invitees");
 				} else {
-					handleNotifySideConvoInviteFail(result);
+                    GeneralHelper.reportMessage(mCtx, LOGTAG, result.getMessage());
 				}
 			}
 		}, DatabaseHelper.getAccountUserId(), id, members);
@@ -281,10 +273,10 @@ public class ThreadsDrawerFragment extends ListFragment implements DataChangeLis
 						fetchGroup();
 						notifyNewWhisperMembers(response.getLong("id"));
 					} catch (Exception e) {
-						handleCreateWhisperError(e);
+                        GeneralHelper.reportMessage(mCtx, LOGTAG, e.getMessage());
 					}
 				} else {
-					handleCreateWhisperFail(result);
+                    GeneralHelper.reportMessage(mCtx, LOGTAG, result.getMessage());
 				}
 			}
 		}, ChatsDrawerFragment.getCurrentChat().getGlobalId(), getAccountUserId(), members, name);
@@ -303,7 +295,7 @@ public class ThreadsDrawerFragment extends ListFragment implements DataChangeLis
 				if (result.getResponseCode() == 1) {
 					Log.i(LOGTAG, "Notified side convo invitees");
 				} else {
-					handleNotifyWhisperInviteFail(result);
+                    GeneralHelper.reportMessage(mCtx, LOGTAG, result.getMessage());
 				}
 			}
 		}, DatabaseHelper.getAccountUserId(), id, members);
@@ -322,49 +314,10 @@ public class ThreadsDrawerFragment extends ListFragment implements DataChangeLis
 						// handleCreateChatError(e);
 					}
 				} else {
-					handleCreateChatFail(result);
+                    GeneralHelper.reportMessage(mCtx, LOGTAG, result.getMessage());
 				}
 			}
 		}, getAccountUserId(), ChatsDrawerFragment.getCurrentChat().getGlobalId());
-	}
-
-	private void handleCreateChatFail(TaskResult result) {
-		Log.e(LOGTAG, String.format(Locale.getDefault(), "Adding Chat Members failed: %s", result.getMessage()));
-		showLongToast(String.format(Locale.getDefault(), "Adding Chat Members failed: %s", result.getMessage()));
-	}
-
-	private void handleCreateSideConvoFail(TaskResult result) {
-		Log.e(LOGTAG, String.format(Locale.getDefault(), "Creating Side Convo failed: %s", result.getMessage()));
-		showLongToast(String.format(Locale.getDefault(), "Creating Side Convo failed: %s", result.getMessage()));
-	}
-
-	private void handleCreateSideConvoError(Exception e) {
-		Log.e(LOGTAG, String.format(Locale.getDefault(), "Creating Side Convo errored: %s", e.getMessage()));
-		showLongToast(String.format(Locale.getDefault(), "Creating Side Convo errored: %s", e.getMessage()));
-	}
-
-	private void handleCreateWhisperFail(TaskResult result) {
-		Log.e(LOGTAG, String.format(Locale.getDefault(), "Creating Whisper failed: %s", result.getMessage()));
-		showLongToast(String.format(Locale.getDefault(), "Creating Whisper failed: %s", result.getMessage()));
-	}
-
-	private void handleCreateWhisperError(Exception e) {
-		Log.e(LOGTAG, String.format(Locale.getDefault(), "Creating Whisper errored: %s", e.getMessage()));
-		showLongToast(String.format(Locale.getDefault(), "Creating Whisper errored: %s", e.getMessage()));
-	}
-	
-	private void handleNotifySideConvoInviteFail(TaskResult result) {
-		Log.e(LOGTAG, String.format(Locale.getDefault(), "Notifying Side Convo Members failed: %s", result.getMessage()));
-		showLongToast(String.format(Locale.getDefault(), "Notifying Side Convo Members failed: %s", result.getMessage()));
-	}
-	
-	private void handleNotifyWhisperInviteFail(TaskResult result) {
-		Log.e(LOGTAG, String.format(Locale.getDefault(), "Notifying Whisper Members failed: %s", result.getMessage()));
-		showLongToast(String.format(Locale.getDefault(), "Notifying Whisper Members failed: %s", result.getMessage()));
-	}
-
-	private void showLongToast(String message) {
-		Toast.makeText(getActivity(), message, Toast.LENGTH_LONG).show();
 	}
 
 	public void addThread(ThreadFragment frag) {
@@ -412,20 +365,5 @@ public class ThreadsDrawerFragment extends ListFragment implements DataChangeLis
 			}
 			return tempMembers;
 		}
-	}
-
-	@Override
-	public void onDataChanged(final PersistentObject o) {
-//		getActivity().runOnUiThread(new Runnable() {
-//			@Override
-//			public void run() {
-//				if (o.getTableName().equals(GroupMember.TABLE_NAME)) {
-//					GroupMember gm = (GroupMember) o;
-//					if (gm.getGroupId() == ChatsDrawerFragment.getCurrentChat().getGlobalId()) {
-//						updateView();
-//					}
-//				}
-//			}
-//		});
 	}
 }
