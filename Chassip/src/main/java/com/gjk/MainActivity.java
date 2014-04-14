@@ -585,7 +585,9 @@ public class MainActivity extends SlidingFragmentActivity implements DataChangeL
 			ThreadFragment[] sideConvoFrags = generateSideConvoThreadFragments(chat);
 			ThreadFragment[] whisperFrags = generateWhisperThreadFragments(chat);
 			addThreads(GeneralHelper.concatAll(mainFrag, sideConvoFrags, whisperFrags));
-			mPager.setCurrentItem(0);
+			if (mCurrrentThreads.size() > 0) {
+                mPager.setCurrentItem(0);
+            }
 		}
 
 		protected ThreadFragment getMainThread() {
