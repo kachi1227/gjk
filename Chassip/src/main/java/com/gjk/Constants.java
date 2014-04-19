@@ -11,7 +11,9 @@ public interface Constants {
     static final String EXTRA_MESSAGE = "message";
     static final String PROPERTY_REG_ID = "registration_id";
     static final String PROPERTY_APP_VERSION = "appVersion";
-	static final int GALLERY_REQUEST = 1;
+    static final String PROPERTY_SETTING_INTERLEAVING = "interleaving";
+    static final boolean PROPERTY_SETTING_INTERLEAVING_DEFAULT = true;
+    static final int GALLERY_REQUEST = 1;
 	static final int CAMERA_REQUEST = 2;
 	static final int PLAY_SERVICES_RESOLUTION_REQUEST = 3;
 	static final String SENDER_ID = "353373511052";

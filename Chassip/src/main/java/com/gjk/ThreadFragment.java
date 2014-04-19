@@ -39,155 +39,153 @@ import static com.gjk.helper.DatabaseHelper.getLastStoredMessageId;
 import static com.gjk.helper.DatabaseHelper.getMessages;
 
 /**
- * 
  * @author gpl
- * 
  */
 public class ThreadFragment extends ListFragment implements DataChangeListener {
 
-	private static final String LOGTAG = "ThreadFragment";
+    private static final String LOGTAG = "ThreadFragment";
 
     private Activity mCtx;
 
-	private long mChatId;
-	private long mThreadId;
-	private String mName;
-	private ThreadType mThreadType;
-	private MessagesAdapter mAdapter;
-	private Set<GroupMember> mMembers;
-	private boolean mInitialized;
-	private List<Message> mPendingMessages = Lists.newLinkedList();
+    private long mChatId;
+    private long mThreadId;
+    private String mName;
+    private ThreadType mThreadType;
+    private MessagesAdapter mAdapter;
+    private Set<GroupMember> mMembers;
+    private boolean mInitialized;
+    private List<Message> mPendingMessages = Lists.newLinkedList();
 
-	private View mView;
-	private EditText mPendingMessage;
-	private Button mSend;
+    private View mView;
+    private EditText mPendingMessage;
+    private Button mSend;
 
-	private String mMessage;
+    private String mMessage;
 
     @Override
-	public void onActivityCreated(Bundle savedInstanceState) {
-		super.onActivityCreated(savedInstanceState);
+    public void onActivityCreated(Bundle savedInstanceState) {
+        super.onActivityCreated(savedInstanceState);
         mCtx = getActivity();
-		mChatId = getArguments().getLong("chatId");
-		mThreadId = getArguments().getLong("threadId");
-		mThreadType = ThreadType.getFromValue(getArguments().getInt("threadType"));
-		mName = getArguments().getString("name");
+        mChatId = getArguments().getLong("chatId");
+        mThreadId = getArguments().getLong("threadId");
+        mThreadType = ThreadType.getFromValue(getArguments().getInt("threadType"));
+        mName = getArguments().getString("name");
         mMembers = Sets.newHashSet();
-		mAdapter = new MessagesAdapter(mCtx, mChatId, mThreadId, mThreadType, Lists.newArrayList());
-		setListAdapter(mAdapter);
-		getMessagesFromDb();
-		addMessages(mPendingMessages);
-		mPendingMessages.clear();
-		Application.get().getDatabaseManager().registerDataChangeListener(GroupMember.TABLE_NAME, this);
-		Application.get().getDatabaseManager().registerDataChangeListener(Message.TABLE_NAME, this);
-		mSend.setEnabled(false);
-		mSend.setOnClickListener(new OnClickListener() {
-			@Override
-			public void onClick(View v) {
-				mSend.setEnabled(false);
-				String text = mPendingMessage.getText().toString();
-				boolean newWhisper = text.contains("<whisper>");
-				if (newWhisper) {
+        mAdapter = new MessagesAdapter(mCtx, mChatId, mThreadId, mThreadType, Lists.newArrayList());
+        setListAdapter(mAdapter);
+        getMessagesFromDb();
+        addMessages(mPendingMessages);
+        mPendingMessages.clear();
+        Application.get().getDatabaseManager().registerDataChangeListener(GroupMember.TABLE_NAME, this);
+        Application.get().getDatabaseManager().registerDataChangeListener(Message.TABLE_NAME, this);
+        mSend.setEnabled(false);
+        mSend.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mSend.setEnabled(false);
+                String text = mPendingMessage.getText().toString();
+                boolean newWhisper = text.contains("<whisper>");
+                if (newWhisper) {
                     GeneralHelper.showLongToast(mCtx, "WANTS TO WHISPER");
-				}
-				boolean newSideConvo = text.contains("<side-convo>");
-				if (newSideConvo) {
+                }
+                boolean newSideConvo = text.contains("<side-convo>");
+                if (newSideConvo) {
                     GeneralHelper.showLongToast(mCtx, "WANTS TO SIDE-CONVO");
-				}
+                }
 
-				mMessage = text;
-				sendMessage();
-			}
-		});
-		mPendingMessage.addTextChangedListener(new TextWatcher() {
-			public void afterTextChanged(Editable s) {
-				mSend.setEnabled(s.length() != 0);
-			}
+                mMessage = text;
+                sendMessage();
+            }
+        });
+        mPendingMessage.addTextChangedListener(new TextWatcher() {
+            public void afterTextChanged(Editable s) {
+                mSend.setEnabled(s.length() != 0);
+            }
 
-			public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-			}
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
 
-			public void onTextChanged(CharSequence s, int start, int before, int count) {
-			}
-		});
-		updateView();
-	}
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            }
+        });
+        updateView();
+    }
 
-	private void getMessagesFromDb() {
-		List<Message> messages = getMessages(mChatId);
-		if (messages != null && messages.size() > 0) {
-			if (mAdapter != null) {
-				addMessages(messages);
-			} else {
-				mPendingMessages.addAll(messages);
-			}
-		}
-	}
+    private void getMessagesFromDb() {
+        List<Message> messages = getMessages(mChatId);
+        if (messages != null && messages.size() > 0) {
+            if (mAdapter != null) {
+                addMessages(messages);
+            } else {
+                mPendingMessages.addAll(messages);
+            }
+        }
+    }
 
-	private void fetchMessages() {
-		JSONArray jsonArray = new JSONArray();
-		long id = getLastStoredMessageId(ChatsDrawerFragment.getCurrentChat().getGlobalId());
-		try {
-			jsonArray.put(0, id).put(1, -1);
-		} catch (JSONException e) {
-			e.printStackTrace();
-		}
-		new GetMessageTask(mCtx, new HTTPTaskListener() {
-			@Override
-			public void onTaskComplete(TaskResult result) {
-				if (result.getResponseCode() == 1) {
-					JSONArray messages = (JSONArray) result.getExtraInfo();
-					try {
-						addGroupMessages(messages);
-						notifyGroup();
-					} catch (Exception e) {
-						GeneralHelper.reportMessage(mCtx, LOGTAG, e.getMessage());
-					}
-				} else {
+    private void fetchMessages() {
+        JSONArray jsonArray = new JSONArray();
+        long id = getLastStoredMessageId(ChatsDrawerFragment.getCurrentChat().getGlobalId());
+        try {
+            jsonArray.put(0, id).put(1, -1);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        new GetMessageTask(mCtx, new HTTPTaskListener() {
+            @Override
+            public void onTaskComplete(TaskResult result) {
+                if (result.getResponseCode() == 1) {
+                    JSONArray messages = (JSONArray) result.getExtraInfo();
+                    try {
+                        addGroupMessages(messages);
+                        notifyGroup();
+                    } catch (Exception e) {
+                        GeneralHelper.reportMessage(mCtx, LOGTAG, e.getMessage());
+                    }
+                } else {
                     GeneralHelper.reportMessage(mCtx, LOGTAG, result.getMessage());
-				}
-			}
-		}, getAccountUserId(), ChatsDrawerFragment.getCurrentChat().getGlobalId(), jsonArray);
-	}
+                }
+            }
+        }, getAccountUserId(), ChatsDrawerFragment.getCurrentChat().getGlobalId(), jsonArray);
+    }
 
-	private void notifyGroup() {
-		new NotifyGroupOfMessageTask(mCtx, new HTTPTaskListener() {
-			@Override
-			public void onTaskComplete(TaskResult result) {
-				if (result.getResponseCode() == 1) {
-					Log.i(LOGTAG, "Notified group invitees");
-				} else {
+    private void notifyGroup() {
+        new NotifyGroupOfMessageTask(mCtx, new HTTPTaskListener() {
+            @Override
+            public void onTaskComplete(TaskResult result) {
+                if (result.getResponseCode() == 1) {
+                    Log.i(LOGTAG, "Notified group invitees");
+                } else {
                     GeneralHelper.reportMessage(mCtx, LOGTAG, result.getMessage());
-				}
-			}
-		}, ChatsDrawerFragment.getCurrentChat().getGlobalId());
-	}
+                }
+            }
+        }, ChatsDrawerFragment.getCurrentChat().getGlobalId());
+    }
 
-	private void sendMessage() {
-		new SendMessageTask(mCtx, new HTTPTaskListener() {
-			@Override
-			public void onTaskComplete(TaskResult result) {
-				mSend.setEnabled(true);
-				if (result.getResponseCode() == 1) {
-					fetchMessages();
-					mPendingMessage.setText("");
-				} else {
+    private void sendMessage() {
+        new SendMessageTask(mCtx, new HTTPTaskListener() {
+            @Override
+            public void onTaskComplete(TaskResult result) {
+                mSend.setEnabled(true);
+                if (result.getResponseCode() == 1) {
+                    fetchMessages();
+                    mPendingMessage.setText("");
+                } else {
                     GeneralHelper.reportMessage(mCtx, LOGTAG, result.getMessage());
-				}
-			}
-		}, getAccountUserId(), mChatId, mThreadType.getValue(), mThreadId, mMessage);
-	}
+                }
+            }
+        }, getAccountUserId(), mChatId, mThreadType.getValue(), mThreadId, mMessage);
+    }
 
-	@Override
-	public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-		if (savedInstanceState != null) {
-			mThreadId = savedInstanceState.getLong("mThreadId");
-		}
-		mView = inflater.inflate(R.layout.message_list, null);
-		mPendingMessage = (EditText) mView.findViewById(R.id.pendingMessage);
-		mSend = (Button) mView.findViewById(R.id.send);
-		return mView;
-	}
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        if (savedInstanceState != null) {
+            mThreadId = savedInstanceState.getLong("mThreadId");
+        }
+        mView = inflater.inflate(R.layout.message_list, null);
+        mPendingMessage = (EditText) mView.findViewById(R.id.pendingMessage);
+        mSend = (Button) mView.findViewById(R.id.send);
+        return mView;
+    }
 
     @Override
     public void onViewCreated(View view, Bundle savedInstance) {
@@ -195,36 +193,36 @@ public class ThreadFragment extends ListFragment implements DataChangeListener {
         scrollMyListViewToBottom();
     }
 
-	@Override
-	public void onSaveInstanceState(Bundle outState) {
-		super.onSaveInstanceState(outState);
-		outState.putLong("mThreadId", mThreadId);
-	}
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putLong("mThreadId", mThreadId);
+    }
 
-	public String getName() {
-		return mName;
-	}
+    public String getName() {
+        return mName;
+    }
 
-	public ThreadType getThreadType() {
-		return mThreadType;
-	}
+    public ThreadType getThreadType() {
+        return mThreadType;
+    }
 
-	public long getThreadId() {
-		return mThreadId;
-	}
+    public long getThreadId() {
+        return mThreadId;
+    }
 
-	public void addMember(GroupMember user) {
-		if (mMembers != null) {
+    public void addMember(GroupMember user) {
+        if (mMembers != null) {
             mMembers.add(user);
             updateView();
         }
-	}
+    }
 
-	public void addMembers(GroupMember[] members) {
-		for (GroupMember member : members) {
-			addMember(member);
-		}
-	}
+    public void addMembers(GroupMember[] members) {
+        for (GroupMember member : members) {
+            addMember(member);
+        }
+    }
 
     public void addMessages(List<Message> ms) {
         for (Message m : ms) {
@@ -233,8 +231,13 @@ public class ThreadFragment extends ListFragment implements DataChangeListener {
     }
 
     public void addMessage(Message m) {
+        if (!Application.get().getPreferences().getBoolean(Constants.PROPERTY_SETTING_INTERLEAVING,
+                Constants.PROPERTY_SETTING_INTERLEAVING_DEFAULT) && m.getTableId() != mThreadId) {
+            return;
+        }
+
         if (mAdapter.getCount() > 1) {
-            Object prev = mAdapter.getItem(mAdapter.getCount()-1);
+            Object prev = mAdapter.getItem(mAdapter.getCount() - 1);
             if (prev instanceof Message) {
                 String prevD = String.valueOf(DateFormat.format("yyyyMMdd", ((Message) prev).getDate()));
                 String thisD = String.valueOf(DateFormat.format("yyyyMMdd", m.getDate()));
@@ -242,24 +245,23 @@ public class ThreadFragment extends ListFragment implements DataChangeListener {
                     mAdapter.add(Long.valueOf(m.getDate()));
                 }
             }
-        }
-        else {
+        } else {
             mAdapter.add(m.getDate());
         }
         mAdapter.add(m);
     }
 
-	public Set<GroupMember> getMembers() {
-		return mMembers;
-	}
+    public Set<GroupMember> getMembers() {
+        return mMembers;
+    }
 
-	public void updateView() {
-		if (mAdapter != null) {
-			mAdapter.notifyDataSetChanged();
-		}
-	}
+    public void updateView() {
+        if (mAdapter != null) {
+            mAdapter.notifyDataSetChanged();
+        }
+    }
 
-	private void scrollMyListViewToBottom() {
+    private void scrollMyListViewToBottom() {
         if (mCtx != null) {
             mCtx.runOnUiThread(new Runnable() {
                 @Override
@@ -271,18 +273,18 @@ public class ThreadFragment extends ListFragment implements DataChangeListener {
                 }
             });
         }
-	}
+    }
 
-	@Override
-	public void onDestroy() {
-		Application.get().getDatabaseManager().unregisterDataChangeListener(GroupMember.TABLE_NAME, this);
-		Application.get().getDatabaseManager().unregisterDataChangeListener(Message.TABLE_NAME, this);
-		super.onDestroy();
-	}
+    @Override
+    public void onDestroy() {
+        Application.get().getDatabaseManager().unregisterDataChangeListener(GroupMember.TABLE_NAME, this);
+        Application.get().getDatabaseManager().unregisterDataChangeListener(Message.TABLE_NAME, this);
+        super.onDestroy();
+    }
 
-	@Override
-	public void onDataChanged(final PersistentObject o) {
-		mCtx.runOnUiThread(new Runnable() {
+    @Override
+    public void onDataChanged(final PersistentObject o) {
+        mCtx.runOnUiThread(new Runnable() {
             @Override
             public void run() {
                 if (o.getTableName().equals(GroupMember.TABLE_NAME)) {
@@ -302,5 +304,5 @@ public class ThreadFragment extends ListFragment implements DataChangeListener {
                 }
             }
         });
-	}
+    }
 }

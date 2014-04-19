@@ -47,4 +47,7 @@
     <string name="create_whisper_hint">Enter whisper name</string>
     <string name="add_members_to_whisper">Add Whisper Members</string>
     <string name="add_members_to_whisper_title">Select Members</string>
+    <string name="settings_title">Settings</string>
+    <string name="settings_interleaving_label">Interleaving messages</string>
+    <string name="save">Save</string>
 </resources>

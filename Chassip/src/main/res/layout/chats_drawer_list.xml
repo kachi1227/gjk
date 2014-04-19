@@ -18,10 +18,18 @@
 	    android:id="@+id/createChat"
 	    android:layout_width="wrap_content"
 	    android:layout_height="wrap_content"
-	    android:layout_alignParentBottom="true"
-	    android:layout_centerHorizontal="true"
+        android:layout_above="@+id/settings"
+        android:layout_centerHorizontal="true"
 	    android:text="@string/create_chat">
 
 	</Button>
+
+    <ImageView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/settings"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
+        android:src="@drawable/settings" />
 
 </RelativeLayout>

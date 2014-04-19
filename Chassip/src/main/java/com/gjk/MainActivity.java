@@ -495,8 +495,8 @@ public class MainActivity extends SlidingFragmentActivity implements DataChangeL
 		}, getAccountUserId(), chat.getGlobalId(), jsonArray);
 	}
 
-	private void toggleChat(Group chat) {
-		// if (ChatsDrawerFragment.getCurrentChat() == null || chat != ChatsDrawerFragment.getCurrentChat()) {
+    protected void toggleChat(Group chat) {
+        // if (ChatsDrawerFragment.getCurrentChat() == null || chat != ChatsDrawerFragment.getCurrentChat()) {
 		mChatsDrawerFragment.unnotifyGroup(chat);
 		mThreadPagerAdapter.setChat(chat);
 		// }
@@ -572,10 +572,9 @@ public class MainActivity extends SlidingFragmentActivity implements DataChangeL
 
 		@Override
 		public void onPageSelected(int position) {
-            try {
-			    mBar.setSelectedNavigationItem(position);
+            if (position < mBar.getTabCount()) {
+                mBar.setSelectedNavigationItem(position);
             }
-            finally {}
 		}
 
 		protected void setChat(Group chat) {
