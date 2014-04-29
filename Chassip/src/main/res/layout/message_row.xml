@@ -3,18 +3,26 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:background="@color/ghostwhite" >
-
+    <com.gjk.views.CacheImageView
+        android:id="@+id/image"
+        android:layout_width="45dp"
+        android:layout_height="45dp"
+        android:layout_marginRight="10dp"
+        android:background="@android:color/black"
+        android:scaleType="centerCrop"/>
 	<TextView
 	    android:layout_width="wrap_content"
 	    android:id= "@+id/userName" 
 	    android:layout_height="wrap_content"
 	    android:textStyle="bold"
+        android:layout_toRightOf="@+id/image"
         android:textSize="18sp" />
 
 	<TextView
+        android:id= "@+id/message"
 	    android:layout_width="wrap_content"
 	    android:layout_height="wrap_content"
-	    android:id= "@+id/message" 
+        android:layout_toRightOf="@+id/image"
 	    android:layout_below="@+id/userName"
         android:textSize="15sp" />
 
@@ -27,4 +35,12 @@
         android:layout_alignParentTop="true"
         android:textSize="13sp" />
 
+    <com.gjk.views.CacheImageView
+        android:id="@+id/attachment"
+        android:layout_width="250dp"
+        android:layout_height="250dp"
+        android:layout_below="@+id/message"
+        android:layout_marginTop="5dp"
+        android:layout_centerHorizontal="true"
+        android:background="@android:color/darker_gray"/>
 </RelativeLayout>

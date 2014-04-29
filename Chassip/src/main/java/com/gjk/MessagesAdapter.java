@@ -1,6 +1,7 @@
 package com.gjk;
 
 import android.content.Context;
+import android.text.TextUtils;
 import android.text.format.DateFormat;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -9,6 +10,7 @@ import android.widget.ArrayAdapter;
 import android.widget.TextView;
 
 import com.gjk.database.objects.Message;
+import com.gjk.views.CacheImageView;
 
 import java.util.List;
 import java.util.Locale;
@@ -50,6 +52,12 @@ public class MessagesAdapter extends ArrayAdapter<Object> {
                 userName.setTextColor(mContext.getResources().getColor(color));
                 message.setTextColor(mContext.getResources().getColor(color));
                 time.setTextColor(mContext.getResources().getColor(color));
+                ((CacheImageView)convertView.findViewById(R.id.image)).configure(Constants.BASE_URL + item.getSenderImageUrl(), 0);
+                CacheImageView attachment = (CacheImageView)convertView.findViewById(R.id.attachment);
+                attachment.setVisibility(!TextUtils.isEmpty(item.getAttachments()) ? View.VISIBLE : View.GONE);
+                if(!TextUtils.isEmpty(item.getAttachments()))
+                  attachment.configure(Constants.BASE_URL + item.getAttachments(), 0);
+
             }
             return convertView;
         }
