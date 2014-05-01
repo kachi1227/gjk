@@ -5,7 +5,6 @@ import android.os.Bundle;
 import android.support.v4.app.ListFragment;
 import android.text.Editable;
 import android.text.TextWatcher;
-import android.text.format.DateFormat;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -30,6 +29,7 @@ import com.google.common.collect.Sets;
 import org.json.JSONArray;
 import org.json.JSONException;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -71,7 +71,7 @@ public class ThreadFragment extends ListFragment implements DataChangeListener {
         mThreadType = ThreadType.getFromValue(getArguments().getInt("threadType"));
         mName = getArguments().getString("name");
         mMembers = Sets.newHashSet();
-        mAdapter = new MessagesAdapter(mCtx, mChatId, mThreadId, mThreadType, Lists.newArrayList());
+        mAdapter = new MessagesAdapter(mCtx, mChatId, mThreadId, mThreadType, new ArrayList<Message>());
         setListAdapter(mAdapter);
         getMessagesFromDb();
         addMessages(mPendingMessages);
@@ -234,19 +234,6 @@ public class ThreadFragment extends ListFragment implements DataChangeListener {
         if (!Application.get().getPreferences().getBoolean(Constants.PROPERTY_SETTING_INTERLEAVING,
                 Constants.PROPERTY_SETTING_INTERLEAVING_DEFAULT) && m.getTableId() != mThreadId) {
             return;
-        }
-
-        if (mAdapter.getCount() > 1) {
-            Object prev = mAdapter.getItem(mAdapter.getCount() - 1);
-            if (prev instanceof Message) {
-                String prevD = String.valueOf(DateFormat.format("yyyyMMdd", ((Message) prev).getDate()));
-                String thisD = String.valueOf(DateFormat.format("yyyyMMdd", m.getDate()));
-                if (!prevD.equals(thisD)) {
-                    mAdapter.add(Long.valueOf(m.getDate()));
-                }
-            }
-        } else {
-            mAdapter.add(m.getDate());
         }
         mAdapter.add(m);
     }
