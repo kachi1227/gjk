@@ -73,8 +73,7 @@ public class MessagesAdapter extends ArrayAdapter<Message> {
                         footerDate.setText(convertDateToStr(item.getDate(), false));
                     }
                 } else { // the last message
-                    String currDate = String.valueOf(DateFormat.format("yyyyMMdd", Calendar.getInstance().get(Calendar
-                            .MILLISECOND)));
+                    String currDate = String.valueOf(DateFormat.format("yyyyMMdd", System.currentTimeMillis()));
                     if (currDate.equals(thisD)) {
                         footerDate.setVisibility(View.GONE);
                     } else {
