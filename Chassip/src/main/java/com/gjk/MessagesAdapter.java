@@ -1,8 +1,10 @@
 package com.gjk;
 
 import android.content.Context;
+import android.support.v4.app.FragmentManager;
 import android.text.TextUtils;
 import android.text.format.DateFormat;
+import android.text.util.Linkify;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -10,9 +12,11 @@ import android.widget.ArrayAdapter;
 import android.widget.TextView;
 
 import com.gjk.database.objects.Message;
+import com.gjk.utils.media2.ImageCache;
+import com.gjk.utils.media2.ImageFetcher;
 import com.gjk.views.CacheImageView;
+import com.gjk.views.RecyclingImageView;
 
-import java.util.Calendar;
 import java.util.List;
 import java.util.Locale;
 
@@ -20,17 +24,24 @@ import java.util.Locale;
 public class MessagesAdapter extends ArrayAdapter<Message> {
     private final String LOGTAG = getClass().getSimpleName();
 
-    private final Context mContext;
+    private final Context mCtx;
     private final long mChatId;
     private final long mThreadId;
     private final ThreadType mType;
+    private final ImageFetcher mImageFetcher;
 
-    public MessagesAdapter(Context context, long chatId, long threadId, ThreadType type, List<Message> ims) {
-        super(context, 0, ims);
-        mContext = context;
+    public MessagesAdapter(Context ctx, FragmentManager fm, long chatId, long threadId, ThreadType type,
+                           List<Message> ims) {
+        super(ctx, 0, ims);
+        mCtx = ctx;
         mChatId = chatId;
         mThreadId = threadId;
         mType = type;
+        mImageFetcher = new ImageFetcher(mCtx, 1000);
+        mImageFetcher.setLoadingImage(R.drawable.empty_photo, true);
+        ImageCache.ImageCacheParams params = new ImageCache.ImageCacheParams(mCtx, "image_cache");
+        params.setMemCacheSizePercent(0.8f);
+        mImageFetcher.addImageCache(fm, params);
     }
 
     @Override
@@ -86,18 +97,38 @@ public class MessagesAdapter extends ArrayAdapter<Message> {
             String name = String.format(Locale.getDefault(), "%s %s", item.getSenderFirstName(), item.getSenderLastName());
             userName.setText(name);
             message.setText(item.getContent());
+            Linkify.addLinks(message, Linkify.ALL);
             time.setText(convertTimeToStr(item.getDate()));
             int color = getColor(item);
-            userName.setTextColor(mContext.getResources().getColor(color));
-            message.setTextColor(mContext.getResources().getColor(color));
-            time.setTextColor(mContext.getResources().getColor(color));
-            ((CacheImageView) convertView.findViewById(R.id.image)).configure(Constants.BASE_URL + item.getSenderImageUrl(), 0);
-            CacheImageView attachment = (CacheImageView) convertView.findViewById(R.id.attachment);
-            attachment.setVisibility(!TextUtils.isEmpty(item.getAttachments()) ? View.VISIBLE : View.GONE);
-            if (!TextUtils.isEmpty(item.getAttachments()))
-                attachment.configure(Constants.BASE_URL + item.getAttachments(), 0);
+            userName.setTextColor(mCtx.getResources().getColor(color));
+            message.setTextColor(mCtx.getResources().getColor(color));
+            time.setTextColor(mCtx.getResources().getColor(color));
 
+            CacheImageView avi = (CacheImageView) convertView.findViewById(R.id.memberAvi);
+            RecyclingImageView avi2 = (RecyclingImageView) convertView.findViewById(R.id.memberAvi2);
+            CacheImageView attachment = (CacheImageView) convertView.findViewById(R.id.attachment);
+            RecyclingImageView attachment2 = (RecyclingImageView) convertView.findViewById(R.id.attachment2);
+
+            if (Application.get().getPreferences().getBoolean(Constants.PROPERTY_SETTING_USE_KACHIS_CACHE,
+                    Constants.PROPERTY_SETTING_USE_KACHIS_CACHE_DEFAULT)) {
+                avi2.setVisibility(View.INVISIBLE);
+                avi.setVisibility(View.VISIBLE);
+                attachment2.setVisibility(View.GONE);
+                avi.configure(Constants.BASE_URL + item.getSenderImageUrl(), 0);
+                attachment.setVisibility(!TextUtils.isEmpty(item.getAttachments()) ? View.VISIBLE : View.GONE);
+                if (!TextUtils.isEmpty(item.getAttachments()))
+                    attachment.configure(Constants.BASE_URL + item.getAttachments(), 0);
+            } else {
+                avi.setVisibility(View.INVISIBLE);
+                avi2.setVisibility(View.VISIBLE);
+                attachment.setVisibility(View.GONE);
+                mImageFetcher.loadImage(Constants.BASE_URL + item.getSenderImageUrl(), avi2, true);
+                attachment2.setVisibility(!TextUtils.isEmpty(item.getAttachments()) ? View.VISIBLE : View.GONE);
+                if (!TextUtils.isEmpty(item.getAttachments()))
+                    mImageFetcher.loadImage(Constants.BASE_URL + item.getAttachments(), attachment2, false);
+            }
         }
+
         return convertView;
     }
 

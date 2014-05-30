@@ -19,6 +19,8 @@ public class SettingsDialog extends DialogFragment {
     private Bundle mArguments;
 
     private CheckBox mInterleave;
+    private CheckBox mUseKachisCache;
+    private CheckBox mShowDebugToasts;
 
     /*
      * The activity that creates an instance of this dialog fragment must implement this interface in order to receive
@@ -50,6 +52,12 @@ public class SettingsDialog extends DialogFragment {
         mInterleave = (CheckBox) view.findViewById(R.id.settings_interleaving);
         mInterleave.setChecked(Application.get().getPreferences().getBoolean(Constants.PROPERTY_SETTING_INTERLEAVING,
                 Constants.PROPERTY_SETTING_INTERLEAVING_DEFAULT));
+        mUseKachisCache = (CheckBox) view.findViewById(R.id.settings_use_kachis_cache);
+        mUseKachisCache.setChecked(Application.get().getPreferences().getBoolean(Constants.PROPERTY_SETTING_USE_KACHIS_CACHE,
+                Constants.PROPERTY_SETTING_USE_KACHIS_CACHE_DEFAULT));
+        mShowDebugToasts = (CheckBox) view.findViewById(R.id.settings_show_debug_toasts);
+        mShowDebugToasts.setChecked(Application.get().getPreferences().getBoolean(Constants.PROPERTY_SETTING_SHOW_DEBUG_TOASTS,
+                Constants.PROPERTY_SETTING_SHOW_DEBUG_TOASTS_DEFAULT));
 
         // Inflate and set the layout for the dialog
         // Pass null as the parent view because its going in the dialog layout
@@ -61,6 +69,10 @@ public class SettingsDialog extends DialogFragment {
                         dismiss();
                         Application.get().getPreferences().edit().putBoolean(Constants.PROPERTY_SETTING_INTERLEAVING,
                                 mInterleave.isChecked()).commit();
+                        Application.get().getPreferences().edit().putBoolean(Constants.PROPERTY_SETTING_USE_KACHIS_CACHE,
+                                mUseKachisCache.isChecked()).commit();
+                        Application.get().getPreferences().edit().putBoolean(Constants.PROPERTY_SETTING_SHOW_DEBUG_TOASTS,
+                                mShowDebugToasts.isChecked()).commit();
                         mListener.onDialogPositiveClick(mMe);
                     }
                 }).setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {

@@ -4,17 +4,35 @@
     android:layout_height="wrap_content"
     android:background="@color/ghostwhite" >
 
-	<TextView
+    <com.gjk.views.CacheImageView
+        android:id="@+id/groupAvi"
+        android:layout_width="75dp"
+        android:layout_height="75dp"
+        android:layout_marginRight="10dp"
+        android:background="@color/ghostwhite"
+        android:scaleType="centerCrop"/>
+
+    <com.gjk.views.RecyclingImageView
+        android:id="@+id/groupAvi2"
+        android:layout_width="75dp"
+        android:layout_height="75dp"
+        android:layout_marginRight="10dp"
+        android:background="@color/ghostwhite"
+        android:scaleType="centerCrop"/>
+
+    <TextView
 	    android:layout_width="wrap_content"
 	    android:id= "@+id/chatLabel" 
 	    android:layout_height="wrap_content"
-	    android:textStyle="bold"
+        android:layout_toRightOf="@id/groupAvi"
+        android:textStyle="bold"
         android:textSize="20sp" />
 	<TextView
 	    android:layout_width="wrap_content"
 	    android:layout_height="wrap_content"
 	    android:id= "@+id/latestMessage" 
 	    android:layout_below="@+id/chatLabel"
+        android:layout_toRightOf="@id/groupAvi"
         android:textSize="15sp" />
 
 </RelativeLayout>

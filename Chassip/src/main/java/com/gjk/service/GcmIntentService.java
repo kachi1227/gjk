@@ -81,112 +81,134 @@ public class GcmIntentService extends IntentService {
                 }
 
                 if (extras.getString("msg_type").equals("chat_message")) {
-                    try {
-                        final long chatId = new JSONObject(extras.getString("msg_content")).getLong("group_id");
-                        JSONArray jsonArray = new JSONArray();
-                        long id = getLastStoredMessageId(chatId);
-                        try {
-                            jsonArray.put(0, id).put(1, -1);
-                        } catch (JSONException e) {
-                            e.printStackTrace();
-                        }
-                        new GetMessageTask(getApplicationContext(), new HTTPTaskListener() {
-                            @Override
-                            public void onTaskComplete(TaskResult result) {
-                                if (result.getResponseCode() == 1) {
-                                    JSONArray messages = (JSONArray) result.getExtraInfo();
-                                    try {
-                                        for (int i = 0; i < messages.length(); i++) {
-                                            Message m = addGroupMessage(messages.getJSONObject(i));
-                                            if (m.getSenderId() != getAccountUserId()) {
-                                                if (!Application.get().isActivityIsInForeground()
-                                                        || ChatsDrawerFragment.getCurrentChat() == null
-                                                        || m.getGroupId() != ChatsDrawerFragment.getCurrentChat()
-                                                        .getGlobalId()) {
-                                                    notifyNewMessage(m);
-                                                }
-                                            }
-                                        }
-                                    } catch (Exception e) {
-                                        GeneralHelper.reportMessage(ctx, LOGTAG, e.getMessage());
-                                    }
-                                } else {
-                                    GeneralHelper.reportMessage(ctx, LOGTAG, result.getMessage());
-                                }
-                            }
-                        }, getAccountUserId(), chatId, jsonArray);
-                    } catch (Exception e) {
-                        GeneralHelper.reportMessage(ctx, LOGTAG, e.getMessage());
-                    }
+                    handleNewMessage(ctx, extras);
                 } else if (extras.getString("msg_type").equals("group_invite")) {
-                    try {
-                        final JSONObject content = new JSONObject(extras.getString("msg_content"))
-                                .getJSONObject("content");
-                        JSONObject group = content.getJSONObject("group");
-                        JSONObject inviter = content.getJSONObject("inviter");
-                        Group g = addGroup(group);
-                        notifyNewGroup(g, inviter);
-                    } catch (Exception e) {
-                        GeneralHelper.reportMessage(ctx, LOGTAG, e.getMessage());
-                    }
+                    handleNewGroupInvite(ctx, extras);
                 } else if (extras.getString("msg_type").equals("side_chat_invite")) {
-                    try {
-                        final JSONObject content = new JSONObject(extras.getString("msg_content"))
-                                .getJSONObject("content");
-                        final JSONObject sideConvo = content.getJSONObject("side_chat");
-                        final JSONArray members = content.getJSONArray("members");
-                        final JSONObject inviter = content.getJSONObject("inviter");
-                        new GetSpecificGroupTask(getApplicationContext(), new HTTPTaskListener() {
-                            @Override
-                            public void onTaskComplete(TaskResult result) {
-                                if (result.getResponseCode() == 1) {
-                                    try {
-                                        JSONObject response = (JSONObject) result.getExtraInfo();
-                                        Group newG = addGroup(response);
-                                        notifyNewSideConvo(newG, sideConvo, members, inviter);
-                                    } catch (Exception e) {
-                                        GeneralHelper.reportMessage(ctx, LOGTAG, e.getMessage());
-                                    }
-                                } else {
-                                    GeneralHelper.reportMessage(ctx, LOGTAG, result.getMessage());
-                                }
-                            }
-                        }, getAccountUserId(), sideConvo.getLong("group_id"));
-                    } catch (Exception e) {
-                        GeneralHelper.reportMessage(ctx, LOGTAG, e.getMessage());
-                    }
-
+                    handleNewSideConvoInvite(ctx, extras);
                 } else if (extras.getString("msg_type").equals("whisper_invite")) {
-                    try {
-                        final JSONObject content = new JSONObject(extras.getString("msg_content"))
-                                .getJSONObject("content");
-                        final JSONObject whisper = content.getJSONObject("whisper");
-                        final JSONArray members = content.getJSONArray("members");
-                        final JSONObject inviter = content.getJSONObject("inviter");
-                        new GetSpecificGroupTask(getApplicationContext(), new HTTPTaskListener() {
-                            @Override
-                            public void onTaskComplete(TaskResult result) {
-                                if (result.getResponseCode() == 1) {
-                                    try {
-                                        JSONObject response = (JSONObject) result.getExtraInfo();
-                                        Group newG = addGroup(response);
-                                        notifyNewWhisper(newG, whisper, members, inviter);
-                                    } catch (Exception e) {
-                                        GeneralHelper.reportMessage(ctx, LOGTAG, e.getMessage());
-                                    }
-                                } else {
-                                    GeneralHelper.reportMessage(ctx, LOGTAG, result.getMessage());
-                                }
-                            }
-                        }, getAccountUserId(), whisper.getLong("group_id"));
-                    } catch (Exception e) {
-                        GeneralHelper.reportMessage(ctx, LOGTAG, e.getMessage());
-                    }
+                    handleNewWhisperInvite(ctx, extras);
                 }
             }
         }
         // Release the wake lock provided by the WakefulBroadcastReceiver.
         GcmBroadcastReceiver.completeWakefulIntent(intent);
+    }
+
+    private void handleNewMessage(final Context ctx, Bundle extras) {
+        try {
+            final long chatId = new JSONObject(extras.getString("msg_content")).getLong("group_id");
+            JSONArray jsonArray = new JSONArray();
+            long id = getLastStoredMessageId(chatId);
+            try {
+                jsonArray.put(0, id).put(1, -1);
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+            new GetMessageTask(getApplicationContext(), new HTTPTaskListener() {
+                @Override
+                public void onTaskComplete(TaskResult result) {
+                    if (result.getResponseCode() == 1) {
+                        JSONArray messages = (JSONArray) result.getExtraInfo();
+                        try {
+                            for (int i = 0; i < messages.length(); i++) {
+                                Message m = addGroupMessage(messages.getJSONObject(i));
+                                if (m != null && m.getSenderId() != getAccountUserId()) {
+                                    if (!Application.get().isActivityIsInForeground() ||
+                                            ChatsDrawerFragment.getCurrentChat() == null ||
+                                            m.getGroupId() != ChatsDrawerFragment.getCurrentChat().getGlobalId()) {
+                                        notifyNewMessage(m);
+                                    }
+                                }
+                            }
+                        } catch (Exception e) {
+                            GeneralHelper.reportMessage(ctx, LOGTAG, e.getMessage());
+                        }
+                    } else {
+                        GeneralHelper.reportMessage(ctx, LOGTAG, result.getMessage());
+                    }
+                }
+            }, getAccountUserId(), chatId, jsonArray);
+        } catch (Exception e) {
+            GeneralHelper.reportMessage(ctx, LOGTAG, e.getMessage());
+        }
+    }
+
+    private void handleNewGroupInvite(final Context ctx, Bundle extras) {
+        try {
+            final JSONObject content = new JSONObject(extras.getString("msg_content"))
+                    .getJSONObject("content");
+            JSONObject group = content.getJSONObject("group");
+            JSONObject inviter = content.getJSONObject("inviter");
+            Group g = addGroup(group);
+            notifyNewGroup(g, inviter);
+        } catch (Exception e) {
+            GeneralHelper.reportMessage(ctx, LOGTAG, e.getMessage());
+        }
+    }
+
+    private void handleNewWhisperInvite(final Context ctx, Bundle extras) {
+        try {
+            final JSONObject content = new JSONObject(extras.getString("msg_content"))
+                    .getJSONObject("content");
+            final JSONArray members = content.getJSONArray("members");
+            boolean isInWhisper = false;
+            for (int i = 0; i < members.length(); i++) {
+                isInWhisper |= getAccountUserId() == members.getJSONObject(i).getLong("id");
+            }
+            if (!isInWhisper) {
+                return;
+            }
+
+            final JSONObject whisper = content.getJSONObject("whisper");
+            final JSONObject inviter = content.getJSONObject("inviter");
+            new GetSpecificGroupTask(getApplicationContext(), new HTTPTaskListener() {
+                @Override
+                public void onTaskComplete(TaskResult result) {
+                    if (result.getResponseCode() == 1) {
+                        try {
+                            JSONObject response = (JSONObject) result.getExtraInfo();
+                            Group newG = addGroup(response);
+                            notifyNewWhisper(newG, whisper, members, inviter);
+                        } catch (Exception e) {
+                            GeneralHelper.reportMessage(ctx, LOGTAG, e.getMessage());
+                        }
+                    } else {
+                        GeneralHelper.reportMessage(ctx, LOGTAG, result.getMessage());
+                    }
+                }
+            }, getAccountUserId(), whisper.getLong("group_id"));
+        } catch (Exception e) {
+            GeneralHelper.reportMessage(ctx, LOGTAG, e.getMessage());
+        }
+    }
+
+    private void handleNewSideConvoInvite(final Context ctx, Bundle extras) {
+        try {
+            final JSONObject content = new JSONObject(extras.getString("msg_content"))
+                    .getJSONObject("content");
+            final JSONObject sideConvo = content.getJSONObject("side_chat");
+            final JSONArray members = content.getJSONArray("members");
+            final JSONObject inviter = content.getJSONObject("inviter");
+            new GetSpecificGroupTask(getApplicationContext(), new HTTPTaskListener() {
+                @Override
+                public void onTaskComplete(TaskResult result) {
+                    if (result.getResponseCode() == 1) {
+                        try {
+                            JSONObject response = (JSONObject) result.getExtraInfo();
+                            Group newG = addGroup(response);
+                            notifyNewSideConvo(newG, sideConvo, members, inviter);
+                        } catch (Exception e) {
+                            GeneralHelper.reportMessage(ctx, LOGTAG, e.getMessage());
+                        }
+                    } else {
+                        GeneralHelper.reportMessage(ctx, LOGTAG, result.getMessage());
+                    }
+                }
+            }, getAccountUserId(), sideConvo.getLong("group_id"));
+        } catch (Exception e) {
+            GeneralHelper.reportMessage(ctx, LOGTAG, e.getMessage());
+        }
     }
 
     // Put the message into a notification and post it.
@@ -215,9 +237,7 @@ public class GcmIntentService extends IntentService {
         if (inviter.getLong("id") != getAccountUserId()) {
             boolean isInSideConvo = false;
             for (int i = 0; i < members.length(); i++) {
-                if (members.getJSONObject(i).getLong("id") == getAccountUserId()) {
-                    isInSideConvo = true;
-                }
+                isInSideConvo |= getAccountUserId() == members.getJSONObject(i).getLong("id");
             }
             String content = isInSideConvo ? String.format(Locale.getDefault(),
                     "%s %s added you to %s's new side convo in %s called \"%s\"", inviter.get("first_name"),
@@ -231,18 +251,10 @@ public class GcmIntentService extends IntentService {
 
     private void notifyNewWhisper(Group g, JSONObject w, JSONArray members, JSONObject inviter) throws JSONException {
         if (inviter.getLong("id") != getAccountUserId()) {
-            boolean isInWhisper = false;
-            for (int i = 0; i < members.length(); i++) {
-                if (members.getJSONObject(i).getLong("id") == getAccountUserId()) {
-                    isInWhisper = true;
-                }
-            }
-            String content = isInWhisper ? String.format(Locale.getDefault(),
+            String content = String.format(Locale.getDefault(),
                     "%s %s added you to %s's new whisper in %s called \"%s\"", inviter.get("first_name"),
-                    inviter.get("last_name"), w.getString("creator_name"), g.getName(), w.getString("name")) : String
-                    .format(Locale.getDefault(), "%s has started a new whisper in %s called \"%s\"",
-                            w.getString("creator_name"), g.getName(), w.getString("name"));
-            String title = isInWhisper ? "New Whisper Invite" : "New Whisper";
+                    inviter.get("last_name"), w.getString("creator_name"), g.getName(), w.getString("name"));
+            String title = "New Whisper Invite";
             notificationAlert(title, content, g.getGlobalId(), NEW_WHISPER_INVITE_NOTIFACATION);
         }
     }
