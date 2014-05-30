@@ -36,6 +36,10 @@ import com.gjk.net.GetSpecificGroupTask;
 import com.gjk.net.HTTPTask.HTTPTaskListener;
 import com.gjk.net.NotifyGroupInviteesTask;
 import com.gjk.net.TaskResult;
+import com.gjk.utils.media2.ImageCache;
+import com.gjk.utils.media2.ImageFetcher;
+import com.gjk.views.CacheImageView;
+import com.gjk.views.RecyclingImageView;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
@@ -419,29 +423,52 @@ public class ChatsDrawerFragment extends ListFragment implements DataChangeListe
 
     private class ChatAdapter extends ArrayAdapter<Group> {
 
+        ImageFetcher mImageFetcher;
+
         public ChatAdapter(Context context) {
             super(context, 0);
+            mImageFetcher = new ImageFetcher(mCtx, 1000);
+            mImageFetcher.setLoadingImage(R.drawable.empty_photo, false);
+            ImageCache.ImageCacheParams params = new ImageCache.ImageCacheParams(mCtx, "image_cache");
+            params.setMemCacheSizePercent(0.8f);
+            mImageFetcher.addImageCache(getActivity().getSupportFragmentManager(), params);
         }
 
         public View getView(int position, View convertView, ViewGroup parent) {
+
+            Group g = getItem(position);
 
             if (convertView == null) {
                 convertView = LayoutInflater.from(getContext()).inflate(R.layout.chats_drawer_row, null);
             }
 
             TextView chatLabel = (TextView) convertView.findViewById(R.id.chatLabel);
-            chatLabel.setText(getItem(position).getName());
+            chatLabel.setText(g.getName());
             TextView latestMessage = (TextView) convertView.findViewById(R.id.latestMessage);
             String latestMessageStr = getLatestMessage(position);
             latestMessage.setText(latestMessageStr);
-            if (mNotifyMap.containsKey(getItem(position).getGlobalId())
-                    && mNotifyMap.get(getItem(position).getGlobalId())) {
+            if (mNotifyMap.containsKey(g.getGlobalId())
+                    && mNotifyMap.get(g.getGlobalId())) {
                 latestMessage.setTypeface(null, Typeface.BOLD);
             } else if (latestMessageStr.isEmpty()) {
                 latestMessage.setTypeface(null, Typeface.ITALIC);
                 latestMessage.setText("Be first to say something dope");
             } else {
                 latestMessage.setTypeface(null, Typeface.NORMAL);
+            }
+
+            CacheImageView avi = (CacheImageView) convertView.findViewById(R.id.groupAvi);
+            RecyclingImageView avi2 = (RecyclingImageView) convertView.findViewById(R.id.groupAvi2);
+
+            if (Application.get().getPreferences().getBoolean(Constants.PROPERTY_SETTING_USE_KACHIS_CACHE,
+                    Constants.PROPERTY_SETTING_USE_KACHIS_CACHE_DEFAULT)) {
+                avi2.setVisibility(View.INVISIBLE);
+                avi.setVisibility(View.VISIBLE);
+                avi.configure(Constants.BASE_URL + g.getImageUrl(), 0);
+            } else {
+                avi.setVisibility(View.INVISIBLE);
+                avi2.setVisibility(View.VISIBLE);
+                mImageFetcher.loadImage(Constants.BASE_URL + g.getImageUrl(), avi2, false);
             }
 
             return convertView;
@@ -453,7 +480,8 @@ public class ChatsDrawerFragment extends ListFragment implements DataChangeListe
             if (m == null) {
                 return "";
             }
-            return m.getContent();
+            return String.format(Locale.getDefault(), "%s %s: %s", m.getSenderFirstName(), m.getSenderLastName(),
+                    m.getContent());
         }
     }
 

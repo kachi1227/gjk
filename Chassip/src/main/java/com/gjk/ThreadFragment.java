@@ -71,7 +71,8 @@ public class ThreadFragment extends ListFragment implements DataChangeListener {
         mThreadType = ThreadType.getFromValue(getArguments().getInt("threadType"));
         mName = getArguments().getString("name");
         mMembers = Sets.newHashSet();
-        mAdapter = new MessagesAdapter(mCtx, mChatId, mThreadId, mThreadType, new ArrayList<Message>());
+        mAdapter = new MessagesAdapter(mCtx, getActivity().getSupportFragmentManager(), mChatId, mThreadId,
+                mThreadType, new ArrayList<Message>());
         setListAdapter(mAdapter);
         getMessagesFromDb();
         addMessages(mPendingMessages);
@@ -109,6 +110,12 @@ public class ThreadFragment extends ListFragment implements DataChangeListener {
             }
         });
         updateView();
+    }
+
+    public void focus() {
+        if (mPendingMessage != null) {
+            mPendingMessage.requestFocus();
+        }
     }
 
     private void getMessagesFromDb() {

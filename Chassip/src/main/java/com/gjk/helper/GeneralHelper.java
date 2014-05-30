@@ -4,11 +4,13 @@ import android.content.Context;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.gjk.Application;
+import com.gjk.Constants;
+
 import java.util.Arrays;
 import java.util.Locale;
 
 /**
- *
  * @author gpl
  */
 public final class GeneralHelper {
@@ -16,7 +18,8 @@ public final class GeneralHelper {
     public static void reportMessage(Context ctx, String tag, String message) {
         if (message != null) {
             Log.e(tag, String.format(Locale.getDefault(), "%s: %s", getMethodName(2), message));
-            if (ctx != null) {
+            if (ctx != null && Application.get().getPreferences().getBoolean(Constants.PROPERTY_SETTING_SHOW_DEBUG_TOASTS,
+                    Constants.PROPERTY_SETTING_SHOW_DEBUG_TOASTS_DEFAULT)) {
                 showLongToast(ctx, message);
             }
         }

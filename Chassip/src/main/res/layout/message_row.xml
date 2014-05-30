@@ -25,11 +25,19 @@
         android:layout_alignParentStart="true">
 
         <com.gjk.views.CacheImageView
-            android:id="@+id/image"
+            android:id="@+id/memberAvi"
             android:layout_width="45dp"
             android:layout_height="45dp"
             android:layout_marginRight="10dp"
-            android:background="@android:color/black"
+            android:background="@color/ghostwhite"
+            android:scaleType="centerCrop"/>
+
+        <com.gjk.views.RecyclingImageView
+            android:id="@+id/memberAvi2"
+            android:layout_width="45dp"
+            android:layout_height="45dp"
+            android:layout_marginRight="10dp"
+            android:background="@color/ghostwhite"
             android:scaleType="centerCrop"/>
 
         <TextView
@@ -37,14 +45,14 @@
             android:id="@+id/userName"
             android:layout_height="wrap_content"
             android:textStyle="bold"
-            android:layout_toRightOf="@+id/image"
+            android:layout_toRightOf="@+id/memberAvi"
             android:textSize="18sp"/>
 
         <TextView
             android:id="@+id/message"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_toRightOf="@+id/image"
+            android:layout_toRightOf="@+id/memberAvi"
             android:layout_below="@+id/userName"
             android:textSize="15sp"/>
 
@@ -64,7 +72,16 @@
             android:layout_below="@+id/message"
             android:layout_marginTop="5dp"
             android:layout_centerHorizontal="true"
-            android:background="@android:color/darker_gray"/>
+            android:background="@color/ghostwhite"/>
+
+        <com.gjk.views.RecyclingImageView
+            android:id="@+id/attachment2"
+            android:layout_width="250dp"
+            android:layout_height="250dp"
+            android:layout_below="@+id/message"
+            android:layout_marginTop="5dp"
+            android:layout_centerHorizontal="true"
+            android:background="@color/ghostwhite"/>
 
     </RelativeLayout>
 
