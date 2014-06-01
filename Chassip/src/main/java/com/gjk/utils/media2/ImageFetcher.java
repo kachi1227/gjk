@@ -57,8 +57,8 @@ public class ImageFetcher extends ImageResizer {
      * @param imageWidth
      * @param imageHeight
      */
-    public ImageFetcher(Context context, int imageWidth, int imageHeight) {
-        super(context, imageWidth, imageHeight);
+    public ImageFetcher(Context context, int imageWidth, int imageHeight, boolean circlize) {
+        super(context, imageWidth, imageHeight, circlize);
         init(context);
     }
 
@@ -68,8 +68,8 @@ public class ImageFetcher extends ImageResizer {
      * @param context
      * @param imageSize
      */
-    public ImageFetcher(Context context, int imageSize) {
-        super(context, imageSize);
+    public ImageFetcher(Context context, int imageSize, boolean circlize) {
+        super(context, imageSize, circlize);
         init(context);
     }
 
@@ -182,7 +182,7 @@ public class ImageFetcher extends ImageResizer {
      * @param data The data to load the bitmap, in this case, a regular http URL
      * @return The downloaded and resized bitmap
      */
-    private Bitmap processBitmap(String data, boolean circlize) {
+    private Bitmap processBitmap(String data) {
         if (BuildConfig.DEBUG) {
             Log.d(TAG, "processBitmap - " + data);
         }
@@ -241,7 +241,7 @@ public class ImageFetcher extends ImageResizer {
         Bitmap bitmap = null;
         if (fileDescriptor != null) {
             bitmap = decodeSampledBitmapFromDescriptor(fileDescriptor, mImageWidth,
-                    mImageHeight, getImageCache(), circlize);
+                    mImageHeight, getImageCache(), mCirclize);
         }
         if (fileInputStream != null) {
             try {
@@ -253,8 +253,8 @@ public class ImageFetcher extends ImageResizer {
     }
 
     @Override
-    protected Bitmap processBitmap(Object data, boolean circlize) {
-        return processBitmap(String.valueOf(data), circlize);
+    protected Bitmap processBitmap(Object data) {
+        return processBitmap(String.valueOf(data));
     }
 
     /**

@@ -1,8 +1,11 @@
 package com.gjk.utils.media;
 
+import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.widget.ImageView;
+
+import com.gjk.utils.media2.ImageUtil;
 
 import java.lang.ref.WeakReference;
 
@@ -12,11 +15,13 @@ public class LoadSampledBitmapTask extends AsyncTask<Object, Void, SampledBitmap
     private int[] mImageDimensions;
     private Object mData = 0;
     private SampledBitmapLoadListener mListener;
+    private boolean mCirclize;
 
-    public LoadSampledBitmapTask(ImageView imageView, int[] dimensions) {
+    public LoadSampledBitmapTask(ImageView imageView, int[] dimensions, boolean circlize) {
         // Use a WeakReference to ensure the ImageView can be garbage collected
         mReferenceView = new WeakReference<ImageView>(imageView);
         mImageDimensions = dimensions;
+        mCirclize = circlize;
     }
 
     public void setSampledBitmapLoadListener(SampledBitmapLoadListener listener) {
@@ -68,8 +73,14 @@ public class LoadSampledBitmapTask extends AsyncTask<Object, Void, SampledBitmap
         if (mReferenceView != null && (imageView = mReferenceView.get()) != null) {
             if (mListener != null)
                 mListener.onLoadComplete(imageView, sampledBitmap);
-            else
-                imageView.setImageBitmap(sampledBitmap.getBitmap());
+            else {
+                Bitmap bitmap = sampledBitmap.getBitmap();
+                if (mCirclize) {
+                    imageView.setImageBitmap(ImageUtil.getCroppedBitmap(bitmap));
+                } else {
+                    imageView.setImageBitmap(bitmap);
+                }
+            }
         }
 
 

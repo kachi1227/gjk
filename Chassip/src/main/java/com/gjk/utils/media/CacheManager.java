@@ -13,7 +13,11 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.net.URL;
 import java.net.URLConnection;
-import java.util.*;
+import java.util.Hashtable;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -90,6 +94,13 @@ public class CacheManager {
 	public void startup() {
 		mExecutor = Executors.newFixedThreadPool(MAX_CACHE_WORKERS);
 	}
+
+    public void cleanCache() {
+        File file = new File(mCacheDir);
+        boolean deleted = file.delete();
+        mCallbackMap.clear();
+        mWorkerMap.clear();
+    }
 
 	public void shutdown() {
 		try {

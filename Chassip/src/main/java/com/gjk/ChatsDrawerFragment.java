@@ -22,6 +22,7 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import com.gjk.database.DatabaseManager.DataChangeListener;
@@ -36,11 +37,9 @@ import com.gjk.net.GetSpecificGroupTask;
 import com.gjk.net.HTTPTask.HTTPTaskListener;
 import com.gjk.net.NotifyGroupInviteesTask;
 import com.gjk.net.TaskResult;
-import com.gjk.utils.media2.ImageCache;
-import com.gjk.utils.media2.ImageFetcher;
+import com.gjk.utils.media2.ImageManager;
 import com.gjk.views.CacheImageView;
 import com.gjk.views.RecyclingImageView;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import org.json.JSONObject;
@@ -49,7 +48,6 @@ import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -60,7 +58,7 @@ import static com.gjk.Constants.CAMERA_REQUEST;
 import static com.gjk.Constants.GALLERY_REQUEST;
 import static com.gjk.helper.DatabaseHelper.addGroup;
 import static com.gjk.helper.DatabaseHelper.getAccountUserId;
-import static com.gjk.helper.DatabaseHelper.getGroupMembers;
+import static com.gjk.helper.DatabaseHelper.getGroups;
 
 /**
  * @author gpl
@@ -74,8 +72,6 @@ public class ChatsDrawerFragment extends ListFragment implements DataChangeListe
     private ChatAdapter mAdapter;
     private AlertDialog mDialog;
     private Map<Long, Boolean> mNotifyMap;
-    private List<Group> mCurrentGroups;
-    private Map<Long, List<GroupMember>> mChatIdToMembers;
 
     private View mView;
     private Button mCreateChat;
@@ -89,6 +85,18 @@ public class ChatsDrawerFragment extends ListFragment implements DataChangeListe
     // TODO: Temporary!!
     private final static HashMap<String, Long> mapping = Maps.newHashMap();
     private List<Long> mSelectedMembers;
+
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        mNotifyMap = Maps.newHashMap();
+        Application.get().getDatabaseManager().registerDataChangeListener(Group.TABLE_NAME, this);
+        Application.get().getDatabaseManager().registerDataChangeListener(Message.TABLE_NAME, this);
+        mapping.put("Greg", 3L);
+        mapping.put("Greg2", 9L);
+        mapping.put("Jeff", 8L);
+        mapping.put("Kachi", 6L);
+    }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -178,19 +186,12 @@ public class ChatsDrawerFragment extends ListFragment implements DataChangeListe
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
-        mNotifyMap = Maps.newHashMap();
-        mCurrentGroups = Lists.newArrayList();
-        mChatIdToMembers = Maps.newHashMap();
         mCtx = getActivity();
-        mAdapter = new ChatAdapter(mCtx);
+        mAdapter = new ChatAdapter(getActivity());
         setListAdapter(mAdapter);
-        Application.get().getDatabaseManager().registerDataChangeListener(Group.TABLE_NAME, this);
-        Application.get().getDatabaseManager().registerDataChangeListener(GroupMember.TABLE_NAME, this);
-        Application.get().getDatabaseManager().registerDataChangeListener(Message.TABLE_NAME, this);
-        if (mapping.isEmpty()) {
-            mapping.put("Greg", 3L);
-            mapping.put("Jeff", 8L);
-            mapping.put("Kachi", 6L);
+        List<Group> groups = getGroups();
+        for (Group g : groups) {
+            addChat(g);
         }
     }
 
@@ -203,19 +204,13 @@ public class ChatsDrawerFragment extends ListFragment implements DataChangeListe
     }
 
     public void addChat(Group g) {
-        if (mCurrentGroups.contains(g)) {
-            int position = mAdapter.getPosition(g);
+        int position = mAdapter.getPosition(g);
+        if (position >= 0) {
             mAdapter.getItem(position).setName(g.getName());
             mAdapter.getItem(position).setImageUrl(g.getImageUrl());
             mAdapter.getItem(position).setSideChats(g.getSideChats());
             mAdapter.getItem(position).setWhispers(g.getWhispers());
-            mChatIdToMembers.put(g.getGlobalId(), Arrays.asList(getGroupMembers(g.getGlobalId())));
         } else {
-            List<GroupMember> members = Arrays.asList(getGroupMembers(g.getGlobalId()));
-            if (members.size() > 0) {
-                mChatIdToMembers.put(g.getGlobalId(), Arrays.asList(getGroupMembers(g.getGlobalId())));
-            }
-            mCurrentGroups.add(g);
             mAdapter.add(g);
         }
     }
@@ -412,26 +407,20 @@ public class ChatsDrawerFragment extends ListFragment implements DataChangeListe
     }
 
     @Override
-    public void onDialogPositiveClick(SettingsDialog dialog) {
-        ((MainActivity) getActivity()).toggleChat(getCurrentChat());
+    public void onDialogPositiveClick(SettingsDialog dialog, boolean dontRefresh) {
+        if (!dontRefresh) {
+            ((MainActivity) getActivity()).toggleChat(getCurrentChat());
+        }
     }
 
     @Override
     public void onDialogNegativeClick(SettingsDialog dialog) {
-
     }
 
     private class ChatAdapter extends ArrayAdapter<Group> {
 
-        ImageFetcher mImageFetcher;
-
         public ChatAdapter(Context context) {
             super(context, 0);
-            mImageFetcher = new ImageFetcher(mCtx, 1000);
-            mImageFetcher.setLoadingImage(R.drawable.empty_photo, false);
-            ImageCache.ImageCacheParams params = new ImageCache.ImageCacheParams(mCtx, "image_cache");
-            params.setMemCacheSizePercent(0.8f);
-            mImageFetcher.addImageCache(getActivity().getSupportFragmentManager(), params);
         }
 
         public View getView(int position, View convertView, ViewGroup parent) {
@@ -442,6 +431,9 @@ public class ChatsDrawerFragment extends ListFragment implements DataChangeListe
                 convertView = LayoutInflater.from(getContext()).inflate(R.layout.chats_drawer_row, null);
             }
 
+            RelativeLayout row = (RelativeLayout) convertView.findViewById(R.id.chatRow);
+            Message last = DatabaseHelper.getLatestMessage(g.getGlobalId());
+            row.setBackgroundColor(getColor(last));
             TextView chatLabel = (TextView) convertView.findViewById(R.id.chatLabel);
             chatLabel.setText(g.getName());
             TextView latestMessage = (TextView) convertView.findViewById(R.id.latestMessage);
@@ -460,15 +452,15 @@ public class ChatsDrawerFragment extends ListFragment implements DataChangeListe
             CacheImageView avi = (CacheImageView) convertView.findViewById(R.id.groupAvi);
             RecyclingImageView avi2 = (RecyclingImageView) convertView.findViewById(R.id.groupAvi2);
 
-            if (Application.get().getPreferences().getBoolean(Constants.PROPERTY_SETTING_USE_KACHIS_CACHE,
-                    Constants.PROPERTY_SETTING_USE_KACHIS_CACHE_DEFAULT)) {
+            if (GeneralHelper.getKachisCachePref()) {
                 avi2.setVisibility(View.INVISIBLE);
                 avi.setVisibility(View.VISIBLE);
-                avi.configure(Constants.BASE_URL + g.getImageUrl(), 0);
+                avi.configure(Constants.BASE_URL + g.getImageUrl(), 0, false);
             } else {
                 avi.setVisibility(View.INVISIBLE);
                 avi2.setVisibility(View.VISIBLE);
-                mImageFetcher.loadImage(Constants.BASE_URL + g.getImageUrl(), avi2, false);
+                ImageManager.getInstance(getActivity().getSupportFragmentManager())
+                        .loadUncirclizedImage(g.getImageUrl(), avi2);
             }
 
             return convertView;
@@ -482,6 +474,16 @@ public class ChatsDrawerFragment extends ListFragment implements DataChangeListe
             }
             return String.format(Locale.getDefault(), "%s %s: %s", m.getSenderFirstName(), m.getSenderLastName(),
                     m.getContent());
+        }
+
+        private int getColor(Message m) {
+            if (m == null) {
+                return mCtx.getResources().getColor(R.color.ghostwhite);
+            }
+            if (m.getSenderId() == DatabaseHelper.getAccountUserId()) {
+                return mCtx.getResources().getColor(R.color.ivory);
+            }
+            return mCtx.getResources().getColor(R.color.ghostwhite);
         }
     }
 
@@ -506,10 +508,6 @@ public class ChatsDrawerFragment extends ListFragment implements DataChangeListe
                 if (o.getTableName().equals(Group.TABLE_NAME)) {
                     Group g = (Group) o;
                     addChat(g);
-                } else if (o.getTableName().equals(GroupMember.TABLE_NAME)) {
-                    GroupMember gm = (GroupMember) o;
-                    mChatIdToMembers.put(gm.getGroupId(), Arrays.asList(getGroupMembers(gm.getGroupId())));
-                    updateView();
                 } else if (o.getTableName().equals(Message.TABLE_NAME)) {
                     Message m = (Message) o;
                     if (ChatsDrawerFragment.sCurrentChat.getGlobalId() != m.getGroupId()) {

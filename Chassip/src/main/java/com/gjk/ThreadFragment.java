@@ -10,6 +10,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.ViewGroup;
+import android.widget.AbsListView;
 import android.widget.Button;
 import android.widget.EditText;
 
@@ -30,6 +31,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -53,7 +55,7 @@ public class ThreadFragment extends ListFragment implements DataChangeListener {
     private ThreadType mThreadType;
     private MessagesAdapter mAdapter;
     private Set<GroupMember> mMembers;
-    private boolean mInitialized;
+    private boolean mInitialized = false;
     private List<Message> mPendingMessages = Lists.newLinkedList();
 
     private View mView;
@@ -63,14 +65,19 @@ public class ThreadFragment extends ListFragment implements DataChangeListener {
     private String mMessage;
 
     @Override
-    public void onActivityCreated(Bundle savedInstanceState) {
-        super.onActivityCreated(savedInstanceState);
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
         mCtx = getActivity();
         mChatId = getArguments().getLong("chatId");
         mThreadId = getArguments().getLong("threadId");
         mThreadType = ThreadType.getFromValue(getArguments().getInt("threadType"));
         mName = getArguments().getString("name");
         mMembers = Sets.newHashSet();
+    }
+
+    @Override
+    public void onActivityCreated(Bundle savedInstanceState) {
+        super.onActivityCreated(savedInstanceState);
         mAdapter = new MessagesAdapter(mCtx, getActivity().getSupportFragmentManager(), mChatId, mThreadId,
                 mThreadType, new ArrayList<Message>());
         setListAdapter(mAdapter);
@@ -109,7 +116,54 @@ public class ThreadFragment extends ListFragment implements DataChangeListener {
             public void onTextChanged(CharSequence s, int start, int before, int count) {
             }
         });
-        updateView();
+        scrollToBottom();
+        mInitialized = true;
+    }
+
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        if (savedInstanceState != null) {
+            mThreadId = savedInstanceState.getLong("mThreadId");
+        }
+        mView = inflater.inflate(R.layout.message_list, null);
+        mPendingMessage = (EditText) mView.findViewById(R.id.pendingMessage);
+        mSend = (Button) mView.findViewById(R.id.send);
+        return mView;
+    }
+
+    @Override
+    public void onViewCreated(View view, Bundle savedInstance) {
+        super.onViewCreated(view, savedInstance);
+        getListView().setOnScrollListener(new AbsListView.OnScrollListener() {
+            @Override
+            public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
+                if (mInitialized && mAdapter != null & firstVisibleItem == 0 && visibleItemCount < totalItemCount) {
+                    List<Message> messages;
+                    if (GeneralHelper.getInterleavingPref()) {
+                        messages = getMessages(mChatId, mAdapter.getItem(0));
+                    } else {
+                        messages = getMessages(mChatId, mThreadId, mAdapter.getItem(0));
+                    }
+                    Collections.reverse(messages);
+                    for (Message m : messages) {
+                        mAdapter.insert(m, 0);
+                    }
+                    if (!messages.isEmpty()) {
+                        getListView().setSelection(getListView().getCount() - totalItemCount);
+                    }
+                }
+            }
+
+            @Override
+            public void onScrollStateChanged(AbsListView view, int scrollState) {
+            }
+        });
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putLong("mThreadId", mThreadId);
     }
 
     public void focus() {
@@ -119,7 +173,12 @@ public class ThreadFragment extends ListFragment implements DataChangeListener {
     }
 
     private void getMessagesFromDb() {
-        List<Message> messages = getMessages(mChatId);
+        List<Message> messages;
+        if (GeneralHelper.getInterleavingPref()) {
+            messages = getMessages(mChatId);
+        } else {
+            messages = getMessages(mChatId, mThreadId);
+        }
         if (messages != null && messages.size() > 0) {
             if (mAdapter != null) {
                 addMessages(messages);
@@ -183,29 +242,6 @@ public class ThreadFragment extends ListFragment implements DataChangeListener {
         }, getAccountUserId(), mChatId, mThreadType.getValue(), mThreadId, mMessage);
     }
 
-    @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        if (savedInstanceState != null) {
-            mThreadId = savedInstanceState.getLong("mThreadId");
-        }
-        mView = inflater.inflate(R.layout.message_list, null);
-        mPendingMessage = (EditText) mView.findViewById(R.id.pendingMessage);
-        mSend = (Button) mView.findViewById(R.id.send);
-        return mView;
-    }
-
-    @Override
-    public void onViewCreated(View view, Bundle savedInstance) {
-        super.onViewCreated(view, savedInstance);
-        scrollMyListViewToBottom();
-    }
-
-    @Override
-    public void onSaveInstanceState(Bundle outState) {
-        super.onSaveInstanceState(outState);
-        outState.putLong("mThreadId", mThreadId);
-    }
-
     public String getName() {
         return mName;
     }
@@ -238,10 +274,6 @@ public class ThreadFragment extends ListFragment implements DataChangeListener {
     }
 
     public void addMessage(Message m) {
-        if (!Application.get().getPreferences().getBoolean(Constants.PROPERTY_SETTING_INTERLEAVING,
-                Constants.PROPERTY_SETTING_INTERLEAVING_DEFAULT) && m.getTableId() != mThreadId) {
-            return;
-        }
         mAdapter.add(m);
     }
 
@@ -255,7 +287,7 @@ public class ThreadFragment extends ListFragment implements DataChangeListener {
         }
     }
 
-    private void scrollMyListViewToBottom() {
+    private void scrollToBottom() {
         if (mCtx != null) {
             mCtx.runOnUiThread(new Runnable() {
                 @Override

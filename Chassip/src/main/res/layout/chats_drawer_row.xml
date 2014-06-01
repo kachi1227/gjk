@@ -2,14 +2,15 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="@color/ghostwhite" >
+    android:background="@color/ghostwhite"
+    android:id="@+id/chatRow">
 
     <com.gjk.views.CacheImageView
         android:id="@+id/groupAvi"
         android:layout_width="75dp"
         android:layout_height="75dp"
         android:layout_marginRight="10dp"
-        android:background="@color/ghostwhite"
+        android:background="@android:color/transparent"
         android:scaleType="centerCrop"/>
 
     <com.gjk.views.RecyclingImageView
@@ -17,7 +18,7 @@
         android:layout_width="75dp"
         android:layout_height="75dp"
         android:layout_marginRight="10dp"
-        android:background="@color/ghostwhite"
+        android:background="@android:color/transparent"
         android:scaleType="centerCrop"/>
 
     <TextView

@@ -9,7 +9,7 @@
 	    android:layout_height="wrap_content"
 	    android:paddingLeft="@dimen/list_padding"
 	    android:paddingRight="@dimen/list_padding"
-	    android:transcriptMode="alwaysScroll"
+	    android:transcriptMode="normal"
 	    android:layout_above="@+id/pendMessagesLayout"
         android:divider="@android:color/transparent"
         android:dividerHeight="10dp" />

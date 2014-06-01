@@ -9,11 +9,13 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import com.gjk.database.objects.Message;
-import com.gjk.utils.media2.ImageCache;
-import com.gjk.utils.media2.ImageFetcher;
+import com.gjk.helper.DatabaseHelper;
+import com.gjk.helper.GeneralHelper;
+import com.gjk.utils.media2.ImageManager;
 import com.gjk.views.CacheImageView;
 import com.gjk.views.RecyclingImageView;
 
@@ -28,7 +30,7 @@ public class MessagesAdapter extends ArrayAdapter<Message> {
     private final long mChatId;
     private final long mThreadId;
     private final ThreadType mType;
-    private final ImageFetcher mImageFetcher;
+    private final FragmentManager mFm;
 
     public MessagesAdapter(Context ctx, FragmentManager fm, long chatId, long threadId, ThreadType type,
                            List<Message> ims) {
@@ -37,11 +39,7 @@ public class MessagesAdapter extends ArrayAdapter<Message> {
         mChatId = chatId;
         mThreadId = threadId;
         mType = type;
-        mImageFetcher = new ImageFetcher(mCtx, 1000);
-        mImageFetcher.setLoadingImage(R.drawable.empty_photo, true);
-        ImageCache.ImageCacheParams params = new ImageCache.ImageCacheParams(mCtx, "image_cache");
-        params.setMemCacheSizePercent(0.8f);
-        mImageFetcher.addImageCache(fm, params);
+        mFm = fm;
     }
 
     @Override
@@ -52,6 +50,7 @@ public class MessagesAdapter extends ArrayAdapter<Message> {
         }
 
         Message item = getItem(position);
+        RelativeLayout row = (RelativeLayout) convertView.findViewById(R.id.messageLayout);
         TextView userName = (TextView) convertView.findViewById(R.id.userName);
         TextView message = (TextView) convertView.findViewById(R.id.message);
         TextView time = (TextView) convertView.findViewById(R.id.time);
@@ -94,6 +93,12 @@ public class MessagesAdapter extends ArrayAdapter<Message> {
                 }
             }
 
+            if (item.getSenderId() == DatabaseHelper.getAccountUserId()) {
+                row.setBackgroundColor(mCtx.getResources().getColor(R.color.ivory));
+            }
+            else {
+                row.setBackgroundColor(mCtx.getResources().getColor(R.color.ghostwhite));
+            }
             String name = String.format(Locale.getDefault(), "%s %s", item.getSenderFirstName(), item.getSenderLastName());
             userName.setText(name);
             message.setText(item.getContent());
@@ -109,23 +114,30 @@ public class MessagesAdapter extends ArrayAdapter<Message> {
             CacheImageView attachment = (CacheImageView) convertView.findViewById(R.id.attachment);
             RecyclingImageView attachment2 = (RecyclingImageView) convertView.findViewById(R.id.attachment2);
 
-            if (Application.get().getPreferences().getBoolean(Constants.PROPERTY_SETTING_USE_KACHIS_CACHE,
-                    Constants.PROPERTY_SETTING_USE_KACHIS_CACHE_DEFAULT)) {
+            if (GeneralHelper.getKachisCachePref()) {
                 avi2.setVisibility(View.INVISIBLE);
                 avi.setVisibility(View.VISIBLE);
                 attachment2.setVisibility(View.GONE);
-                avi.configure(Constants.BASE_URL + item.getSenderImageUrl(), 0);
+                if (GeneralHelper.getCirclizeMemberAvisPref()) {
+                    avi.configure(Constants.BASE_URL + item.getSenderImageUrl(), 0, true);
+                } else {
+                    avi.configure(Constants.BASE_URL + item.getSenderImageUrl(), 0, false);
+                }
                 attachment.setVisibility(!TextUtils.isEmpty(item.getAttachments()) ? View.VISIBLE : View.GONE);
                 if (!TextUtils.isEmpty(item.getAttachments()))
-                    attachment.configure(Constants.BASE_URL + item.getAttachments(), 0);
+                    attachment.configure(Constants.BASE_URL + item.getAttachments(), 0, false);
             } else {
                 avi.setVisibility(View.INVISIBLE);
                 avi2.setVisibility(View.VISIBLE);
                 attachment.setVisibility(View.GONE);
-                mImageFetcher.loadImage(Constants.BASE_URL + item.getSenderImageUrl(), avi2, true);
+                if (GeneralHelper.getCirclizeMemberAvisPref()) {
+                    ImageManager.getInstance(mFm).loadCirclizedImage(item.getSenderImageUrl(), avi2);
+                } else {
+                    ImageManager.getInstance(mFm).loadUncirclizedImage(item.getSenderImageUrl(), avi2);
+                }
                 attachment2.setVisibility(!TextUtils.isEmpty(item.getAttachments()) ? View.VISIBLE : View.GONE);
                 if (!TextUtils.isEmpty(item.getAttachments()))
-                    mImageFetcher.loadImage(Constants.BASE_URL + item.getAttachments(), attachment2, false);
+                    ImageManager.getInstance(mFm).loadUncirclizedImage(item.getAttachments(), attachment2);
             }
         }
 

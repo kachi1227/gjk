@@ -17,6 +17,12 @@ public interface Constants {
     static final boolean PROPERTY_SETTING_USE_KACHIS_CACHE_DEFAULT = false;
     static final String PROPERTY_SETTING_SHOW_DEBUG_TOASTS = "showDebugToasts";
     static final boolean PROPERTY_SETTING_SHOW_DEBUG_TOASTS_DEFAULT = false;
+    static final String PROPERTY_SETTING_CIRCLIZE_MEMBER_AVIS = "circlizeMemberAvis";
+    static final boolean PROPERTY_SETTING_CIRCLIZE_MEMBER_AVIS_DEFAULT = true;
+    static final String PROPERTY_SETTING_MESSAGE_LOAD_LIMIT = "messageLoadLimit";
+    static final int PROPERTY_SETTING_MESSAGE_LOAD_LIMIT_DEFAULT = 50;
+    static final String PROPERTY_SETTING_MESSAGE_FETCH_LIMIT = "messageLoadLimit";
+    static final int PROPERTY_SETTING_MESSAGE_FETCH_LIMIT_DEFAULT = 50;
     static final int GALLERY_REQUEST = 1;
 	static final int CAMERA_REQUEST = 2;
 	static final int PLAY_SERVICES_RESOLUTION_REQUEST = 3;

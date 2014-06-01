@@ -1,11 +1,5 @@
 package com.gjk;
 
-import com.gjk.database.DatabaseManager;
-import com.gjk.net.Pool;
-import com.gjk.utils.media.BitmapLoader;
-import com.gjk.utils.media.CacheManager;
-import com.gjk.utils.media.SampledBitmap;
-
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -18,6 +12,12 @@ import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.util.LruCache;
 import android.widget.Toast;
+
+import com.gjk.database.DatabaseManager;
+import com.gjk.net.Pool;
+import com.gjk.utils.media.BitmapLoader;
+import com.gjk.utils.media.CacheManager;
+import com.gjk.utils.media.SampledBitmap;
 
 public class Application extends android.app.Application {
 
@@ -99,6 +99,10 @@ public class Application extends android.app.Application {
 
     public synchronized void removeSampledBitmap(String url) {
         mBitmapCache.remove(url);
+    }
+
+    public synchronized void clearCache() {
+        initBitmapCache();
     }
 
     public CacheManager getCacheManager() {

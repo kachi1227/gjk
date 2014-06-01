@@ -21,6 +21,7 @@ import com.gjk.utils.media.CacheManager.CacheCallback;
 import com.gjk.utils.media.LoadSampledBitmapTask;
 import com.gjk.utils.media.SampledBitmap;
 import com.gjk.utils.media.SampledBitmapLoadListener;
+import com.gjk.utils.media2.ImageUtil;
 
 import java.io.File;
 
@@ -36,7 +37,7 @@ public class CacheImageView extends ImageView implements CacheCallback {
     boolean mTrackBitmap = true;
     int mDesiredBitmapHeight, mDesiredBitmapWidth;
     int mSampleSize;
-
+    boolean mCirclize;
 
     LoadSampledBitmapTask mCachedBitmapLoaderTask;
     SampledBitmapLoadListener mInternalBitmapListener = new SampledBitmapLoadListener() {
@@ -148,24 +149,32 @@ public class CacheImageView extends ImageView implements CacheCallback {
             mCachedBitmapLoaderTask.cancel(true);
         int[] dimensions = mDesiredBitmapWidth > 0 || mDesiredBitmapHeight > 0 ? new int[]{mDesiredBitmapWidth, mDesiredBitmapHeight}
                 : new int[]{getMeasuredWidth() > 0 ? getMeasuredWidth() : BitmapLoader.MAX_IMAGE_WIDTH, getMeasuredHeight() > 0 ? getMeasuredHeight() : BitmapLoader.MAX_IMAGE_HEIGHT};
-        mCachedBitmapLoaderTask = new LoadSampledBitmapTask(this, dimensions);
+        mCachedBitmapLoaderTask = new LoadSampledBitmapTask(this, dimensions, mCirclize);
         mCachedBitmapLoaderTask.setSampledBitmapLoadListener(mInternalBitmapListener);
     }
 
-    public void configure(String url, int placeHolderResourceId) {
-        configure(url, placeHolderResourceId, -1, -1);
+    public void configure(String url, int placeHolderResourceId, boolean circlize) {
+        configure(url, placeHolderResourceId, -1, -1, circlize);
     }
 
-    public void configure(final String url, final int placeholderResourceId, int desiredBitmapWidth, int desiredBitmapHeight) {
+    public void configure(final String url, final int placeholderResourceId, int desiredBitmapWidth,
+                          int desiredBitmapHeight, boolean circlize) {
         removeCallbacks(mResetRunnable);
+
+        mCirclize = circlize;
 
         mPlaceholderResourceId = placeholderResourceId;
         if (isBadURL(url)) {
             mURL = url;
             mBitmapLoaded = false;
             if (mPlaceholderResourceId > 0) {
-                Bitmap bitmap = BitmapLoader.getBitmapFromAsset(CacheImageView.this, mPlaceholderResourceId, BitmapLoader.TYPE_RESOURCE);
-                setImageBitmap(bitmap);
+                Bitmap bitmap = BitmapLoader.getBitmapFromAsset(CacheImageView.this, mPlaceholderResourceId,
+                        BitmapLoader.TYPE_RESOURCE);
+                if (mCirclize) {
+                    setImageBitmap(ImageUtil.getCroppedBitmap(bitmap));
+                } else {
+                    setImageBitmap(bitmap);
+                }
             } else
                 setImageResource(0);
             return;
@@ -207,7 +216,12 @@ public class CacheImageView extends ImageView implements CacheCallback {
 
     private void loadPlaceholderBitmap() {
         SampledBitmap placeholder = BitmapLoader.getSampledBitmapFromAsset(CacheImageView.this, mPlaceholderResourceId, BitmapLoader.TYPE_RESOURCE, new int[]{getMeasuredWidth() > 0 ? getMeasuredWidth() : BitmapLoader.MAX_IMAGE_WIDTH, getMeasuredHeight() > 0 ? getMeasuredHeight() : BitmapLoader.MAX_IMAGE_HEIGHT});
-        setImageBitmap(placeholder.getBitmap());
+        Bitmap bitmap = placeholder.getBitmap();
+        if (mCirclize) {
+            setImageBitmap(ImageUtil.getCroppedBitmap(bitmap));
+        } else {
+            setImageBitmap(bitmap);
+        }
         Application.get().addSampledBitmapToMemory(mPlaceholderResourceId + "", placeholder);
     }
 

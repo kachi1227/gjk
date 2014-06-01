@@ -30,5 +30,12 @@
         android:layout_alignParentLeft="true"
         android:layout_alignParentStart="true"/>
 
-
+    <CheckBox
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/settings_circlize_member_avis"
+        android:id="@+id/settings_circlize_member_avis"
+        android:layout_below="@+id/settings_show_debug_toasts"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"/>
 </RelativeLayout>
