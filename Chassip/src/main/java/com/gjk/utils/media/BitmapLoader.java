@@ -1,22 +1,5 @@
 package com.gjk.utils.media;
 
-import java.io.BufferedInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Set;
-
-import com.gjk.Application;
-import com.gjk.Constants;
-import com.gjk.views.CacheImageView;
-import com.gjk.helper.ViewHelper;
-import com.gjk.utils.LogWriter;
-import com.gjk.utils.NumberUtil;
-
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
@@ -24,15 +7,29 @@ import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.media.ExifInterface;
 import android.net.Uri;
-import android.util.Base64;
 import android.util.Log;
 import android.util.SparseArray;
 import android.view.View;
 import android.view.View.MeasureSpec;
 import android.view.ViewGroup;
+import android.view.ViewGroup.LayoutParams;
 import android.widget.ImageView;
 import android.widget.ImageView.ScaleType;
-import android.view.ViewGroup.LayoutParams;
+
+import com.gjk.Application;
+import com.gjk.helper.ViewHelper;
+import com.gjk.utils.LogWriter;
+import com.gjk.utils.NumberUtil;
+import com.gjk.views.CacheImageView;
+
+import java.io.BufferedInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
 
 public class BitmapLoader {
 
@@ -264,6 +261,10 @@ public class BitmapLoader {
 	public synchronized static boolean isBitmapReferenced(String url) {
 		return sUrlToBitmapMap.get(url) != null;
 	}
+
+    public synchronized static void clearCache() {
+        sUrlToBitmapMap.clear();
+    }
 	
 	public synchronized static void cleanupBitmap(String url, int sampleSize, View view) {
 		SparseArray<Set<String>> viewMap = sUrlToBitmapMap.get(url);

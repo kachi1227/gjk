@@ -45,8 +45,8 @@ public class ImageResizer extends ImageWorker {
      * @param imageWidth
      * @param imageHeight
      */
-    public ImageResizer(Context context, int imageWidth, int imageHeight) {
-        super(context);
+    public ImageResizer(Context context, int imageWidth, int imageHeight, boolean circlize) {
+        super(context, circlize);
         setImageSize(imageWidth, imageHeight);
     }
 
@@ -56,8 +56,8 @@ public class ImageResizer extends ImageWorker {
      * @param context
      * @param imageSize
      */
-    public ImageResizer(Context context, int imageSize) {
-        super(context);
+    public ImageResizer(Context context, int imageSize, boolean circlize) {
+        super(context, circlize);
         setImageSize(imageSize);
     }
 
@@ -88,17 +88,17 @@ public class ImageResizer extends ImageWorker {
      * @param resId
      * @return
      */
-    private Bitmap processBitmap(int resId, boolean circlize) {
+    private Bitmap processBitmap(int resId) {
         if (BuildConfig.DEBUG) {
             Log.d(TAG, "processBitmap - " + resId);
         }
         return decodeSampledBitmapFromResource(mResources, resId, mImageWidth,
-                mImageHeight, getImageCache(), circlize);
+                mImageHeight, getImageCache(), mCirclize);
     }
 
     @Override
-    protected Bitmap processBitmap(Object data, boolean circlize) {
-        return processBitmap(Integer.parseInt(String.valueOf(data)), circlize);
+    protected Bitmap processBitmap(Object data) {
+        return processBitmap(Integer.parseInt(String.valueOf(data)));
     }
 
     /**

@@ -51,19 +51,21 @@ public abstract class ImageWorker {
     private final Object mPauseWorkLock = new Object();
 
     protected Resources mResources;
+    protected boolean mCirclize;
 
     private static final int MESSAGE_CLEAR = 0;
     private static final int MESSAGE_INIT_DISK_CACHE = 1;
     private static final int MESSAGE_FLUSH = 2;
     private static final int MESSAGE_CLOSE = 3;
 
-    protected ImageWorker(Context context) {
+    protected ImageWorker(Context context, boolean circlize) {
         mResources = context.getResources();
+        mCirclize = circlize;
     }
 
     /**
      * Load an image specified by the data parameter into an ImageView (override
-     * {@link ImageWorker#processBitmap(Object, boolean)} to define the processing logic). A memory and
+     * {@link ImageWorker#processBitmap(Object)} to define the processing logic). A memory and
      * disk cache will be used if an {@link ImageCache} has been added using
      * {@link ImageWorker#addImageCache(android.support.v4.app.FragmentManager, ImageCache.ImageCacheParams)}. If the
      * image is found in the memory cache, it is set immediately, otherwise an {@link AsyncTask}
@@ -72,7 +74,7 @@ public abstract class ImageWorker {
      * @param data      The URL of the image to download.
      * @param imageView The ImageView to bind the downloaded image to.
      */
-    public void loadImage(Object data, ImageView imageView, boolean circlize) {
+    public void loadImage(Object data, ImageView imageView) {
         if (data == null) {
             return;
         }
@@ -88,7 +90,7 @@ public abstract class ImageWorker {
             imageView.setImageDrawable(value);
         } else if (cancelPotentialWork(data, imageView)) {
             //BEGIN_INCLUDE(execute_background_task)
-            final BitmapWorkerTask task = new BitmapWorkerTask(data, imageView, circlize);
+            final BitmapWorkerTask task = new BitmapWorkerTask(data, imageView, mCirclize);
             final AsyncDrawable asyncDrawable =
                     new AsyncDrawable(mResources, mLoadingBitmap, task);
             imageView.setImageDrawable(asyncDrawable);
@@ -106,8 +108,8 @@ public abstract class ImageWorker {
      *
      * @param bitmap
      */
-    public void setLoadingImage(Bitmap bitmap, boolean circlize) {
-        if (circlize) {
+    public void setLoadingImage(Bitmap bitmap) {
+        if (mCirclize) {
             mLoadingBitmap = ImageUtil.getCroppedBitmap(bitmap);
         } else {
             mLoadingBitmap = bitmap;
@@ -119,8 +121,8 @@ public abstract class ImageWorker {
      *
      * @param resId
      */
-    public void setLoadingImage(int resId, boolean circlize) {
-        setLoadingImage(BitmapFactory.decodeResource(mResources, resId), circlize);
+    public void setLoadingImage(int resId) {
+        setLoadingImage(BitmapFactory.decodeResource(mResources, resId));
     }
 
     /**
@@ -169,10 +171,10 @@ public abstract class ImageWorker {
      * example, you could resize a large bitmap here, or pull down an image from the network.
      *
      * @param data The data to identify which image to process, as provided by
-     *             {@link ImageWorker#loadImage(Object, android.widget.ImageView, boolean)}
+     *             {@link ImageWorker#loadImage(Object, android.widget.ImageView)}
      * @return The processed bitmap
      */
-    protected abstract Bitmap processBitmap(Object data, boolean circlizer);
+    protected abstract Bitmap processBitmap(Object data);
 
     /**
      * @return The {@link ImageCache} object currently being used by this ImageWorker.
@@ -292,7 +294,7 @@ public abstract class ImageWorker {
             // process method (as implemented by a subclass)
             if (bitmap == null && !isCancelled() && getAttachedImageView() != null
                     && !mExitTasksEarly) {
-                bitmap = processBitmap(mData, mCirclize);
+                bitmap = processBitmap(mData);
             }
 
             // If the bitmap was processed and the image cache is available, then add the processed

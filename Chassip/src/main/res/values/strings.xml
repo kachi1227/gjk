@@ -51,5 +51,6 @@
     <string name="settings_interleaving_label">Interleaving messages</string>
     <string name="settings_use_kachis_cache_label">Use Kachi\'s cache implementation</string>
     <string name="settings_show_debug_toasts_label">Show debug toast messages</string>
+    <string name="settings_circlize_member_avis">Circlize group member avis</string>
     <string name="save">Save</string>
 </resources>

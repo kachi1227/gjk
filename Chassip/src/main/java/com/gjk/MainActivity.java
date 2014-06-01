@@ -7,7 +7,6 @@ import android.app.FragmentTransaction;
 import android.app.Service;
 import android.content.Context;
 import android.content.DialogInterface;
-import android.content.DialogInterface.OnClickListener;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
@@ -25,6 +24,7 @@ import com.gjk.database.DatabaseManager.DataChangeListener;
 import com.gjk.database.PersistentObject;
 import com.gjk.database.objects.Group;
 import com.gjk.database.objects.GroupMember;
+import com.gjk.database.objects.User;
 import com.gjk.helper.DatabaseHelper;
 import com.gjk.helper.GeneralHelper;
 import com.gjk.net.AddMemberTask;
@@ -40,6 +40,7 @@ import com.gjk.net.NotifyGroupInviteesTask;
 import com.gjk.net.NotifySideChatInviteesTask;
 import com.gjk.net.NotifyWhisperInviteesTask;
 import com.gjk.net.TaskResult;
+import com.gjk.utils.media2.ImageManager;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.jeremyfeinstein.slidingmenu.lib.SlidingMenu;
@@ -77,8 +78,6 @@ public class MainActivity extends SlidingFragmentActivity implements DataChangeL
 
     private final static String LOGTAG = "MainActivity";
 
-    private Context mCtx;
-
     private ViewPager mViewPager;
     private ActionBar mActionBar;
     private ThreadPagerAdapter mThreadPagerAdapter;
@@ -111,9 +110,43 @@ public class MainActivity extends SlidingFragmentActivity implements DataChangeL
         super.onCreate(savedInstanceState);
         // Debug.waitForDebugger();
 
-        mCtx = this;
-        Crashlytics.start(mCtx);
+        Crashlytics.start(this);
 
+        initDrawers(savedInstanceState);
+
+        Application.get().getDatabaseManager().registerDataChangeListener(Group.TABLE_NAME, this);
+        Application.get().getDatabaseManager().registerDataChangeListener(GroupMember.TABLE_NAME, this);
+        Application.get().getDatabaseManager().registerDataChangeListener(User.TABLE_NAME, this);
+
+        mLoginDialog = new LoginDialog();
+        mRegDialog = new RegisterDialog();
+
+        if (!Application.get().getPreferences().contains(Constants.JSON)
+                || !Application.get().getPreferences().contains(Constants.PROPERTY_REG_ID)) {
+            if (!mLoginDialog.isAdded() && !mRegDialog.isAdded()) {
+                mLoginDialog.show(getSupportFragmentManager(), "LoginDialog");
+            }
+        }
+
+        if (mapping.isEmpty()) {
+            mapping.put("Greg", 3L);
+            mapping.put("Greg", 9L);
+            mapping.put("Jeff", 8L);
+            mapping.put("Kachi", 6L);
+        }
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+    }
+
+    private void initDrawers(Bundle savedInstanceState) {
         // Instantiate sliding menu
         final SlidingMenu sm = getSlidingMenu();
         sm.setMode(SlidingMenu.LEFT_RIGHT);
@@ -160,7 +193,7 @@ public class MainActivity extends SlidingFragmentActivity implements DataChangeL
                     final ThreadFragment frag = (ThreadFragment) l.getItemAtPosition(position);
                     String message = "Are you sure you'd like to add more members to " + frag.getName() + "?";
                     AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
-                    builder.setMessage(message).setPositiveButton("Yes", new OnClickListener() {
+                    builder.setMessage(message).setPositiveButton("Yes", new DialogInterface.OnClickListener() {
                         @Override
                         public void onClick(DialogInterface dialog, int which) {
                             mSelectedMembers = new ArrayList<Long>(); // Where we track the selected items
@@ -207,7 +240,7 @@ public class MainActivity extends SlidingFragmentActivity implements DataChangeL
                             dialog2.setCanceledOnTouchOutside(true);
                             dialog2.show();
                         }
-                    }).setNegativeButton("No", new OnClickListener() {
+                    }).setNegativeButton("No", new DialogInterface.OnClickListener() {
                         @Override
                         public void onClick(DialogInterface dialog, int which) {
                         }
@@ -222,28 +255,6 @@ public class MainActivity extends SlidingFragmentActivity implements DataChangeL
                     .commit();
         }
 
-        Application.get().getDatabaseManager().registerDataChangeListener(Group.TABLE_NAME, this);
-        Application.get().getDatabaseManager().registerDataChangeListener(Group.TABLE_NAME, mThreadPagerAdapter);
-        Application.get().getDatabaseManager().registerDataChangeListener(GroupMember.TABLE_NAME, this);
-
-        mLoginDialog = new LoginDialog();
-        mRegDialog = new RegisterDialog();
-
-        if (mapping.isEmpty()) {
-            mapping.put("Greg", 3L);
-            mapping.put("Jeff", 8L);
-            mapping.put("Kachi", 6L);
-        }
-    }
-
-    @Override
-    public void onStart() {
-        super.onStart();
-    }
-
-    @Override
-    public void onStop() {
-        super.onStop();
     }
 
     private void addChatMembers() {
@@ -257,7 +268,7 @@ public class MainActivity extends SlidingFragmentActivity implements DataChangeL
                 if (result.getResponseCode() == 1) {
                     loadMembers(members);
                 } else {
-                    GeneralHelper.reportMessage(mCtx, LOGTAG, result.getMessage());
+                    GeneralHelper.reportMessage(MainActivity.this, LOGTAG, result.getMessage());
                 }
             }
         }, ChatsDrawerFragment.getCurrentChat().getGlobalId(), members);
@@ -273,10 +284,10 @@ public class MainActivity extends SlidingFragmentActivity implements DataChangeL
                         DatabaseHelper.addGroupMembers(response, ChatsDrawerFragment.getCurrentChat().getGlobalId());
                         notifyNewChatMembers(members);
                     } catch (Exception e) {
-                        GeneralHelper.reportMessage(mCtx, LOGTAG, e.getMessage());
+                        GeneralHelper.reportMessage(MainActivity.this, LOGTAG, e.getMessage());
                     }
                 } else {
-                    GeneralHelper.reportMessage(mCtx, LOGTAG, result.getMessage());
+                    GeneralHelper.reportMessage(MainActivity.this, LOGTAG, result.getMessage());
                 }
             }
         }, ChatsDrawerFragment.getCurrentChat().getGlobalId());
@@ -289,7 +300,7 @@ public class MainActivity extends SlidingFragmentActivity implements DataChangeL
                 if (result.getResponseCode() == 1) {
                     Log.i(LOGTAG, "Notified group invitees");
                 } else {
-                    GeneralHelper.reportMessage(mCtx, LOGTAG, result.getMessage());
+                    GeneralHelper.reportMessage(MainActivity.this, LOGTAG, result.getMessage());
                 }
             }
         }, DatabaseHelper.getAccountUserId(), ChatsDrawerFragment.getCurrentChat().getGlobalId(), members);
@@ -312,7 +323,7 @@ public class MainActivity extends SlidingFragmentActivity implements DataChangeL
                     mThreadsDrawerFragment.updateView();
                     notifyNewSideConvoMembers(frag.getThreadId());
                 } else {
-                    GeneralHelper.reportMessage(mCtx, LOGTAG, result.getMessage());
+                    GeneralHelper.reportMessage(MainActivity.this, LOGTAG, result.getMessage());
                 }
             }
         }, frag.getThreadId(), members);
@@ -331,7 +342,7 @@ public class MainActivity extends SlidingFragmentActivity implements DataChangeL
                 if (result.getResponseCode() == 1) {
                     Log.i(LOGTAG, "Notified side convo invitees");
                 } else {
-                    GeneralHelper.reportMessage(mCtx, LOGTAG, result.getMessage());
+                    GeneralHelper.reportMessage(MainActivity.this, LOGTAG, result.getMessage());
                 }
             }
         }, DatabaseHelper.getAccountUserId(), id, members);
@@ -354,7 +365,7 @@ public class MainActivity extends SlidingFragmentActivity implements DataChangeL
                     mThreadsDrawerFragment.updateView();
                     notifyNewWhisperMembers(frag.getThreadId());
                 } else {
-                    GeneralHelper.reportMessage(mCtx, LOGTAG, result.getMessage());
+                    GeneralHelper.reportMessage(MainActivity.this, LOGTAG, result.getMessage());
                 }
             }
         }, frag.getThreadId(), members);
@@ -373,7 +384,7 @@ public class MainActivity extends SlidingFragmentActivity implements DataChangeL
                 if (result.getResponseCode() == 1) {
                     Log.i(LOGTAG, "Notified side convo invitees");
                 } else {
-                    GeneralHelper.reportMessage(mCtx, LOGTAG, result.getMessage());
+                    GeneralHelper.reportMessage(MainActivity.this, LOGTAG, result.getMessage());
                 }
             }
         }, DatabaseHelper.getAccountUserId(), id, members);
@@ -383,13 +394,19 @@ public class MainActivity extends SlidingFragmentActivity implements DataChangeL
     protected void onResume() {
         super.onResume();
         Application.get().activityResumed();
-        if (!Application.get().getPreferences().contains(Constants.JSON)
-                || !Application.get().getPreferences().contains(Constants.PROPERTY_REG_ID)) {
-            if (!mLoginDialog.isAdded() && !mRegDialog.isAdded()) {
-                mLoginDialog.show(getSupportFragmentManager(), "LoginDialog");
-            }
-        } else {
-            getGroupsFromDb();
+
+        if (getIntent().getExtras() != null && getIntent().getExtras().containsKey("group_id")) {
+            toggleChat(getGroup(getIntent().getExtras().getLong("group_id")));
+            return;
+        }
+
+        List<Group> groups = getGroups();
+        if (!groups.isEmpty()) {
+            toggleChat(getGroup(Application.get().getPreferences().getLong("current_group_id", groups.get(0).getGlobalId())));
+        }
+
+        if (!GeneralHelper.getKachisCachePref()) {
+            ImageManager.getInstance(getSupportFragmentManager()).resume();
         }
     }
 
@@ -401,104 +418,30 @@ public class MainActivity extends SlidingFragmentActivity implements DataChangeL
             Application.get().getPreferences().edit()
                     .putLong("current_group_id", ChatsDrawerFragment.getCurrentChat().getGlobalId()).commit();
         }
+
+
+        if (!GeneralHelper.getKachisCachePref()) {
+            ImageManager.getInstance(getSupportFragmentManager()).pause();
+        }
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
         Application.get().getDatabaseManager().unregisterDataChangeListener(Group.TABLE_NAME, this);
-        Application.get().getDatabaseManager().unregisterDataChangeListener(Group.TABLE_NAME, mThreadPagerAdapter);
         Application.get().getDatabaseManager().unregisterDataChangeListener(GroupMember.TABLE_NAME, this);
-    }
+        Application.get().getDatabaseManager().unregisterDataChangeListener(User.TABLE_NAME, this);
 
-    private void getGroupsFromDb() {
-        List<Group> groups = getGroups();
-        for (Group g : groups) {
-            mChatsDrawerFragment.addChat(g);
+
+        if (!GeneralHelper.getKachisCachePref()) {
+            ImageManager.getInstance(getSupportFragmentManager()).destroy();
         }
-        if (!groups.isEmpty()) {
-            long chatId;
-            if (getIntent().getExtras() != null && getIntent().getExtras().containsKey("group_id")) {
-                chatId = getIntent().getExtras().getLong("group_id");
-            } else {
-                chatId = Application.get().getPreferences().getLong("current_group_id", groups.get(0).getGlobalId());
-            }
-            toggleChat(getGroup(chatId));
-        }
-    }
-
-    private void fetchGroups() {
-        new GetMultipleGroupsTask(this, new HTTPTaskListener() {
-            @Override
-            public void onTaskComplete(TaskResult result) {
-                if (result.getResponseCode() == 1) {
-                    JSONArray response = (JSONArray) result.getExtraInfo();
-                    try {
-                        addGroups(response);
-                    } catch (Exception e) {
-                        GeneralHelper.reportMessage(mCtx, LOGTAG, e.getMessage());
-                    }
-                } else {
-                    GeneralHelper.reportMessage(mCtx, LOGTAG, result.getMessage());
-                }
-            }
-        }, getAccountUserId());
-    }
-
-    private void fetchGroupMembers(final Group chat) {
-        new GetGroupMembersTask(this, new HTTPTaskListener() {
-            @Override
-            public void onTaskComplete(TaskResult result) {
-                if (result.getResponseCode() == 1) {
-                    JSONArray response = (JSONArray) result.getExtraInfo();
-                    try {
-                        addGroupMembers(response, chat.getGlobalId());
-                        runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                mThreadsDrawerFragment.updateView();
-                            }
-                        });
-                    } catch (Exception e) {
-                        GeneralHelper.reportMessage(mCtx, LOGTAG, e.getMessage());
-                    }
-                } else {
-                    GeneralHelper.reportMessage(mCtx, LOGTAG, result.getMessage());
-                }
-            }
-        }, chat.getGlobalId());
-    }
-
-    private void fetchGroupMessages(final Group chat) {
-        JSONArray jsonArray = new JSONArray();
-        long id = getLastStoredMessageId(chat.getGlobalId());
-        try {
-            jsonArray.put(0, id).put(1, -1);
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-        new GetMessageTask(this, new HTTPTaskListener() {
-            @Override
-            public void onTaskComplete(TaskResult result) {
-                if (result.getResponseCode() == 1) {
-                    JSONArray messages = (JSONArray) result.getExtraInfo();
-                    try {
-                        addGroupMessages(messages);
-                    } catch (Exception e) {
-                        GeneralHelper.reportMessage(mCtx, LOGTAG, e.getMessage());
-                    }
-                } else {
-                    GeneralHelper.reportMessage(mCtx, LOGTAG, result.getMessage());
-                }
-            }
-        }, getAccountUserId(), chat.getGlobalId(), jsonArray);
     }
 
     protected void toggleChat(Group chat) {
-        // if (ChatsDrawerFragment.getCurrentChat() == null || chat != ChatsDrawerFragment.getCurrentChat()) {
         mChatsDrawerFragment.unnotifyGroup(chat);
+        mThreadsDrawerFragment.updateView();
         mThreadPagerAdapter.setChat(chat);
-        // }
     }
 
     private void addToThreadDrawer(ThreadFragment frag) {
@@ -515,7 +458,7 @@ public class MainActivity extends SlidingFragmentActivity implements DataChangeL
      * @author gpl
      */
     private class ThreadPagerAdapter extends FragmentStatePagerAdapter implements ViewPager.OnPageChangeListener,
-            ActionBar.TabListener, DataChangeListener {
+            ActionBar.TabListener {
 
         private List<ThreadFragment> mCurrrentThreads;
         private String mWhispers;
@@ -573,6 +516,29 @@ public class MainActivity extends SlidingFragmentActivity implements DataChangeL
         public void onPageSelected(int position) {
             if (position < mBar.getTabCount()) {
                 mBar.setSelectedNavigationItem(position);
+            }
+        }
+
+        protected void handleGroupChatChange(Group g) {
+            if (ChatsDrawerFragment.getCurrentChat() != null) {
+                if (ChatsDrawerFragment.getCurrentChat().getGlobalId() == g.getGlobalId()) {
+                    if (!g.getSideChats().equals(mSideConvos)) {
+                        String[] threads = mSideConvos.isEmpty() ? new String[]{g.getSideChats()} : g
+                                .getSideChats().substring(mSideConvos.length() + 1).split("\\|");
+                        for (String thread : threads) {
+                            addThreads(generateThreadFragment(thread, ThreadType.SIDE_CONVO, g.getGlobalId()));
+                        }
+                        mSideConvos = g.getSideChats();
+                    }
+                    if (!g.getWhispers().equals(mWhispers)) {
+                        String[] threads = mWhispers.isEmpty() ? new String[]{g.getWhispers()} : g.getWhispers()
+                                .substring(mWhispers.length() + 1).split("\\|");
+                        for (String thread : threads) {
+                            addThreads(generateThreadFragment(thread, ThreadType.WHISPER, g.getGlobalId()));
+                        }
+                        mWhispers = g.getWhispers();
+                    }
+                }
             }
         }
 
@@ -669,10 +635,10 @@ public class MainActivity extends SlidingFragmentActivity implements DataChangeL
                                     mThreadsDrawerFragment.updateView();
                                 }
                             } catch (Exception e) {
-                                GeneralHelper.reportMessage(mCtx, LOGTAG, e.getMessage());
+                                GeneralHelper.reportMessage(MainActivity.this, LOGTAG, e.getMessage());
                             }
                         } else {
-                            GeneralHelper.reportMessage(mCtx, LOGTAG, result.getMessage());
+                            GeneralHelper.reportMessage(MainActivity.this, LOGTAG, result.getMessage());
                         }
                     }
                 }, id);
@@ -689,10 +655,10 @@ public class MainActivity extends SlidingFragmentActivity implements DataChangeL
                                     mThreadsDrawerFragment.updateView();
                                 }
                             } catch (Exception e) {
-                                GeneralHelper.reportMessage(mCtx, LOGTAG, e.getMessage());
+                                GeneralHelper.reportMessage(MainActivity.this, LOGTAG, e.getMessage());
                             }
                         } else {
-                            GeneralHelper.reportMessage(mCtx, LOGTAG, result.getMessage());
+                            GeneralHelper.reportMessage(MainActivity.this, LOGTAG, result.getMessage());
                         }
                     }
                 }, id);
@@ -706,60 +672,101 @@ public class MainActivity extends SlidingFragmentActivity implements DataChangeL
             mCurrrentThreads.clear();
             notifyDataSetChanged();
         }
+    }
 
-        @Override
-        public void onDataChanged(PersistentObject o) {
-            if (o.getTableName().equals(Group.TABLE_NAME)) {
-                final Group g = (Group) o;
-                if (ChatsDrawerFragment.getCurrentChat() != null) {
-                    if (ChatsDrawerFragment.getCurrentChat().getGlobalId() == g.getGlobalId()) {
-                        if (!g.getSideChats().equals(mSideConvos)) {
-                            String[] threads = mSideConvos.isEmpty() ? new String[]{g.getSideChats()} : g
-                                    .getSideChats().substring(mSideConvos.length() + 1).split("\\|");
-                            for (String thread : threads) {
-                                addThreads(generateThreadFragment(thread, ThreadType.SIDE_CONVO, g.getGlobalId()));
-                            }
-                            mSideConvos = g.getSideChats();
+    private void handleNewAccount() {
+        final Context ctx = this;
+        new GetMultipleGroupsTask(ctx, new HTTPTaskListener() {
+            @Override
+            public void onTaskComplete(TaskResult result) {
+                if (result.getResponseCode() == 1) {
+                    JSONArray response = (JSONArray) result.getExtraInfo();
+                    try {
+                        List<Group> groups = addGroups(response);
+                        for (final Group g : groups) {
+                            new Thread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    try {
+                                        Thread.sleep(100l);
+                                    } catch (InterruptedException e) {
+                                        // TODO Auto-generated catch block
+                                        e.printStackTrace();
+                                    }
+                                    fetchGroupMembers(g);
+                                    fetchGroupMessages(g);
+                                }
+                            }).start();
                         }
-                        if (!g.getWhispers().equals(mWhispers)) {
-                            String[] threads = mWhispers.isEmpty() ? new String[]{g.getWhispers()} : g.getWhispers()
-                                    .substring(mWhispers.length() + 1).split("\\|");
-                            for (String thread : threads) {
-                                addThreads(generateThreadFragment(thread, ThreadType.WHISPER, g.getGlobalId()));
-                            }
-                            mWhispers = g.getWhispers();
-                        }
+                    } catch (Exception e) {
+                        GeneralHelper.reportMessage(ctx, LOGTAG, e.getMessage());
                     }
+                } else {
+                    GeneralHelper.reportMessage(ctx, LOGTAG, result.getMessage());
                 }
             }
+        }, getAccountUserId());
+    }
+
+    private void fetchGroupMembers(final Group chat) {
+        final Context ctx = this;
+        new GetGroupMembersTask(ctx, new HTTPTaskListener() {
+            @Override
+            public void onTaskComplete(TaskResult result) {
+                if (result.getResponseCode() == 1) {
+                    JSONArray response = (JSONArray) result.getExtraInfo();
+                    try {
+                        addGroupMembers(response, chat.getGlobalId());
+//                        runOnUiThread(new Runnable() {
+//                            @Override
+//                            public void run() {
+//                                mThreadsDrawerFragment.updateView();
+//                            }
+//                        });
+                    } catch (Exception e) {
+                        GeneralHelper.reportMessage(ctx, LOGTAG, e.getMessage());
+                    }
+                } else {
+                    GeneralHelper.reportMessage(ctx, LOGTAG, result.getMessage());
+                }
+            }
+        }, chat.getGlobalId());
+    }
+
+    private void fetchGroupMessages(final Group chat) {
+        final Context ctx = this;
+        JSONArray jsonArray = new JSONArray();
+        long id = getLastStoredMessageId(chat.getGlobalId());
+        try {
+            jsonArray.put(0, id).put(1, -1);
+        } catch (JSONException e) {
+            e.printStackTrace();
         }
+        new GetMessageTask(ctx, new HTTPTaskListener() {
+            @Override
+            public void onTaskComplete(TaskResult result) {
+                if (result.getResponseCode() == 1) {
+                    JSONArray messages = (JSONArray) result.getExtraInfo();
+                    try {
+                        addGroupMessages(messages);
+                    } catch (Exception e) {
+                        GeneralHelper.reportMessage(ctx, LOGTAG, e.getMessage());
+                    }
+                } else {
+                    GeneralHelper.reportMessage(ctx, LOGTAG, result.getMessage());
+                }
+            }
+        }, getAccountUserId(), chat.getGlobalId(), jsonArray);
     }
 
     @Override
     public void onDataChanged(PersistentObject o) {
         if (o.getTableName().equals(Group.TABLE_NAME)) {
             final Group g = (Group) o;
-            if (ChatsDrawerFragment.getCurrentChat() == null || g.getCreatorId() == getAccountUserId()) {
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        toggleChat(g);
-                    }
-                });
-            }
-            new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        Thread.sleep(100l);
-                    } catch (InterruptedException e) {
-                        // TODO Auto-generated catch block
-                        e.printStackTrace();
-                    }
-                    fetchGroupMembers(g);
-                    fetchGroupMessages(g);
-                }
-            }).start();
+            mThreadPagerAdapter.handleGroupChatChange(g);
+        } else if (o.getTableName().equals(User.TABLE_NAME)) {
+            final User u = (User) o;
+            handleNewAccount();
         }
     }
 
@@ -776,8 +783,6 @@ public class MainActivity extends SlidingFragmentActivity implements DataChangeL
         String message1 = String.format(Locale.getDefault(), "Welcome, %s! You're swagged out!", fullName);
         Toast.makeText(getApplicationContext(), message1, Toast.LENGTH_SHORT).show();
 
-        getGroupsFromDb();
-        fetchGroups();
         getSlidingMenu().toggle();
     }
 
@@ -797,9 +802,6 @@ public class MainActivity extends SlidingFragmentActivity implements DataChangeL
         String fullName = getAccountUserFullName();
         String message1 = String.format(Locale.getDefault(), "Welcome, %s! You're swagged out!", fullName);
         Toast.makeText(getApplicationContext(), message1, Toast.LENGTH_SHORT).show();
-
-        getGroupsFromDb();
-        fetchGroups();
     }
 
     @Override

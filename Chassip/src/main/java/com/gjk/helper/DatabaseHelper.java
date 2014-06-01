@@ -4,11 +4,13 @@ import android.database.Cursor;
 import android.os.Bundle;
 
 import com.gjk.Application;
+import com.gjk.Constants;
 import com.gjk.database.DatabaseManager;
 import com.gjk.database.objects.Group;
 import com.gjk.database.objects.GroupMember;
 import com.gjk.database.objects.Message;
 import com.gjk.database.objects.User;
+import com.google.common.collect.Lists;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -51,10 +53,12 @@ public final class DatabaseHelper {
         return Group.isTableEmpty(sDm);
     }
 
-    public static void addGroups(JSONArray groups) throws Exception {
+    public static List<Group> addGroups(JSONArray groups) throws Exception {
+        List<Group> listOfGroups = Lists.newArrayList();
         for (int i = 0; i < groups.length(); i++) {
-            addGroup(groups.getJSONObject(i));
+            listOfGroups.add(addGroup(groups.getJSONObject(i)));
         }
+        return listOfGroups;
     }
 
     public static Group addGroup(JSONObject group) throws Exception {
@@ -144,14 +148,73 @@ public final class DatabaseHelper {
     public static List<Message> getMessages(long chatId) {
         ArrayList<Message> objList = new ArrayList<Message>();
         Cursor c = sDm.getReadableDatabase().query(Message.TABLE_NAME, Message.ALL_COLUMN_NAMES,
-                Message.F_GROUP_ID + " = " + chatId, null, null, null, Message.F_ID + " ASC");
+                Message.F_GROUP_ID + " = " + chatId, null, null, null, Message.F_ID + " DESC",
+                String.valueOf(Constants.PROPERTY_SETTING_MESSAGE_LOAD_LIMIT_DEFAULT));
         c.moveToFirst();
         if (c.isAfterLast()) {
             c.close();
             return objList;
         }
         while (!c.isAfterLast()) {
-            objList.add(new Message(sDm, c, false));
+            objList.add(0, new Message(sDm, c, false));
+            c.moveToNext();
+        }
+        c.close();
+        return objList;
+    }
+
+    public static List<Message> getMessages(long chatId, Message before) {
+        ArrayList<Message> objList = new ArrayList<Message>();
+        Cursor c = sDm.getReadableDatabase().query(Message.TABLE_NAME, Message.ALL_COLUMN_NAMES,
+                Message.F_GROUP_ID + " = " + chatId + " AND " + Message.F_DATE + " < " + String.valueOf(before
+                        .getDate())
+                , null, null, null, Message.F_ID + " DESC", String.valueOf(Constants.PROPERTY_SETTING_MESSAGE_LOAD_LIMIT_DEFAULT));
+        c.moveToFirst();
+        if (c.isAfterLast()) {
+            c.close();
+            return objList;
+        }
+        while (!c.isAfterLast()) {
+
+            objList.add(0, new Message(sDm, c, false));
+            c.moveToNext();
+        }
+        c.close();
+        return objList;
+    }
+
+    public static List<Message> getMessages(long chatId, long threadId) {
+        ArrayList<Message> objList = new ArrayList<Message>();
+        Cursor c = sDm.getReadableDatabase().query(Message.TABLE_NAME, Message.ALL_COLUMN_NAMES,
+                Message.F_GROUP_ID + " = " + chatId + " AND " + Message.F_TABLE_ID + " = " + threadId
+                , null, null, null, Message.F_ID + " DESC", String.valueOf(Constants.PROPERTY_SETTING_MESSAGE_LOAD_LIMIT_DEFAULT));
+        c.moveToFirst();
+        if (c.isAfterLast()) {
+            c.close();
+            return objList;
+        }
+        while (!c.isAfterLast()) {
+
+            objList.add(0, new Message(sDm, c, false));
+            c.moveToNext();
+        }
+        c.close();
+        return objList;
+    }
+
+    public static List<Message> getMessages(long chatId, long threadId, Message before) {
+        ArrayList<Message> objList = new ArrayList<Message>();
+        Cursor c = sDm.getReadableDatabase().query(Message.TABLE_NAME, Message.ALL_COLUMN_NAMES,
+                Message.F_GROUP_ID + " = " + chatId + " AND " + Message.F_TABLE_ID + " = " + threadId + " AND " +
+                        Message.F_DATE + " < " + before.getDate(), null, null, null, Message.F_ID + " DESC", String.valueOf(Constants.PROPERTY_SETTING_MESSAGE_LOAD_LIMIT_DEFAULT));
+        c.moveToFirst();
+        if (c.isAfterLast()) {
+            c.close();
+            return objList;
+        }
+        while (!c.isAfterLast()) {
+
+            objList.add(0, new Message(sDm, c, false));
             c.moveToNext();
         }
         c.close();
@@ -160,7 +223,7 @@ public final class DatabaseHelper {
 
     public static Message getLatestMessage(long chatId) {
         Cursor cursor = sDm.getReadableDatabase().query(Message.TABLE_NAME, Message.ALL_COLUMN_NAMES,
-                Message.F_GROUP_ID + " = " + chatId, null, null, null, Group.F_ID + " DESC", "1");
+                Message.F_GROUP_ID + " = " + chatId, null, null, null, Message.F_DATE + " DESC", "1");
         cursor.moveToFirst();
         Message m;
         if (cursor.isAfterLast()) {
@@ -174,13 +237,13 @@ public final class DatabaseHelper {
 
     public static long getLastStoredMessageId(long chatId) {
         Cursor cursor = sDm.getReadableDatabase().query(Message.TABLE_NAME, new String[]{Group.F_GLOBAL_ID},
-                Message.F_GROUP_ID + " = " + chatId, null, null, null, Group.F_ID + " DESC", "1");
+                Message.F_GROUP_ID + " = " + chatId, null, null, null, Message.F_DATE + " DESC", "1");
         cursor.moveToFirst();
         long id;
         if (cursor.isAfterLast()) {
-            id = -1;
+            id = 0;
         } else {
-            id = cursor.getLong(cursor.getColumnIndex(Group.F_GLOBAL_ID));
+            id = cursor.getLong(cursor.getColumnIndex(Message.F_GLOBAL_ID));
         }
         cursor.close();
         return id;

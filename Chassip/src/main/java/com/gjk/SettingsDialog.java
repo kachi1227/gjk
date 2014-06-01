@@ -10,6 +10,8 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.CheckBox;
 
+import com.gjk.helper.GeneralHelper;
+
 public class SettingsDialog extends DialogFragment {
 
     private static final String LOGTAG = "SettingsDialog";
@@ -21,13 +23,14 @@ public class SettingsDialog extends DialogFragment {
     private CheckBox mInterleave;
     private CheckBox mUseKachisCache;
     private CheckBox mShowDebugToasts;
+    private CheckBox mCirclizedMemberAvis;
 
     /*
      * The activity that creates an instance of this dialog fragment must implement this interface in order to receive
      * event callbacks. Each method passes the DialogFragment in case the host needs to query it.
      */
     public interface NoticeDialogListener {
-        public void onDialogPositiveClick(SettingsDialog dialog);
+        public void onDialogPositiveClick(SettingsDialog dialog, boolean dontRefresh);
 
         public void onDialogNegativeClick(SettingsDialog dialog);
     }
@@ -50,15 +53,13 @@ public class SettingsDialog extends DialogFragment {
         View view = inflater.inflate(R.layout.settiings, null);
 
         mInterleave = (CheckBox) view.findViewById(R.id.settings_interleaving);
-        mInterleave.setChecked(Application.get().getPreferences().getBoolean(Constants.PROPERTY_SETTING_INTERLEAVING,
-                Constants.PROPERTY_SETTING_INTERLEAVING_DEFAULT));
+        mInterleave.setChecked(GeneralHelper.getInterleavingPref());
         mUseKachisCache = (CheckBox) view.findViewById(R.id.settings_use_kachis_cache);
-        mUseKachisCache.setChecked(Application.get().getPreferences().getBoolean(Constants.PROPERTY_SETTING_USE_KACHIS_CACHE,
-                Constants.PROPERTY_SETTING_USE_KACHIS_CACHE_DEFAULT));
+        mUseKachisCache.setChecked(GeneralHelper.getKachisCachePref());
         mShowDebugToasts = (CheckBox) view.findViewById(R.id.settings_show_debug_toasts);
-        mShowDebugToasts.setChecked(Application.get().getPreferences().getBoolean(Constants.PROPERTY_SETTING_SHOW_DEBUG_TOASTS,
-                Constants.PROPERTY_SETTING_SHOW_DEBUG_TOASTS_DEFAULT));
-
+        mShowDebugToasts.setChecked(GeneralHelper.getShowDebugToastsPref());
+        mCirclizedMemberAvis = (CheckBox) view.findViewById(R.id.settings_circlize_member_avis);
+        mCirclizedMemberAvis.setChecked(GeneralHelper.getCirclizeMemberAvisPref());
         // Inflate and set the layout for the dialog
         // Pass null as the parent view because its going in the dialog layout
         builder.setView(view)
@@ -67,13 +68,22 @@ public class SettingsDialog extends DialogFragment {
                     @Override
                     public void onClick(DialogInterface dialog, int id) {
                         dismiss();
-                        Application.get().getPreferences().edit().putBoolean(Constants.PROPERTY_SETTING_INTERLEAVING,
-                                mInterleave.isChecked()).commit();
-                        Application.get().getPreferences().edit().putBoolean(Constants.PROPERTY_SETTING_USE_KACHIS_CACHE,
-                                mUseKachisCache.isChecked()).commit();
-                        Application.get().getPreferences().edit().putBoolean(Constants.PROPERTY_SETTING_SHOW_DEBUG_TOASTS,
-                                mShowDebugToasts.isChecked()).commit();
-                        mListener.onDialogPositiveClick(mMe);
+                        if (GeneralHelper.getKachisCachePref() == mUseKachisCache.isChecked() || GeneralHelper
+                                .getCirclizeMemberAvisPref() == mCirclizedMemberAvis.isChecked()) {
+//                            Application.get().clearCache();
+//                            Application.get().getCacheManager().cleanCache();
+//                            ImageManager.getInstance(getActivity().getSupportFragmentManager()).clearCache();
+//                            BitmapLoader.clearCache();
+                        }
+                        boolean dontRefresh = GeneralHelper.getInterleavingPref() == mInterleave.isChecked() &&
+                                GeneralHelper.getKachisCachePref() == mUseKachisCache.isChecked() && GeneralHelper
+                                .getCirclizeMemberAvisPref() == mCirclizedMemberAvis.isChecked();
+                        GeneralHelper.setInterleavingPref(mInterleave.isChecked());
+                        GeneralHelper.setKachisCachePref(mUseKachisCache.isChecked());
+                        GeneralHelper.setShowDebugToastsPref(mShowDebugToasts.isChecked());
+                        GeneralHelper.setCirclizeMemberAvisPref(mCirclizedMemberAvis.isChecked());
+
+                        mListener.onDialogPositiveClick(mMe, dontRefresh);
                     }
                 }).setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
             @Override
