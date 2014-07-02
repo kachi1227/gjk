@@ -1,5 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/chats_menu_frame"
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent" />
+    android:layout_height="match_parent"
+    android:background="@color/ghostwhite">
+
+    <ListView
+        android:id="@+id/chats_list"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:paddingLeft="@dimen/list_padding"
+        android:paddingRight="@dimen/list_padding"
+        android:divider="@android:color/transparent"
+        android:dividerHeight="10dp"
+        android:layout_above="@+id/createChat"/>
+
+    <Button
+        android:id="@+id/createChat"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/create_chat"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true">
+
+    </Button>
+
+</RelativeLayout>

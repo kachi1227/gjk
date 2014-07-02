@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@color/menu_item"
+    android:paddingLeft="@dimen/small_list_padding"
+    android:paddingRight="@dimen/small_list_padding"
+    android:paddingTop="@dimen/small_list_padding"
+    android:paddingBottom="@dimen/small_list_padding"
+    android:descendantFocusability="blocksDescendants"
+    android:addStatesFromChildren="true">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:id="@+id/convoLabel"
+        android:layout_height="wrap_content"
+        android:textStyle="bold"
+        android:textSize="20sp"/>
+
+    <com.gjk.views.HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/convoLabel"
+        android:background="@color/menu_item"
+        android:addStatesFromChildren="true">
+
+        <LinearLayout
+            android:id="@+id/gallery"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:background="@color/menu_item"
+            android:addStatesFromChildren="true"/>
+
+    </com.gjk.views.HorizontalScrollView>
+
+</RelativeLayout>

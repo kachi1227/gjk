@@ -253,7 +253,12 @@ public class CacheImageView extends ImageView implements CacheCallback {
             }
 
             mSampleSize = sampledBitmap.getSampleSize();
-            setImageBitmap(sampledBitmap.getBitmap());
+            Bitmap bitmap = sampledBitmap.getBitmap();
+            if (mCirclize) {
+                setImageBitmap(ImageUtil.getCroppedBitmap(bitmap));
+            } else {
+                setImageBitmap(bitmap);
+            }
             mBitmapLoaded = true;
             if (oldBitmap != null)
                 oldBitmap = null;

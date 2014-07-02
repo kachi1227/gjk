@@ -1,11 +1,70 @@
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     android:orientation="vertical"
-    android:layout_width="wrap_content"
-    android:layout_height="wrap_content">
+    android:layout_width="fill_parent"
+    android:layout_height="wrap_content"
+    android:paddingLeft="@dimen/list_padding"
+    android:paddingRight="@dimen/list_padding"
+    android:paddingTop="@dimen/list_padding"
+    android:paddingBottom="@dimen/list_padding">
+
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:text="@string/choose_name"
+        android:id="@+id/textView"/>
+
     <EditText
         android:id="@+id/chatName"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:inputType="text|textCapWords|textMultiLine"
-        android:hint="@string/create_chat_hint" />
+        android:hint="@string/create_chat_hint"/>
+
+    <!--TEMPORARY-->
+
+    <TextView
+        android:paddingTop="@dimen/list_padding"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:text="@string/choose_members"
+        android:id="@+id/textView"/>
+
+    <CheckBox
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Greg"
+        android:id="@+id/greg"/>
+
+    <CheckBox
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Greg2"
+        android:id="@+id/greg2"/>
+
+    <CheckBox
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Jeff"
+        android:id="@+id/jeff"/>
+
+    <CheckBox
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Kach"
+        android:id="@+id/kach"/>
+
+    <!--/TEMPORARY-->
+
+    <!--<Button-->
+    <!--android:layout_width="wrap_content"-->
+    <!--android:layout_height="wrap_content"-->
+    <!--android:text="@string/select_avi_group"-->
+    <!--android:id="@+id/selectAviGroup"-->
+    <!--android:layout_gravity="center_horizontal"/>-->
+
+
 </LinearLayout>

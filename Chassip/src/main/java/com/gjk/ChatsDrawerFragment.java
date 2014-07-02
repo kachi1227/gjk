@@ -1,446 +1,147 @@
 package com.gjk;
 
-import android.annotation.TargetApi;
-import android.app.Activity;
-import android.app.AlertDialog;
 import android.content.Context;
-import android.content.DialogInterface;
-import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.Typeface;
-import android.net.Uri;
 import android.os.Bundle;
-import android.os.Environment;
-import android.provider.MediaStore;
-import android.support.v4.app.ListFragment;
-import android.util.Log;
+import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentActivity;
+import android.view.ContextMenu;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.view.View.OnClickListener;
 import android.view.ViewGroup;
-import android.widget.ArrayAdapter;
+import android.widget.AdapterView;
 import android.widget.Button;
-import android.widget.EditText;
-import android.widget.ImageView;
+import android.widget.CursorAdapter;
+import android.widget.ListView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
-import com.gjk.database.DatabaseManager.DataChangeListener;
-import com.gjk.database.PersistentObject;
 import com.gjk.database.objects.Group;
-import com.gjk.database.objects.GroupMember;
 import com.gjk.database.objects.Message;
 import com.gjk.helper.DatabaseHelper;
 import com.gjk.helper.GeneralHelper;
-import com.gjk.net.CreateGroupTask;
-import com.gjk.net.GetSpecificGroupTask;
-import com.gjk.net.HTTPTask.HTTPTaskListener;
-import com.gjk.net.NotifyGroupInviteesTask;
-import com.gjk.net.TaskResult;
 import com.gjk.utils.media2.ImageManager;
 import com.gjk.views.CacheImageView;
 import com.gjk.views.RecyclingImageView;
 import com.google.common.collect.Maps;
 
-import org.json.JSONObject;
-
-import java.io.File;
-import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
-import static com.gjk.Constants.CAMERA_REQUEST;
-import static com.gjk.Constants.GALLERY_REQUEST;
-import static com.gjk.helper.DatabaseHelper.addGroup;
-import static com.gjk.helper.DatabaseHelper.getAccountUserId;
-import static com.gjk.helper.DatabaseHelper.getGroups;
+import static com.gjk.Constants.BASE_URL;
+import static com.gjk.Constants.CHAT_CONTEXT_MENU_ID;
+import static com.gjk.Constants.CHAT_DRAWER_ADD_MEMBERS;
+import static com.gjk.Constants.CHAT_DRAWER_DELETE_CHAT;
+import static com.gjk.Constants.CHAT_DRAWER_REMOVE_MEMBERS;
 
 /**
  * @author gpl
  */
-public class ChatsDrawerFragment extends ListFragment implements DataChangeListener, SettingsDialog.NoticeDialogListener {
+public class ChatsDrawerFragment extends Fragment {
 
-    private static final String LOGTAG = "ChatsDrawerFragment";
-
-    private Context mCtx;
-    private static Group sCurrentChat;
-    private ChatAdapter mAdapter;
-    private AlertDialog mDialog;
-    private Map<Long, Boolean> mNotifyMap;
-
-    private View mView;
+    private ChatDrawerAdapter mAdapter;
+    private ListView mChatsList;
     private Button mCreateChat;
-    private ImageView mSettings;
-
-    private String mChatName;
-    private String mAviPath;
-
-    private SettingsDialog mSettingsDialog;
-
-    // TODO: Temporary!!
-    private final static HashMap<String, Long> mapping = Maps.newHashMap();
-    private List<Long> mSelectedMembers;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        mNotifyMap = Maps.newHashMap();
-        Application.get().getDatabaseManager().registerDataChangeListener(Group.TABLE_NAME, this);
-        Application.get().getDatabaseManager().registerDataChangeListener(Message.TABLE_NAME, this);
-        mapping.put("Greg", 3L);
-        mapping.put("Greg2", 9L);
-        mapping.put("Jeff", 8L);
-        mapping.put("Kachi", 6L);
     }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        mView = inflater.inflate(R.layout.chats_drawer_list, null);
-        mCreateChat = (Button) mView.findViewById(R.id.createChat);
-        mCreateChat.setOnClickListener(new OnClickListener() {
+        View view = inflater.inflate(R.layout.chats_drawer, null);
+        mChatsList = (ListView) view.findViewById(R.id.chats_list);
+        mCreateChat = (Button) view.findViewById(R.id.createChat);
+        mCreateChat.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                mSelectedMembers = new ArrayList<Long>(); // Where we track the selected items
-                AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
-                // Set the dialog title
-                builder.setTitle(R.string.add_members_to_chat_title)
-                        // Specify the list array, the items to be selected by default (null for none),
-                        // and the listener through which to receive callbacks when items are selected
-                        .setMultiChoiceItems(R.array.contacts, null, new DialogInterface.OnMultiChoiceClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialog, int which, boolean isChecked) {
-                                String name = getResources().getStringArray(R.array.contacts)[which];
-                                if (isChecked) {
-                                    // If the user checked the item, add it to the selected items
-                                    mSelectedMembers.add(mapping.get(name));
-                                } else if (mSelectedMembers.contains(which)) {
-                                    // Else, if the item is already in the array, remove it
-                                    mSelectedMembers.remove(mapping.get(name));
-                                }
-                            }
-                        })
-                                // Set the action buttons
-                        .setPositiveButton(R.string.ok, new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialog, int id) {
-                                AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
-                                // Get the layout inflater
-                                LayoutInflater inflater = getActivity().getLayoutInflater();
-                                View view = inflater.inflate(R.layout.create_chat_dialog, null);
-                                // Add the buttons
-                                builder.setView(view);
-                                final EditText chatName = (EditText) view.findViewById(R.id.chatName);
-                                builder.setPositiveButton(R.string.yes, new DialogInterface.OnClickListener() {
-                                    @Override
-                                    public void onClick(DialogInterface dialog, int which) {
-                                        String name = chatName.getText().toString();
-                                        Log.d(LOGTAG, "Yes was clicked");
-                                        if (!name.isEmpty()) {
-                                            Log.d(LOGTAG, "Creating chat with name " + name);
-                                            mChatName = name;
-                                            displayImageChooser();
-                                        }
-                                    }
-                                });
-                                builder.setNegativeButton(R.string.no, new DialogInterface.OnClickListener() {
-                                    @Override
-                                    public void onClick(DialogInterface dialog, int which) {
-                                    }
-                                });
-
-                                builder.setTitle(R.string.create_chat_title);
-
-                                // Create the AlertDialog
-                                mDialog = builder.create();
-                                mDialog.setCanceledOnTouchOutside(true);
-                                mDialog.show();
-                            }
-                        }).setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int id) {
-                    }
-                });
-                // Create the AlertDialog
-                mDialog = builder.create();
-                mDialog.setCanceledOnTouchOutside(true);
-                mDialog.show();
+                new CreateChatDialog().show(getActivity().getSupportFragmentManager(), "CreateChatDialog");
             }
         });
-        mSettingsDialog = new SettingsDialog();
-        mSettingsDialog.setListener(this);
-        mSettings = (ImageView) mView.findViewById(R.id.settings);
-        mSettings.setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                mSettingsDialog.show(getActivity().getSupportFragmentManager(), "SettingsDialog");
-            }
-        });
-        return mView;
+        return view;
     }
 
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
-        mCtx = getActivity();
-        mAdapter = new ChatAdapter(getActivity());
-        setListAdapter(mAdapter);
-        List<Group> groups = getGroups();
-        for (Group g : groups) {
-            addChat(g);
-        }
+        final MainActivity activity = (MainActivity) getActivity();
+        mAdapter = new ChatDrawerAdapter(activity, DatabaseHelper.getGroupsCursor());
+        mChatsList.setAdapter(mAdapter);
+        mChatsList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                activity.getDrawerLayout().closeDrawer(Gravity.LEFT);
+                Cursor cursor = (Cursor) parent.getItemAtPosition(position);
+                activity.toggleChat(DatabaseHelper.getGroup(cursor.getLong(cursor.getColumnIndex(Group.F_GLOBAL_ID))));
+            }
+        });
+        registerForContextMenu(mChatsList);
     }
 
     @Override
-    public void onDestroy() {
-        Application.get().getDatabaseManager().unregisterDataChangeListener(Group.TABLE_NAME, this);
-        Application.get().getDatabaseManager().unregisterDataChangeListener(GroupMember.TABLE_NAME, this);
-        Application.get().getDatabaseManager().unregisterDataChangeListener(Message.TABLE_NAME, this);
-        super.onDestroy();
+    public void onCreateContextMenu(ContextMenu menu, View v, ContextMenu.ContextMenuInfo menuInfo) {
+        super.onCreateContextMenu(menu, v, menuInfo);
+        AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo) menuInfo;
+        Cursor cursor = (Cursor) mAdapter.getItem(info.position);
+        menu.setHeaderTitle(cursor.getString(cursor.getColumnIndex(Group.F_NAME)));
+        menu.add(CHAT_CONTEXT_MENU_ID, v.getId(), 0, CHAT_DRAWER_ADD_MEMBERS);//groupId, itemId, order, title
+        menu.add(CHAT_CONTEXT_MENU_ID, v.getId(), 1, CHAT_DRAWER_REMOVE_MEMBERS);
+        menu.add(CHAT_CONTEXT_MENU_ID, v.getId(), 2, CHAT_DRAWER_DELETE_CHAT);
     }
 
-    public void addChat(Group g) {
-        int position = mAdapter.getPosition(g);
-        if (position >= 0) {
-            mAdapter.getItem(position).setName(g.getName());
-            mAdapter.getItem(position).setImageUrl(g.getImageUrl());
-            mAdapter.getItem(position).setSideChats(g.getSideChats());
-            mAdapter.getItem(position).setWhispers(g.getWhispers());
-        } else {
-            mAdapter.add(g);
+    public void swapCursor(Cursor cursor) {
+        if (mAdapter != null) {
+            mAdapter.swapCursor(cursor);
         }
     }
 
     public void updateView() {
-        mAdapter.notifyDataSetChanged();
-    }
-
-    private void displayImageChooser() {
-
-        AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
-        // Add the buttons
-        builder.setPositiveButton(R.string.camera, new DialogInterface.OnClickListener() {
-
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                sendCameraIntent();
-            }
-        });
-        builder.setNeutralButton(R.string.gallery, new DialogInterface.OnClickListener() {
-
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-
-                if (android.os.Build.VERSION.SDK_INT >= 19) {
-                    sendGalleryIntent();
-                } else {
-                    sendGalleryIntentPreKitKat();
-                }
-            }
-        });
-
-        builder.setMessage(R.string.select_avi_message).setTitle(R.string.select_avi_title);
-
-        // Create the AlertDialog
-        mDialog = builder.create();
-        mDialog.setCanceledOnTouchOutside(true);
-        mDialog.show();
-    }
-
-    private void createChat() {
-        HashMap<String, Object> fieldMapping = Maps.newHashMap();
-        fieldMapping.put("image", new File(mAviPath));
-        final long[] members = new long[mSelectedMembers.size()];
-        for (int i = 0; i < mSelectedMembers.size(); i++) {
-            members[i] = mSelectedMembers.get(i);
-        }
-        new CreateGroupTask(getActivity(), new HTTPTaskListener() {
-            long[] ids = members;
-
-            @Override
-            public void onTaskComplete(TaskResult result) {
-                if (result.getResponseCode() == 1) {
-                    JSONObject response = (JSONObject) result.getExtraInfo();
-                    try {
-                        fetchGroup(response.getLong("id"));
-                        notifyGroup(response.getLong("id"), ids);
-                    } catch (Exception e) {
-                        GeneralHelper.reportMessage(getActivity(), LOGTAG, e.getMessage());
-                    }
-                } else {
-                    GeneralHelper.reportMessage(getActivity(), LOGTAG, result.getMessage());
-                }
-            }
-        }, getAccountUserId(), mChatName, members, fieldMapping);
-    }
-
-    private void fetchGroup(long chatId) {
-        new GetSpecificGroupTask(mCtx, new HTTPTaskListener() {
-            @Override
-            public void onTaskComplete(TaskResult result) {
-                if (result.getResponseCode() == 1) {
-                    JSONObject response = (JSONObject) result.getExtraInfo();
-                    try {
-                        addGroup(response);
-                    } catch (Exception e) {
-                        GeneralHelper.reportMessage(getActivity(), LOGTAG, e.getMessage());
-                    }
-                } else {
-                    GeneralHelper.reportMessage(getActivity(), LOGTAG, result.getMessage());
-                }
-            }
-        }, getAccountUserId(), chatId);
-    }
-
-    private void notifyGroup(long chatId, long[] ids) {
-        new NotifyGroupInviteesTask(getActivity(), new HTTPTaskListener() {
-            @Override
-            public void onTaskComplete(TaskResult result) {
-                if (result.getResponseCode() == 1) {
-                    Log.i(LOGTAG, "Notified group invitees");
-                } else {
-                    GeneralHelper.reportMessage(getActivity(), LOGTAG, result.getMessage());
-                }
-            }
-        }, getAccountUserId(), chatId, ids);
-    }
-
-    @Override
-    public void onActivityResult(int requestCode, int resultCode, Intent data) {
-
-        if (resultCode == Activity.RESULT_OK) {
-            if (requestCode == GALLERY_REQUEST || requestCode == CAMERA_REQUEST) {
-                try {
-                    if (requestCode == GALLERY_REQUEST) {
-                        // grab path from gallery
-                        Uri selectedImageUri = data.getData();
-                        mAviPath = getPath(selectedImageUri);
-                    } else if (requestCode == CAMERA_REQUEST) {
-                        // add pic to gallery
-                        Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
-                        File f = new File(mAviPath);
-                        Uri contentUri = Uri.fromFile(f);
-                        mediaScanIntent.setData(contentUri);
-                        getActivity().sendBroadcast(mediaScanIntent);
-                    }
-                    GeneralHelper.reportMessage(getActivity(), LOGTAG, "Image path: " + mAviPath);
-                    createChat();
-                } catch (Exception e) {
-                    GeneralHelper.reportMessage(getActivity(), LOGTAG, e.getMessage());
-                }
-            }
+        if (mAdapter != null) {
+            mAdapter.notifyDataSetChanged();
         }
     }
 
-    private void sendGalleryIntentPreKitKat() {
-
-        Log.d(LOGTAG, "Running pre-Kit-Kat");
-        Intent intent = new Intent();
-        intent.setType("image/*");
-        intent.setAction(Intent.ACTION_GET_CONTENT);
-        startActivityForResult(Intent.createChooser(intent, "Select Picture"), GALLERY_REQUEST);
-    }
-
-    @TargetApi(19)
-    private void sendGalleryIntent() {
-
-        Log.d(LOGTAG, "Running Kit-Kat or higher!");
-        Intent intent = new Intent();
-        intent.setType("image/*");
-        intent.setAction(Intent.ACTION_OPEN_DOCUMENT);
-        intent.addCategory(Intent.CATEGORY_OPENABLE);
-        startActivityForResult(Intent.createChooser(intent, "Select Picture"), GALLERY_REQUEST);
-    }
-
-    private void sendCameraIntent() {
-
-        Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-        // Ensure that there's a camera activity to handle the intent
-        if (takePictureIntent.resolveActivity(getActivity().getPackageManager()) != null) {
-            // Create the File where the photo should go
-            File photoFile = null;
-            try {
-                // Create an image file name
-                String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
-                String imageFileName = String.format("%s_%s.jpg", getResources().getString(R.string.app_name),
-                        timeStamp);
-                File storageDir = new File(Environment.getExternalStorageDirectory(), getResources().getString(
-                        R.string.app_name));
-                storageDir.mkdirs();
-                photoFile = new File(storageDir, imageFileName);
-                photoFile.createNewFile();
-
-                // Save a file: path for use with ACTION_VIEW intents
-                mAviPath = photoFile.getAbsolutePath();
-            } catch (IOException ex) {
-                GeneralHelper.reportMessage(getActivity(), LOGTAG, "Saving temp image file failed, the fuck!?");
-            }
-            // Continue only if the File was successfully created
-            if (photoFile != null) {
-                takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(photoFile));
-                startActivityForResult(takePictureIntent, CAMERA_REQUEST);
-            }
+    public Cursor getItem(int position) {
+        if (mAdapter != null) {
+            return (Cursor) mAdapter.getItem(position);
         }
+        return null;
     }
 
-    /**
-     * helper to retrieve the path of an image URI
-     */
-    private String getPath(Uri uri) {
+    private class ChatDrawerAdapter extends CursorAdapter {
 
-        String result;
-        Cursor cursor = getActivity().getContentResolver().query(uri, null, null, null, null);
-        if (cursor == null) { // Source is Dropbox or other similar local file
-            // path
-            result = uri.getPath();
-        } else {
-            cursor.moveToFirst();
-            int idx = cursor.getColumnIndex(MediaStore.Images.ImageColumns.DATA);
-            result = cursor.getString(idx);
-            cursor.close();
-        }
-        return result;
-    }
+        private Map<Long, Boolean> mNotifyMap;
 
-    @Override
-    public void onDialogPositiveClick(SettingsDialog dialog, boolean dontRefresh) {
-        if (!dontRefresh) {
-            ((MainActivity) getActivity()).toggleChat(getCurrentChat());
-        }
-    }
-
-    @Override
-    public void onDialogNegativeClick(SettingsDialog dialog) {
-    }
-
-    private class ChatAdapter extends ArrayAdapter<Group> {
-
-        public ChatAdapter(Context context) {
-            super(context, 0);
+        public ChatDrawerAdapter(FragmentActivity a, Cursor c) {
+            super(a, c, true);
+            mNotifyMap = Maps.newHashMap();
         }
 
-        public View getView(int position, View convertView, ViewGroup parent) {
+        @Override
+        public View newView(Context context, Cursor cursor, ViewGroup parent) {
+            View view = LayoutInflater.from(context).inflate(R.layout.chats_drawer_row, parent, false);
+            buildView(view, cursor);
+            return view;
+        }
 
-            Group g = getItem(position);
+        @Override
+        public void bindView(View view, Context context, Cursor cursor) {
+            buildView(view, cursor);
+        }
 
-            if (convertView == null) {
-                convertView = LayoutInflater.from(getContext()).inflate(R.layout.chats_drawer_row, null);
-            }
-
-            RelativeLayout row = (RelativeLayout) convertView.findViewById(R.id.chatRow);
-            Message last = DatabaseHelper.getLatestMessage(g.getGlobalId());
-            row.setBackgroundColor(getColor(last));
-            TextView chatLabel = (TextView) convertView.findViewById(R.id.chatLabel);
-            chatLabel.setText(g.getName());
-            TextView latestMessage = (TextView) convertView.findViewById(R.id.latestMessage);
-            String latestMessageStr = getLatestMessage(position);
+        public void buildView(View view, Cursor cursor) {
+            RelativeLayout row = (RelativeLayout) view.findViewById(R.id.chatRow);
+            long globalId = cursor.getLong(cursor.getColumnIndex(Group.F_GLOBAL_ID));
+            Message last = DatabaseHelper.getLatestMessage(globalId);
+            row.setBackgroundResource(getColor(last));
+            TextView chatLabel = (TextView) view.findViewById(R.id.chatLabel);
+            chatLabel.setText(cursor.getString(cursor.getColumnIndex(Group.F_NAME)));
+            TextView latestMessage = (TextView) view.findViewById(R.id.latestMessage);
+            String latestMessageStr = getText(last);
             latestMessage.setText(latestMessageStr);
-            if (mNotifyMap.containsKey(g.getGlobalId())
-                    && mNotifyMap.get(g.getGlobalId())) {
+            if (mNotifyMap.containsKey(globalId) && mNotifyMap.get(globalId)) {
                 latestMessage.setTypeface(null, Typeface.BOLD);
             } else if (latestMessageStr.isEmpty()) {
                 latestMessage.setTypeface(null, Typeface.ITALIC);
@@ -449,73 +150,37 @@ public class ChatsDrawerFragment extends ListFragment implements DataChangeListe
                 latestMessage.setTypeface(null, Typeface.NORMAL);
             }
 
-            CacheImageView avi = (CacheImageView) convertView.findViewById(R.id.groupAvi);
-            RecyclingImageView avi2 = (RecyclingImageView) convertView.findViewById(R.id.groupAvi2);
+            CacheImageView avi = (CacheImageView) view.findViewById(R.id.groupAvi);
+            RecyclingImageView avi2 = (RecyclingImageView) view.findViewById(R.id.groupAvi2);
 
             if (GeneralHelper.getKachisCachePref()) {
                 avi2.setVisibility(View.INVISIBLE);
                 avi.setVisibility(View.VISIBLE);
-                avi.configure(Constants.BASE_URL + g.getImageUrl(), 0, false);
+                avi.configure(BASE_URL + cursor.getString(cursor.getColumnIndex(Group.F_IMAGE_URL)), 0, false);
             } else {
                 avi.setVisibility(View.INVISIBLE);
                 avi2.setVisibility(View.VISIBLE);
-                ImageManager.getInstance(getActivity().getSupportFragmentManager())
-                        .loadUncirclizedImage(g.getImageUrl(), avi2);
+                ImageManager.getInstance(getActivity().getSupportFragmentManager()).loadUncirclizedImage(
+                        cursor.getString(cursor.getColumnIndex(Group.F_IMAGE_URL)), avi2);
             }
-
-            return convertView;
         }
 
-        private String getLatestMessage(int position) {
-            Group g = getItem(position);
-            Message m = DatabaseHelper.getLatestMessage(g.getGlobalId());
+        private String getText(Message m) {
             if (m == null) {
                 return "";
             }
-            return String.format(Locale.getDefault(), "%s %s: %s", m.getSenderFirstName(), m.getSenderLastName(),
+            return String.format("%s %s: %s", m.getSenderFirstName(), m.getSenderLastName(),
                     m.getContent());
         }
 
         private int getColor(Message m) {
             if (m == null) {
-                return mCtx.getResources().getColor(R.color.ghostwhite);
+                return R.color.menu_item;
             }
             if (m.getSenderId() == DatabaseHelper.getAccountUserId()) {
-                return mCtx.getResources().getColor(R.color.ivory);
+                return R.color.menu_own_item;
             }
-            return mCtx.getResources().getColor(R.color.ghostwhite);
+            return R.color.menu_item;
         }
-    }
-
-    public static void setCurrentChat(Group chat) {
-        sCurrentChat = chat;
-    }
-
-    public void unnotifyGroup(Group chat) {
-        mNotifyMap.put(chat.getGlobalId(), false);
-        updateView();
-    }
-
-    public static Group getCurrentChat() {
-        return sCurrentChat;
-    }
-
-    @Override
-    public void onDataChanged(final PersistentObject o) {
-        getActivity().runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                if (o.getTableName().equals(Group.TABLE_NAME)) {
-                    Group g = (Group) o;
-                    addChat(g);
-                } else if (o.getTableName().equals(Message.TABLE_NAME)) {
-                    Message m = (Message) o;
-                    if (ChatsDrawerFragment.sCurrentChat.getGlobalId() != m.getGroupId()) {
-                        mNotifyMap.put(m.getGroupId(), true);
-                    }
-                    updateView();
-                }
-            }
-        });
     }
 }

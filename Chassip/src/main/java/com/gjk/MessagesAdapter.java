@@ -1,6 +1,8 @@
 package com.gjk;
 
 import android.content.Context;
+import android.database.Cursor;
+import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.FragmentManager;
 import android.text.TextUtils;
 import android.text.format.DateFormat;
@@ -8,7 +10,7 @@ import android.text.util.Linkify;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ArrayAdapter;
+import android.widget.CursorAdapter;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
@@ -19,139 +21,158 @@ import com.gjk.utils.media2.ImageManager;
 import com.gjk.views.CacheImageView;
 import com.gjk.views.RecyclingImageView;
 
-import java.util.List;
 import java.util.Locale;
 
 
-public class MessagesAdapter extends ArrayAdapter<Message> {
-    private final String LOGTAG = getClass().getSimpleName();
+public class MessagesAdapter extends CursorAdapter {
+    private static final String LOGTAG = "MessagesAdapter";
 
-    private final Context mCtx;
-    private final long mChatId;
-    private final long mThreadId;
-    private final ThreadType mType;
+    private final FragmentActivity mA;
+    private final long mConvoId;
+    private final ConvoType mType;
     private final FragmentManager mFm;
 
-    public MessagesAdapter(Context ctx, FragmentManager fm, long chatId, long threadId, ThreadType type,
-                           List<Message> ims) {
-        super(ctx, 0, ims);
-        mCtx = ctx;
-        mChatId = chatId;
-        mThreadId = threadId;
+
+    public MessagesAdapter(FragmentActivity a, Cursor cursor, long convoId, ConvoType type) {
+        super(a, cursor, true);
+        mA = a;
+        mConvoId = convoId;
         mType = type;
-        mFm = fm;
+        mFm = a.getSupportFragmentManager();
     }
 
     @Override
-    public View getView(int position, View convertView, ViewGroup parent) {
-
-        if (convertView == null) {
-            convertView = LayoutInflater.from(getContext()).inflate(R.layout.message_row, null);
-        }
-
-        Message item = getItem(position);
-        RelativeLayout row = (RelativeLayout) convertView.findViewById(R.id.messageLayout);
-        TextView userName = (TextView) convertView.findViewById(R.id.userName);
-        TextView message = (TextView) convertView.findViewById(R.id.message);
-        TextView time = (TextView) convertView.findViewById(R.id.time);
-        TextView headerDate = (TextView) convertView.findViewById(R.id.headerDate);
-        TextView footerDate = (TextView) convertView.findViewById(R.id.footerDate);
-
-        if (userName != null && message != null && time != null && footerDate != null && headerDate != null) {
-
-            if (position == 0) { // first message
-                headerDate.setVisibility(View.VISIBLE);
-                headerDate.setText(convertDateToStr(item.getDate(), true));
-                footerDate.setVisibility(View.GONE);
-            } else if (position < getCount()) { // any message but the first
-                Message prev = getItem(position - 1);
-                String prevD = String.valueOf(DateFormat.format("yyyyMMdd", prev.getDate()));
-                String thisD = String.valueOf(DateFormat.format("yyyyMMdd", item.getDate()));
-                if (prevD.equals(thisD)) {
-                    headerDate.setVisibility(View.GONE);
-                } else {
-                    headerDate.setVisibility(View.VISIBLE);
-                    headerDate.setText(convertDateToStr(item.getDate(), true));
-                }
-                if (position < getCount() - 1) { // not the first or last message
-                    Message next = getItem(position + 1);
-                    String nextD = String.valueOf(DateFormat.format("yyyyMMdd", next.getDate()));
-                    if (nextD.equals(thisD)) {
-                        footerDate.setVisibility(View.GONE);
-                    } else {
-                        footerDate.setVisibility(View.VISIBLE);
-                        footerDate.setText(convertDateToStr(item.getDate(), false));
-                    }
-                } else { // the last message
-                    String currDate = String.valueOf(DateFormat.format("yyyyMMdd", System.currentTimeMillis()));
-                    if (currDate.equals(thisD)) {
-                        footerDate.setVisibility(View.GONE);
-                    } else {
-                        footerDate.setVisibility(View.VISIBLE);
-                        footerDate.setText(convertDateToStr(item.getDate(), false));
-                    }
-                }
-            }
-
-            if (item.getSenderId() == DatabaseHelper.getAccountUserId()) {
-                row.setBackgroundColor(mCtx.getResources().getColor(R.color.ivory));
-            }
-            else {
-                row.setBackgroundColor(mCtx.getResources().getColor(R.color.ghostwhite));
-            }
-            String name = String.format(Locale.getDefault(), "%s %s", item.getSenderFirstName(), item.getSenderLastName());
-            userName.setText(name);
-            message.setText(item.getContent());
-            Linkify.addLinks(message, Linkify.ALL);
-            time.setText(convertTimeToStr(item.getDate()));
-            int color = getColor(item);
-            userName.setTextColor(mCtx.getResources().getColor(color));
-            message.setTextColor(mCtx.getResources().getColor(color));
-            time.setTextColor(mCtx.getResources().getColor(color));
-
-            CacheImageView avi = (CacheImageView) convertView.findViewById(R.id.memberAvi);
-            RecyclingImageView avi2 = (RecyclingImageView) convertView.findViewById(R.id.memberAvi2);
-            CacheImageView attachment = (CacheImageView) convertView.findViewById(R.id.attachment);
-            RecyclingImageView attachment2 = (RecyclingImageView) convertView.findViewById(R.id.attachment2);
-
-            if (GeneralHelper.getKachisCachePref()) {
-                avi2.setVisibility(View.INVISIBLE);
-                avi.setVisibility(View.VISIBLE);
-                attachment2.setVisibility(View.GONE);
-                if (GeneralHelper.getCirclizeMemberAvisPref()) {
-                    avi.configure(Constants.BASE_URL + item.getSenderImageUrl(), 0, true);
-                } else {
-                    avi.configure(Constants.BASE_URL + item.getSenderImageUrl(), 0, false);
-                }
-                attachment.setVisibility(!TextUtils.isEmpty(item.getAttachments()) ? View.VISIBLE : View.GONE);
-                if (!TextUtils.isEmpty(item.getAttachments()))
-                    attachment.configure(Constants.BASE_URL + item.getAttachments(), 0, false);
-            } else {
-                avi.setVisibility(View.INVISIBLE);
-                avi2.setVisibility(View.VISIBLE);
-                attachment.setVisibility(View.GONE);
-                if (GeneralHelper.getCirclizeMemberAvisPref()) {
-                    ImageManager.getInstance(mFm).loadCirclizedImage(item.getSenderImageUrl(), avi2);
-                } else {
-                    ImageManager.getInstance(mFm).loadUncirclizedImage(item.getSenderImageUrl(), avi2);
-                }
-                attachment2.setVisibility(!TextUtils.isEmpty(item.getAttachments()) ? View.VISIBLE : View.GONE);
-                if (!TextUtils.isEmpty(item.getAttachments()))
-                    ImageManager.getInstance(mFm).loadUncirclizedImage(item.getAttachments(), attachment2);
-            }
-        }
-
-        return convertView;
+    public View newView(Context context, Cursor cursor, ViewGroup parent) {
+        View view = LayoutInflater.from(context).inflate(R.layout.message_row, parent, false);
+        buildView(view, cursor);
+        return view;
     }
 
-    private int getColor(Message m) {
-        if (m.getMessageTypeId() == ThreadType.MAIN_CHAT.getValue()) { // if message doesn't have message type id, then it must be from main chat
-            if (mType == ThreadType.MAIN_CHAT) {
+    @Override
+    public void bindView(View view, Context context, Cursor cursor) {
+        buildView(view, cursor);
+    }
+
+    private void buildView(View view, Cursor cursor) {
+
+        RelativeLayout row = (RelativeLayout) view.findViewById(R.id.messageLayout);
+        TextView userName = (TextView) view.findViewById(R.id.userName);
+        TextView message = (TextView) view.findViewById(R.id.message);
+        TextView time = (TextView) view.findViewById(R.id.time);
+        TextView headerDate = (TextView) view.findViewById(R.id.headerDate);
+        TextView footerDate = (TextView) view.findViewById(R.id.footerDate);
+
+        String thisD = String.valueOf(DateFormat.format("yyyyMMdd", cursor.getLong(cursor.getColumnIndex(Message.F_DATE))));
+        if (cursor.isFirst()) { // first message
+            headerDate.setVisibility(View.VISIBLE);
+            headerDate.setText(convertDateToStr(cursor.getLong(cursor.getColumnIndex(Message.F_DATE)), true));
+            footerDate.setVisibility(View.GONE);
+            if (cursor.getCount() > 1) {
+                cursor.moveToNext();
+                String nextD = String.valueOf(DateFormat.format("yyyyMMdd", cursor.getLong(cursor.getColumnIndex
+                        (Message.F_DATE))));
+                cursor.moveToPrevious();
+                if (nextD.equals(thisD)) {
+                    footerDate.setVisibility(View.GONE);
+                } else {
+                    footerDate.setVisibility(View.VISIBLE);
+                    footerDate.setText(convertDateToStr(cursor.getLong(cursor.getColumnIndex(Message.F_DATE)), false));
+                }
+            }
+        } else if (cursor.getPosition() < getCount()) { // any message but the first
+            cursor.moveToPrevious();
+            String prevD = String.valueOf(DateFormat.format("yyyyMMdd", cursor.getLong(cursor.getColumnIndex(Message
+                    .F_DATE))));
+            cursor.moveToNext();
+            if (prevD.equals(thisD)) {
+                headerDate.setVisibility(View.GONE);
+            } else {
+                headerDate.setVisibility(View.VISIBLE);
+                headerDate.setText(convertDateToStr(cursor.getLong(cursor.getColumnIndex(Message.F_DATE)), true));
+            }
+            if (!cursor.isLast()) { // not the first or last message
+                cursor.moveToNext();
+                String nextD = String.valueOf(DateFormat.format("yyyyMMdd", cursor.getLong(cursor.getColumnIndex
+                        (Message.F_DATE))));
+                cursor.moveToPrevious();
+                if (nextD.equals(thisD)) {
+                    footerDate.setVisibility(View.GONE);
+                } else {
+                    footerDate.setVisibility(View.VISIBLE);
+                    footerDate.setText(convertDateToStr(cursor.getLong(cursor.getColumnIndex(Message.F_DATE)), false));
+                }
+            } else { // the last message
+                String currDate = String.valueOf(DateFormat.format("yyyyMMdd", System.currentTimeMillis()));
+                if (currDate.equals(thisD)) {
+                    footerDate.setVisibility(View.GONE);
+                } else {
+                    footerDate.setVisibility(View.VISIBLE);
+                    footerDate.setText(convertDateToStr(cursor.getLong(cursor.getColumnIndex(Message.F_DATE)), false));
+                }
+            }
+        }
+
+        if (cursor.getLong(cursor.getColumnIndex(Message.F_SENDER_ID)) == DatabaseHelper.getAccountUserId()) {
+            row.setBackgroundColor(mA.getResources().getColor(R.color.ivory));
+        } else {
+            row.setBackgroundColor(mA.getResources().getColor(R.color.ghostwhite));
+        }
+        String name = String.format(Locale.getDefault(), "%s %s", cursor.getString(cursor.getColumnIndex(Message
+                .F_SENDER_FIRST_NAME)), cursor.getString(cursor.getColumnIndex(Message
+                .F_SENDER_LAST_NAME)));
+        userName.setText(name);
+        message.setText(cursor.getString(cursor.getColumnIndex(Message.F_CONTENT)));
+        Linkify.addLinks(message, Linkify.ALL);
+        time.setText(convertTimeToStr(cursor.getLong(cursor.getColumnIndex(Message.F_DATE))));
+        int color = getColor(cursor.getInt(cursor.getColumnIndex(Message.F_MESSAGE_TYPE_ID)),
+                cursor.getLong(cursor.getColumnIndex(Message.F_TABLE_ID)));
+        userName.setTextColor(mA.getResources().getColor(color));
+        message.setTextColor(mA.getResources().getColor(color));
+        time.setTextColor(mA.getResources().getColor(color));
+
+        CacheImageView avi = (CacheImageView) view.findViewById(R.id.memberAvi);
+        RecyclingImageView avi2 = (RecyclingImageView) view.findViewById(R.id.memberAvi2);
+        CacheImageView attachment = (CacheImageView) view.findViewById(R.id.attachment);
+        RecyclingImageView attachment2 = (RecyclingImageView) view.findViewById(R.id.attachment2);
+
+        String senderImageUrl = cursor.getString(cursor.getColumnIndex(Message.F_SENDER_IMAGE_URL));
+        String attachmentUrl = cursor.getString(cursor.getColumnIndex(Message.F_ATTACHMENT));
+        if (GeneralHelper.getKachisCachePref()) {
+            avi2.setVisibility(View.INVISIBLE);
+            avi.setVisibility(View.VISIBLE);
+            attachment2.setVisibility(View.GONE);
+            if (GeneralHelper.getCirclizeMemberAvisPref()) {
+                avi.configure(Constants.BASE_URL + senderImageUrl, 0, true);
+            } else {
+                avi.configure(Constants.BASE_URL + senderImageUrl, 0, false);
+            }
+            attachment.setVisibility(!TextUtils.isEmpty(attachmentUrl) ? View.VISIBLE : View.GONE);
+            if (!TextUtils.isEmpty(attachmentUrl))
+                attachment.configure(Constants.BASE_URL + attachmentUrl, 0, false);
+        } else {
+            avi.setVisibility(View.INVISIBLE);
+            avi2.setVisibility(View.VISIBLE);
+            attachment.setVisibility(View.GONE);
+            if (GeneralHelper.getCirclizeMemberAvisPref()) {
+                ImageManager.getInstance(mFm).loadCirclizedImage(senderImageUrl, avi2);
+            } else {
+                ImageManager.getInstance(mFm).loadUncirclizedImage(senderImageUrl, avi2);
+            }
+            attachment2.setVisibility(!TextUtils.isEmpty(attachmentUrl) ? View.VISIBLE : View.GONE);
+            if (!TextUtils.isEmpty(attachmentUrl))
+                ImageManager.getInstance(mFm).loadUncirclizedImage(attachmentUrl, attachment2);
+        }
+
+    }
+
+    private int getColor(int type, long id) {
+        if (type == ConvoType.MAIN_CHAT.getValue()) { // if message doesn't have message type id, then it must be from main chat
+            if (mType == ConvoType.MAIN_CHAT) {
                 return R.color.black;
             }
             return R.color.lightgrey;
         } else {
-            if (mThreadId == m.getTableId()) {
+            if (mConvoId == id) {
                 return R.color.black;
             }
             return R.color.lightgrey;

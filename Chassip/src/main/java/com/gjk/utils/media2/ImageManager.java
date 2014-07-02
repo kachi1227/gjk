@@ -1,5 +1,6 @@
 package com.gjk.utils.media2;
 
+import android.graphics.drawable.BitmapDrawable;
 import android.support.v4.app.FragmentManager;
 
 import com.gjk.Application;
@@ -49,6 +50,14 @@ public class ImageManager {
 
     public void loadUncirclizedImage(String url, RecyclingImageView v) {
         mImageFetcherUncirclized.loadImage(Constants.BASE_URL + url, v);
+    }
+
+    public BitmapDrawable fetchCirclizedImage(String url) {
+        return mImageFetcherCirclized.fetchImage(url);
+    }
+
+    public BitmapDrawable fetchUncirclizedImage(String url) {
+        return mImageFetcherUncirclized.fetchImage(url);
     }
 
     public void clearCache() {

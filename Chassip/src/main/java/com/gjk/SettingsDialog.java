@@ -1,5 +1,6 @@
 package com.gjk;
 
+import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.Context;
@@ -30,16 +31,24 @@ public class SettingsDialog extends DialogFragment {
      * event callbacks. Each method passes the DialogFragment in case the host needs to query it.
      */
     public interface NoticeDialogListener {
-        public void onDialogPositiveClick(SettingsDialog dialog, boolean dontRefresh);
-
-        public void onDialogNegativeClick(SettingsDialog dialog);
+        public void onSettingsDialogPositiveClick(SettingsDialog dialog, boolean dontRefresh);
     }
 
     // Use this instance of the interface to deliver action events
     NoticeDialogListener mListener;
 
-    public void setListener(NoticeDialogListener listener) {
-        mListener = listener;
+    @Override
+    public void onAttach(Activity activity) {
+        super.onAttach(activity);
+
+        // Verify that the host activity implements the callback interface
+        try {
+            // Instantiate the NoticeDialogListener so we can send events to the host
+            mListener = (NoticeDialogListener) activity;
+        } catch (ClassCastException e) {
+            // The activity doesn't implement the interface, throw exception
+            throw new ClassCastException(activity.toString() + " must implement NoticeDialogListener");
+        }
     }
 
     @Override
@@ -50,7 +59,7 @@ public class SettingsDialog extends DialogFragment {
         AlertDialog.Builder builder = new AlertDialog.Builder(mCtx);
         // Get the layout inflater
         LayoutInflater inflater = getActivity().getLayoutInflater();
-        View view = inflater.inflate(R.layout.settiings, null);
+        View view = inflater.inflate(R.layout.settiings_dialog, null);
 
         mInterleave = (CheckBox) view.findViewById(R.id.settings_interleaving);
         mInterleave.setChecked(GeneralHelper.getInterleavingPref());
@@ -83,13 +92,11 @@ public class SettingsDialog extends DialogFragment {
                         GeneralHelper.setShowDebugToastsPref(mShowDebugToasts.isChecked());
                         GeneralHelper.setCirclizeMemberAvisPref(mCirclizedMemberAvis.isChecked());
 
-                        mListener.onDialogPositiveClick(mMe, dontRefresh);
+                        mListener.onSettingsDialogPositiveClick(mMe, dontRefresh);
                     }
                 }).setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int id) {
-                getDialog().cancel();
-                mListener.onDialogNegativeClick(mMe);
             }
         }).setCancelable(false).setTitle(R.string.settings_title);
         Dialog d = builder.create();
