@@ -125,6 +125,10 @@ public abstract class ImageWorker {
         setLoadingImage(BitmapFactory.decodeResource(mResources, resId));
     }
 
+    public BitmapDrawable fetchImage(String url) {
+        return mImageCache.getBitmapFromMemCache(url);
+    }
+
     /**
      * Adds an {@link ImageCache} to this {@link ImageWorker} to handle disk and memory bitmap
      * caching.

@@ -2,6 +2,7 @@ package com.gjk.net;
 
 import android.content.Context;
 
+import com.gjk.Application;
 import com.gjk.Constants;
 import com.gjk.R;
 import com.gjk.net.MiluHttpRequest.DBHttpUploadFile;
@@ -24,6 +25,8 @@ public abstract class MiluHTTPTask extends HTTPTask {
     //even though this is the case, some values may have no files. we should still send
     //the request as multipart even if there are no files included.
     boolean mHasPotentialFiles = false;
+
+    private Object mPermit;
 
     public MiluHTTPTask(Context ctx, HTTPTaskListener listener) {
         super(ctx, 0, listener);
@@ -68,8 +71,9 @@ public abstract class MiluHTTPTask extends HTTPTask {
 
     public void execute() {
         try {
-            //if(Application.get().isNetworkAvailableWithMessage())
-            executeWithJson(getUri(), getPayload());
+            mPermit = Application.get().getPool().getItem(mCtx);
+            if (Application.get().isNetworkAvailableWithMessage())
+                executeWithJson(getUri(), getPayload());
             //	else if(mListener != null)
             //	mListener.onTaskComplete(new TaskResult(this, TaskResult.RC_FAILURE, mCtx.getString(R.string.error_no_connection) , null));
 
@@ -102,16 +106,20 @@ public abstract class MiluHTTPTask extends HTTPTask {
     @Override
     public TaskResult handleSuccessfulResponse(MiluHttpRequest.DBHttpResponse response) throws Exception {
         try {
-            JSONObject json = new JSONObject(response.getResponseText());
-            if (!json.getBoolean("success")) {
+            if (mPermit != null) {
+                Application.get().getPool().putItem(mCtx, mPermit);
+                mPermit = null;
+                JSONObject json = new JSONObject(response.getResponseText());
+                if (!json.getBoolean("success")) {
 
-                String message = getJSONErrorMessage(json);
-                if (message == null || message.length() == 0)
-                    message = mCtx.getString(R.string.error_no_message);
-                return new TaskResult(this, TaskResult.RC_FAILURE, message, json);
+                    String message = getJSONErrorMessage(json);
+                    if (message == null || message.length() == 0)
+                        message = mCtx.getString(R.string.error_no_message);
+                    return new TaskResult(this, TaskResult.RC_FAILURE, message, json);
+                }
+                return handleSuccessfulJSONResponse(response, json);
             }
-
-            return handleSuccessfulJSONResponse(response, json);
+            return new TaskResult(this, TaskResult.RC_FAILURE, "Null semaphore?", null);
         } catch (Exception e) {
             return new TaskResult(this, TaskResult.RC_FAILURE, e.getMessage(), null);
         }
@@ -121,6 +129,10 @@ public abstract class MiluHTTPTask extends HTTPTask {
 
     @Override
     public TaskResult handleFailedResponse(MiluHttpRequest.DBHttpResponse response) throws Exception {
+        if (mPermit != null) {
+            Application.get().getPool().putItem(mCtx, mPermit);
+            mPermit = null;
+        }
         return new TaskResult(this, TaskResult.RC_FAILURE, response.getResponseText(), null);
     }
 

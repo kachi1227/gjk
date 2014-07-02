@@ -1,51 +1,19 @@
 package com.gjk.service;
 
 import android.app.IntentService;
-import android.app.NotificationManager;
-import android.app.PendingIntent;
-import android.app.TaskStackBuilder;
-import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
-import android.graphics.Color;
-import android.net.Uri;
 import android.os.Bundle;
-import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 
-import com.gjk.Application;
-import com.gjk.ChatsDrawerFragment;
-import com.gjk.MainActivity;
-import com.gjk.R;
-import com.gjk.database.objects.Group;
-import com.gjk.database.objects.Message;
-import com.gjk.helper.DatabaseHelper;
-import com.gjk.helper.GeneralHelper;
-import com.gjk.net.GetMessageTask;
-import com.gjk.net.GetSpecificGroupTask;
-import com.gjk.net.HTTPTask.HTTPTaskListener;
-import com.gjk.net.TaskResult;
+import com.gjk.Constants;
 import com.google.android.gms.gcm.GoogleCloudMessaging;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import java.util.Locale;
-
-import static com.gjk.helper.DatabaseHelper.addGroup;
-import static com.gjk.helper.DatabaseHelper.addGroupMessage;
 import static com.gjk.helper.DatabaseHelper.getAccountUserId;
-import static com.gjk.helper.DatabaseHelper.getLastStoredMessageId;
 
 public class GcmIntentService extends IntentService {
 
     private static final String LOGTAG = "GcmIntentService";
-
-    public static final int NEW_MESSAGE_NOTIFACATION = 1;
-    public static final int NEW_GROUP_INVITE_NOTIFACATION = 2;
-    public static final int NEW_SIDECONVO_INVITE_NOTIFACATION = 3;
-    public static final int NEW_WHISPER_INVITE_NOTIFACATION = 4;
 
     public GcmIntentService() {
         super("GcmIntentService");
@@ -81,221 +49,24 @@ public class GcmIntentService extends IntentService {
                 }
 
                 if (extras.getString("msg_type").equals("chat_message")) {
-                    handleNewMessage(ctx, extras);
+                    sendServerRequest(Constants.GCM_MESSAGE, extras);
                 } else if (extras.getString("msg_type").equals("group_invite")) {
-                    handleNewGroupInvite(ctx, extras);
+                    sendServerRequest(Constants.GCM_GROUP_INVITE, extras);
                 } else if (extras.getString("msg_type").equals("side_chat_invite")) {
-                    handleNewSideConvoInvite(ctx, extras);
+                    sendServerRequest(Constants.GCM_SIDECONVO_INVITE, extras);
                 } else if (extras.getString("msg_type").equals("whisper_invite")) {
-                    handleNewWhisperInvite(ctx, extras);
+                    sendServerRequest(Constants.GCM_WHISPER_INVITE, extras);
                 }
             }
         }
-        // Release the wake lock provided by the WakefulBroadcastReceiver.
-        GcmBroadcastReceiver.completeWakefulIntent(intent);
+
     }
 
-    private void handleNewMessage(final Context ctx, Bundle extras) {
-        try {
-            final long chatId = new JSONObject(extras.getString("msg_content")).getLong("group_id");
-            JSONArray jsonArray = new JSONArray();
-            long id = getLastStoredMessageId(chatId);
-            try {
-                jsonArray.put(0, id).put(1, -1);
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
-            new GetMessageTask(getApplicationContext(), new HTTPTaskListener() {
-                @Override
-                public void onTaskComplete(TaskResult result) {
-                    if (result.getResponseCode() == 1) {
-                        JSONArray messages = (JSONArray) result.getExtraInfo();
-                        try {
-                            for (int i = 0; i < messages.length(); i++) {
-                                Message m = addGroupMessage(messages.getJSONObject(i));
-                                if (m != null && m.getSenderId() != getAccountUserId()) {
-                                    if (!Application.get().isActivityIsInForeground() ||
-                                            ChatsDrawerFragment.getCurrentChat() == null ||
-                                            m.getGroupId() != ChatsDrawerFragment.getCurrentChat().getGlobalId()) {
-                                        notifyNewMessage(m);
-                                    }
-                                }
-                            }
-                        } catch (Exception e) {
-                            GeneralHelper.reportMessage(ctx, LOGTAG, e.getMessage());
-                        }
-                    } else {
-                        GeneralHelper.reportMessage(ctx, LOGTAG, result.getMessage());
-                    }
-                }
-            }, getAccountUserId(), chatId, jsonArray);
-        } catch (Exception e) {
-            GeneralHelper.reportMessage(ctx, LOGTAG, e.getMessage());
-        }
-    }
-
-    private void handleNewGroupInvite(final Context ctx, Bundle extras) {
-        try {
-            final JSONObject content = new JSONObject(extras.getString("msg_content"))
-                    .getJSONObject("content");
-            JSONObject group = content.getJSONObject("group");
-            JSONObject inviter = content.getJSONObject("inviter");
-            Group g = addGroup(group);
-            notifyNewGroup(g, inviter);
-        } catch (Exception e) {
-            GeneralHelper.reportMessage(ctx, LOGTAG, e.getMessage());
-        }
-    }
-
-    private void handleNewWhisperInvite(final Context ctx, Bundle extras) {
-        try {
-            final JSONObject content = new JSONObject(extras.getString("msg_content"))
-                    .getJSONObject("content");
-            final JSONArray members = content.getJSONArray("members");
-            boolean isInWhisper = false;
-            for (int i = 0; i < members.length(); i++) {
-                isInWhisper |= getAccountUserId() == members.getJSONObject(i).getLong("id");
-            }
-            if (!isInWhisper) {
-                return;
-            }
-
-            final JSONObject whisper = content.getJSONObject("whisper");
-            final JSONObject inviter = content.getJSONObject("inviter");
-            new GetSpecificGroupTask(getApplicationContext(), new HTTPTaskListener() {
-                @Override
-                public void onTaskComplete(TaskResult result) {
-                    if (result.getResponseCode() == 1) {
-                        try {
-                            JSONObject response = (JSONObject) result.getExtraInfo();
-                            Group newG = addGroup(response);
-                            notifyNewWhisper(newG, whisper, members, inviter);
-                        } catch (Exception e) {
-                            GeneralHelper.reportMessage(ctx, LOGTAG, e.getMessage());
-                        }
-                    } else {
-                        GeneralHelper.reportMessage(ctx, LOGTAG, result.getMessage());
-                    }
-                }
-            }, getAccountUserId(), whisper.getLong("group_id"));
-        } catch (Exception e) {
-            GeneralHelper.reportMessage(ctx, LOGTAG, e.getMessage());
-        }
-    }
-
-    private void handleNewSideConvoInvite(final Context ctx, Bundle extras) {
-        try {
-            final JSONObject content = new JSONObject(extras.getString("msg_content"))
-                    .getJSONObject("content");
-            final JSONObject sideConvo = content.getJSONObject("side_chat");
-            final JSONArray members = content.getJSONArray("members");
-            final JSONObject inviter = content.getJSONObject("inviter");
-            new GetSpecificGroupTask(getApplicationContext(), new HTTPTaskListener() {
-                @Override
-                public void onTaskComplete(TaskResult result) {
-                    if (result.getResponseCode() == 1) {
-                        try {
-                            JSONObject response = (JSONObject) result.getExtraInfo();
-                            Group newG = addGroup(response);
-                            notifyNewSideConvo(newG, sideConvo, members, inviter);
-                        } catch (Exception e) {
-                            GeneralHelper.reportMessage(ctx, LOGTAG, e.getMessage());
-                        }
-                    } else {
-                        GeneralHelper.reportMessage(ctx, LOGTAG, result.getMessage());
-                    }
-                }
-            }, getAccountUserId(), sideConvo.getLong("group_id"));
-        } catch (Exception e) {
-            GeneralHelper.reportMessage(ctx, LOGTAG, e.getMessage());
-        }
-    }
-
-    // Put the message into a notification and post it.
-    // This is just one simple example of what you might choose to do with
-    // a GCM message.
-    private void notifyNewMessage(Message m) {
-        String content = String.format(Locale.getDefault(), "%s %s: %s", m.getSenderFirstName(), m.getSenderLastName(),
-                m.getContent());
-        String title = String.format(Locale.getDefault(), "%s", DatabaseHelper.getGroup(m.getGroupId()).getName());
-        notificationAlert(title, content, m.getGroupId(), NEW_MESSAGE_NOTIFACATION);
-    }
-
-    // Put the message into a notification and post it.
-    // This is just one simple example of what you might choose to do with
-    // a GCM message.
-    private void notifyNewGroup(Group g, JSONObject inviter) throws Exception {
-        if (inviter.getLong("id") != getAccountUserId()) {
-            String content = String.format(Locale.getDefault(), "You've been added to %s's chat called \"%s\"",
-                    g.getCreatorName(), g.getName());
-            String title = "New Chat Invite";
-            notificationAlert(title, content, g.getGlobalId(), NEW_GROUP_INVITE_NOTIFACATION);
-        }
-    }
-
-    private void notifyNewSideConvo(Group g, JSONObject sc, JSONArray members, JSONObject inviter) throws JSONException {
-        if (inviter.getLong("id") != getAccountUserId()) {
-            boolean isInSideConvo = false;
-            for (int i = 0; i < members.length(); i++) {
-                isInSideConvo |= getAccountUserId() == members.getJSONObject(i).getLong("id");
-            }
-            String content = isInSideConvo ? String.format(Locale.getDefault(),
-                    "%s %s added you to %s's new side convo in %s called \"%s\"", inviter.get("first_name"),
-                    inviter.get("last_name"), sc.getString("creator_name"), g.getName(), sc.getString("name")) : String
-                    .format(Locale.getDefault(), "%s has started a new side convo in %s called \"%s\"",
-                            sc.getString("creator_name"), g.getName(), sc.getString("name"));
-            String title = isInSideConvo ? "New Side Convo Invite" : "New Side Convo";
-            notificationAlert(title, content, g.getGlobalId(), NEW_SIDECONVO_INVITE_NOTIFACATION);
-        }
-    }
-
-    private void notifyNewWhisper(Group g, JSONObject w, JSONArray members, JSONObject inviter) throws JSONException {
-        if (inviter.getLong("id") != getAccountUserId()) {
-            String content = String.format(Locale.getDefault(),
-                    "%s %s added you to %s's new whisper in %s called \"%s\"", inviter.get("first_name"),
-                    inviter.get("last_name"), w.getString("creator_name"), g.getName(), w.getString("name"));
-            String title = "New Whisper Invite";
-            notificationAlert(title, content, g.getGlobalId(), NEW_WHISPER_INVITE_NOTIFACATION);
-        }
-    }
-
-    private void notificationAlert(String title, String content, long groupId, int type) {
-        int icon;
-        switch (type) {
-            case NEW_MESSAGE_NOTIFACATION:
-                icon = R.drawable.speech_bubble;
-                break;
-            case NEW_GROUP_INVITE_NOTIFACATION:
-            case NEW_SIDECONVO_INVITE_NOTIFACATION:
-            case NEW_WHISPER_INVITE_NOTIFACATION:
-            default:
-                icon = R.drawable.plus;
-                break;
-        }
-
-        NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(this).setSmallIcon(icon)
-                .setContentTitle(title).setContentText(content).setTicker(content).setVibrate(new long[]{200, 200, 200, 200, 200})
-                .setLights(Color.YELLOW, 500, 500).setSound(Uri.parse(ContentResolver.SCHEME_ANDROID_RESOURCE
-                        + "://" + getPackageName() + "/raw/these_hoes_aint_loyal"));
-        // Creates an explicit intent for an Activity in your app
-        Intent resultIntent = new Intent(getApplicationContext(), MainActivity.class);
-        resultIntent.setAction(Intent.ACTION_MAIN);
-        resultIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-        resultIntent.addCategory(Intent.CATEGORY_LAUNCHER);
-        resultIntent.putExtra("group_id", groupId);
-        // The stack builder object will contain an artificial back stack for the
-        // started Activity.
-        // This ensures that navigating backward from the Activity leads out of
-        // your application to the Home screen.
-        TaskStackBuilder stackBuilder = TaskStackBuilder.create(this);
-        // Adds the back stack for the Intent (but not the Intent itself)
-        stackBuilder.addParentStack(MainActivity.class);
-        // Adds the Intent that starts the Activity to the top of the stack
-        stackBuilder.addNextIntent(resultIntent);
-        PendingIntent resultPendingIntent = stackBuilder.getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT);
-        mBuilder.setContentIntent(resultPendingIntent).setAutoCancel(true);
-        NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        // mId allows you to update the notification later on.
-        mNotificationManager.notify(type, mBuilder.build());
+    private void sendServerRequest(String intentType, Bundle extras) {
+        Intent i = new Intent(this, ChassipService.class);
+        i.putExtra(Constants.INTENT_TYPE, intentType).putExtras(extras);
+        Log.d(LOGTAG, String.format("Sending %s to server: %s",
+                i.getExtras().getString(Constants.INTENT_TYPE), i));
+        startService(i);
     }
 }

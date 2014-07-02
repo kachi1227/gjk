@@ -1,6 +1,73 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout
+<com.gjk.views.DrawerLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/drawer_layout"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:background="@color/ghostwhite" />
+    android:layout_height="match_parent">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <android.support.v4.view.ViewPager
+            android:id="@+id/pager"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_above="@+id/pendMessagesLayout"/>
+
+        <RelativeLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/pendMessagesLayout"
+            android:layout_alignParentBottom="true"
+            android:layout_alignParentLeft="true"
+            android:layout_alignParentStart="true">
+
+            <EditText
+                android:id="@+id/pendingMessage"
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:ems="10"
+                android:windowSoftInputMode="adjustResize"
+                android:inputType="text|textCapSentences|textMultiLine"
+                android:hint="@string/pending_message_hint"
+                android:layout_alignBottom="@+id/send"
+                android:layout_toLeftOf="@+id/attach"/>
+
+            <ImageView
+                android:id="@+id/attach"
+                android:src="@drawable/ic_action_attachment"
+                android:layout_width="50dp"
+                android:layout_height="50dp"
+                android:layout_alignBottom="@+id/pendingMessage"
+                android:layout_toLeftOf="@+id/send"/>
+
+            <ImageView
+                android:id="@+id/send"
+                android:src="@drawable/ic_action_send_now"
+                android:layout_width="50dp"
+                android:layout_height="50dp"
+                android:layout_alignParentTop="true"
+                android:layout_alignParentRight="true"
+                android:layout_alignParentEnd="true"/>
+
+        </RelativeLayout>
+    </RelativeLayout>
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/ghostwhite"
+        android:id="@+id/left_drawer"
+        android:layout_gravity="left">
+    </FrameLayout>
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:id="@+id/right_drawer"
+        android:background="@color/ghostwhite"
+        android:layout_gravity="right">
+    </FrameLayout>
+
+</com.gjk.views.DrawerLayout>

@@ -13,55 +13,53 @@ Sample JSON response:
 {"success":true} (if we were able to successfully remove members or if we tried to remove a member that wasnt in group)
 --------------------------------------------*/
 
-import org.json.JSONArray;
-import org.json.JSONObject;
+import android.content.Context;
 
 import com.gjk.net.MiluHttpRequest.DBHttpResponse;
 
-import android.content.Context;
-import java.util.Arrays;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 
-public class RemoveMemberTask extends MiluHTTPTask{
-	
-	private long mGroupID;
-	private long[] mRemovedIDs;
+public class RemoveMemberTask extends MiluHTTPTask {
 
-	public RemoveMemberTask(Context ctx, HTTPTaskListener listener, long groupID, long[] removedIDs) {
-		super(ctx, listener);
-		mGroupID = groupID;
-		mRemovedIDs = Arrays.copyOf(removedIDs, removedIDs.length);
-		execute();
-	
-	}
+    private long mGroupID;
+    private long[] mRemovedIDs;
 
-	@Override
-	public TaskResult handleSuccessfulJSONResponse(DBHttpResponse response,
-			JSONObject json) throws Exception {
-		return new TaskResult(this, TaskResult.RC_SUCCESS,null,json);
+    public RemoveMemberTask(Context ctx, HTTPTaskListener listener, long groupID, long[] removedIDs) {
+        super(ctx, listener);
+        mGroupID = groupID;
+        mRemovedIDs = removedIDs;
+        execute();
+    }
 
-	}
+    @Override
+    public TaskResult handleSuccessfulJSONResponse(DBHttpResponse response,
+                                                   JSONObject json) throws Exception {
+        return new TaskResult(this, TaskResult.RC_SUCCESS, null, json);
 
-	@Override
-	public JSONObject getPayload() throws Exception {
-		JSONObject payload = new JSONObject();
-		payload.put("group_id", mGroupID);
-		
-		//convert long[] to JSONArray
-		JSONArray ids = new JSONArray();
-		for(long id : mRemovedIDs){
-			ids.put(id);
-		}//end convert array
-		
-		payload.put("members", mRemovedIDs);
-		
-		return payload;
-	}
+    }
 
-	@Override
-	public String getUri() {
-		// TODO Auto-generated method stub
-		return "api/removeMembers";
-	}
+    @Override
+    public JSONObject getPayload() throws Exception {
+        JSONObject payload = new JSONObject();
+        payload.put("group_id", mGroupID);
+
+        //convert long[] to JSONArray
+        JSONArray ids = new JSONArray();
+        for (long id : mRemovedIDs) {
+            ids.put(id);
+        }//end convert array
+
+        payload.put("members", ids);
+
+        return payload;
+    }
+
+    @Override
+    public String getUri() {
+        // TODO Auto-generated method stub
+        return "api/removeMembers";
+    }
 
 }

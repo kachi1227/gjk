@@ -1,26 +1,32 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.gjk"
-    android:versionCode="1"
-    android:versionName="0.1.0" >
-    
-    <uses-permission android:name="android.permission.CAMERA" />
-	<uses-permission android:name="android.permission.INTERNET" /> 
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-    <uses-feature android:name="android.hardware.camera" android:required="true" />
-	<uses-feature android:name="android.hardware.camera.autofocus" />
-	<uses-permission android:name="android.permission.GET_ACCOUNTS" />
-    <uses-permission android:name="android.permission.WAKE_LOCK" />
-    <uses-permission android:name="com.google.android.c2dm.permission.RECEIVE" />
-    <permission android:name="com.gjk.permission.C2D_MESSAGE"
-        android:protectionLevel="signature" />
-    <uses-permission android:name="com.gjk.permission.C2D_MESSAGE" />
-	
+          package="com.gjk"
+          android:versionCode="1"
+          android:versionName="0.1.0">
+
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+
+    <uses-feature
+        android:name="android.hardware.camera"
+        android:required="true"/>
+    <uses-feature android:name="android.hardware.camera.autofocus"/>
+
+    <uses-permission android:name="android.permission.GET_ACCOUNTS"/>
+    <uses-permission android:name="android.permission.WAKE_LOCK"/>
+    <uses-permission android:name="com.google.android.c2dm.permission.RECEIVE"/>
+
+    <permission
+        android:name="com.gjk.permission.C2D_MESSAGE"
+        android:protectionLevel="signature"/>
+    <uses-permission android:name="com.gjk.permission.C2D_MESSAGE"/>
+
     <uses-sdk
         android:minSdkVersion="16"
-        android:targetSdkVersion="19" />
+        android:targetSdkVersion="19"/>
 
     <application
         android:allowBackup="true"
@@ -30,30 +36,39 @@
         android:name=".Application">
         <meta-data
             android:name="com.google.android.gms.version"
-            android:value="@integer/google_play_services_version" />
+            android:value="@integer/google_play_services_version"/>
         <activity
             android:name=".MainActivity"
             android:label="@string/app_name"
             android:configChanges="orientation|screenSize|screenLayout"
             android:theme="@style/AppTheme"
-            android:uiOptions="splitActionBarWhenNarrow"
-			android:launchMode="singleTop" >
+            android:launchMode="singleTop">
             <intent-filter>
-	            <action android:name="android.intent.action.MAIN" />
-	            <category android:name="android.intent.category.LAUNCHER" />
-	        </intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
         </activity>
         <receiver
             android:name=".service.GcmBroadcastReceiver"
-            android:permission="com.google.android.c2dm.permission.SEND" >
+            android:permission="com.google.android.c2dm.permission.SEND">
             <intent-filter>
-                <action android:name="com.google.android.c2dm.intent.RECEIVE" />
-                <action android:name="com.google.android.c2dm.intent.REGISTRATION" />
-                <category android:name="com.gjk" />
+                <action android:name="com.google.android.c2dm.intent.RECEIVE"/>
+                <action android:name="com.google.android.c2dm.intent.REGISTRATION"/>
+
+                <category android:name="com.gjk"/>
             </intent-filter>
         </receiver>
-        <service android:name=".service.GcmIntentService" />
-        <meta-data android:name="com.crashlytics.ApiKey" android:value="7666486dbef3f859749c5af781ee6bde623a94e0"/>
+
+        <service android:name=".service.GcmIntentService"/>
+        <service android:name=".service.ChassipService">
+            <intent-filter>
+                <action android:name="com.gjk.service.ChassipService.CHASSIP_ACTION"></action>
+            </intent-filter>
+        </service>
+
+        <meta-data
+            android:name="com.crashlytics.ApiKey"
+            android:value="7666486dbef3f859749c5af781ee6bde623a94e0"/>
     </application>
 
 </manifest>

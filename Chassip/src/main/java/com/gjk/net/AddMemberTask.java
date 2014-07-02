@@ -13,57 +13,53 @@ Sample JSON response:
 
 ------------------------------------------*/
 
-import org.json.JSONArray;
-import org.json.JSONObject;
+import android.content.Context;
 
 import com.gjk.net.MiluHttpRequest.DBHttpResponse;
 
-import android.content.Context;
-import java.util.Arrays;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 
-public class AddMemberTask extends MiluHTTPTask{
-	private long mGroupID;
-	private long[] mInvitedIDs;
+public class AddMemberTask extends MiluHTTPTask {
+    private long mGroupID;
+    private long[] mInvitedIDs;
 
-	public AddMemberTask(Context ctx, HTTPTaskListener listener, long groupID, long[] invitedIDs) {
-		super(ctx, listener);
-		
-		mGroupID = groupID;
-		mInvitedIDs = Arrays.copyOf(invitedIDs, invitedIDs.length);
-		execute();
-		
-	}
+    public AddMemberTask(Context ctx, HTTPTaskListener listener, long groupID, long[] invitedIDs) {
+        super(ctx, listener);
+        mGroupID = groupID;
+        mInvitedIDs = invitedIDs;
+        execute();
+    }
 
-	@Override
-	public TaskResult handleSuccessfulJSONResponse(DBHttpResponse response,
-			JSONObject json) throws Exception {
+    @Override
+    public TaskResult handleSuccessfulJSONResponse(DBHttpResponse response,
+                                                   JSONObject json) throws Exception {
 
-		return new TaskResult(this, TaskResult.RC_SUCCESS,null,json);
+        return new TaskResult(this, TaskResult.RC_SUCCESS, null, json);
 
-	}
+    }
 
-	@Override
-	public JSONObject getPayload() throws Exception {
-		
-		JSONObject payload = new JSONObject();
-		payload.put("group_id", mGroupID);
-		
-		//convert long[] to JSONArray
-		JSONArray ids = new JSONArray();
-		for(long id : mInvitedIDs){
-			ids.put(id);
-		}//end convert array
-		
-		payload.put("recipients", mInvitedIDs);
-		
-		return payload;
-	}
+    @Override
+    public JSONObject getPayload() throws Exception {
 
-	@Override
-	public String getUri() {
-		// TODO Auto-generated method stub
-		return "api/addMembers";
-	}
+        JSONObject payload = new JSONObject();
+        payload.put("group_id", mGroupID);
+
+        //convert long[] to JSONArray
+        JSONArray ids = new JSONArray();
+        for (long id : mInvitedIDs) {
+            ids.put(id);
+        }//end convert array
+        payload.put("recipients", ids);
+
+        return payload;
+    }
+
+    @Override
+    public String getUri() {
+        // TODO Auto-generated method stub
+        return "api/addMembers";
+    }
 
 }

@@ -8,7 +8,6 @@ import com.gjk.Application;
 import com.gjk.Constants;
 
 import java.util.Arrays;
-import java.util.Locale;
 
 /**
  * @author gpl
@@ -16,10 +15,15 @@ import java.util.Locale;
 public final class GeneralHelper {
 
     public static void reportMessage(Context ctx, String tag, String message) {
+        reportMessage(ctx, tag, message,
+                Application.get().getPreferences().getBoolean(Constants.PROPERTY_SETTING_SHOW_DEBUG_TOASTS,
+                        Constants.PROPERTY_SETTING_SHOW_DEBUG_TOASTS_DEFAULT));
+    }
+
+    public static void reportMessage(Context ctx, String tag, String message, boolean showToast) {
         if (message != null) {
-            Log.e(tag, String.format(Locale.getDefault(), "%s: %s", getMethodName(2), message));
-            if (ctx != null && Application.get().getPreferences().getBoolean(Constants.PROPERTY_SETTING_SHOW_DEBUG_TOASTS,
-                    Constants.PROPERTY_SETTING_SHOW_DEBUG_TOASTS_DEFAULT)) {
+            Log.i(tag, String.format("%s: %s", getMethodName(1), message));
+            if (ctx != null && showToast) {
                 showLongToast(ctx, message);
             }
         }
@@ -28,18 +32,27 @@ public final class GeneralHelper {
     public static String getMethodName(final int depth) {
         if (depth >= 0) {
             final StackTraceElement[] ste = Thread.currentThread().getStackTrace();
-            return ste[ste.length - 1 - depth].getMethodName();
+            return ste[0].getMethodName();
+        }
+        return "";
+    }
+
+
+    public static String getClassName(final int depth) {
+        if (depth >= 0) {
+            final StackTraceElement[] ste = Thread.currentThread().getStackTrace();
+            return ste[ste.length - 1 - depth].getClassName();
         }
         return "";
     }
 
     public static void showLongToast(Context ctx, String message) {
         if (ctx != null & message != null) {
-            Toast.makeText(ctx, message, Toast.LENGTH_LONG).show();
+            Toast.makeText(ctx, message, Toast.LENGTH_SHORT).show();
         }
     }
 
-    public static <T> T[] concatAll(T[] first, T[]... rest) {
+    public static <T> T[] concat(T[] first, T[]... rest) {
         int totalLength = first.length;
         for (T[] array : rest) {
             totalLength += array.length;
@@ -49,6 +62,31 @@ public final class GeneralHelper {
         for (T[] array : rest) {
             System.arraycopy(array, 0, result, offset, array.length);
             offset += array.length;
+        }
+        return result;
+    }
+
+    public static long[] concatLong(Long[] first, Long[]... rest) {
+        Long[] array = concat(first, rest);
+        long[] result = new long[array.length];
+        for (int i = 0; i < array.length; i++) {
+            result[i] = array[i];
+        }
+        return result;
+    }
+
+    public static Long[] convertLong(long[] array) {
+        Long[] result = new Long[array.length];
+        for (int i = 0; i < array.length; i++) {
+            result[i] = array[i];
+        }
+        return result;
+    }
+
+    public static long[] convertLong(Long[] array) {
+        long[] result = new long[array.length];
+        for (int i = 0; i < array.length; i++) {
+            result[i] = array[i];
         }
         return result;
     }

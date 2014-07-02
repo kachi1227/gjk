@@ -1,15 +1,14 @@
 package com.gjk.net;
 
-import java.util.HashMap;
-import java.util.Set;
-
-import org.json.JSONArray;
-import org.json.JSONObject;
+import android.content.Context;
 
 import com.gjk.net.MiluHttpRequest.DBHttpResponse;
 import com.google.common.collect.Maps;
 
-import android.content.Context;
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import java.util.HashMap;
 
 /*Creating Group
 =======
@@ -29,58 +28,56 @@ Sample JSON response:
 */
 
 
-
 public class CreateGroupTask extends MiluHTTPTask {
-	private String mNameOfGroup;//group name
-	private long mUserID; //creator_id
-	private HashMap<String, Object> mFieldMapping;
-	private long[] mMembers;
+    private String mNameOfGroup;//group name
+    private long mUserID; //creator_id
+    private HashMap<String, Object> mFieldMapping;
+    private long[] mMembers;
 
-	public CreateGroupTask(Context ctx, HTTPTaskListener listener, long UserID, String nameOfGroup, HashMap<String, Object> fieldMapping) {
-		this(ctx, listener, UserID, nameOfGroup, null, fieldMapping);
-	}
-	
-	public CreateGroupTask(Context ctx, HTTPTaskListener listener, long UserID, String nameOfGroup, long[] members, HashMap<String, Object> fieldMapping) {
-		super(ctx, listener);
-		mNameOfGroup = nameOfGroup;
-		mUserID = UserID;
-		mFieldMapping = Maps.newHashMap(fieldMapping);
-		mMembers = members;
-		extractFiles(fieldMapping, true);
-		execute();
-	}
+    public CreateGroupTask(Context ctx, HTTPTaskListener listener, long UserID, String nameOfGroup, HashMap<String, Object> fieldMapping) {
+        this(ctx, listener, UserID, nameOfGroup, null, fieldMapping);
+    }
 
-	@Override
-	public TaskResult handleSuccessfulJSONResponse(DBHttpResponse response,
-			JSONObject json) throws Exception {
+    public CreateGroupTask(Context ctx, HTTPTaskListener listener, long UserID, String nameOfGroup, long[] members, HashMap<String, Object> fieldMapping) {
+        super(ctx, listener);
+        mNameOfGroup = nameOfGroup;
+        mUserID = UserID;
+        mMembers = members;
+        mFieldMapping = Maps.newHashMap(fieldMapping);
+        extractFiles(fieldMapping, false);
+        execute();
+    }
 
-		return new TaskResult(this, TaskResult.RC_SUCCESS,null,json.getJSONObject("group"));
+    @Override
+    public TaskResult handleSuccessfulJSONResponse(DBHttpResponse response,
+                                                   JSONObject json) throws Exception {
 
-	}
+        return new TaskResult(this, TaskResult.RC_SUCCESS, null, json.getJSONObject("group"));
 
-	@Override
-	public JSONObject getPayload() throws Exception {
-		
-		JSONObject payload = new JSONObject();
-		payload.put("name", mNameOfGroup);
-		payload.put("creator_id", mUserID);
-		JSONArray ids = new JSONArray();
-		for (long id : mMembers) {
-			ids.put(id);
-		}
-		payload.put("recipients", ids);
-		Set<String> keys = mFieldMapping.keySet();	
-		for(String key : keys){
-			payload.put(key, mFieldMapping.get(key));
-		}
-		
-		return payload;
-	}
+    }
 
-	@Override
-	public String getUri() {
-		// TODO Auto-generated method stub
-		return "api/createGroup";
-	}
+    @Override
+    public JSONObject getPayload() throws Exception {
+
+        JSONObject payload = new JSONObject();
+        payload.put("name", mNameOfGroup);
+        payload.put("creator_id", mUserID);
+        JSONArray ids = new JSONArray();
+        for (long id : mMembers) {
+            ids.put(id);
+        }
+        payload.put("recipients", ids);
+//        Set<String> keys = mFieldMapping.keySet();
+//        for (String key : keys) {
+//            payload.put(key, mFieldMapping.get(key));
+//        }
+        return payload;
+    }
+
+    @Override
+    public String getUri() {
+        // TODO Auto-generated method stub
+        return "api/createGroup";
+    }
 
 }
