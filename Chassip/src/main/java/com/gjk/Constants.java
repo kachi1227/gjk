@@ -47,7 +47,8 @@ public interface Constants {
     static final String IMAGE_PATH = "imagePath";
     static final String NUM_MESSAGES = "numMessages";
     static final String SHOW_TOAST = "showToast";
-    static final String MESSAGE_RESPONSE = "sendMessageResponse";
+    static final String SEND_MESSAGE_RESPONSE = "sendMessageResponse";
+    static final String GCM_MESSAGE_RESPONSE = "gcmMessageResponse";
     static final String GET_ALL_GROUPS_RESPONSE = "getAllGroupsResponse";
     static final String GCM_MESSAGE = "gcmMessage";
     static final String GCM_GROUP_INVITE = "gcmGroupInvite";

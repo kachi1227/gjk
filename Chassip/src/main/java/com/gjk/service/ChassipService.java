@@ -81,6 +81,7 @@ import static com.gjk.Constants.FETCH_MORE_MESSAGES_REQUEST;
 import static com.gjk.Constants.FETCH_MORE_MESSAGES_RESPONSE;
 import static com.gjk.Constants.GCM_GROUP_INVITE;
 import static com.gjk.Constants.GCM_MESSAGE;
+import static com.gjk.Constants.GCM_MESSAGE_RESPONSE;
 import static com.gjk.Constants.GCM_SIDECONVO_INVITE;
 import static com.gjk.Constants.GCM_WHISPER_INVITE;
 import static com.gjk.Constants.GROUP_ID;
@@ -92,7 +93,6 @@ import static com.gjk.Constants.LOGIN_RESPONSE;
 import static com.gjk.Constants.LOGOUT_REQUEST;
 import static com.gjk.Constants.MEMBER_IDS;
 import static com.gjk.Constants.MESSAGE;
-import static com.gjk.Constants.MESSAGE_RESPONSE;
 import static com.gjk.Constants.MESSAGE_RESPONSE_LIMIT_DEFAULT;
 import static com.gjk.Constants.NEW_GROUP_INVITE_NOTIFACATION;
 import static com.gjk.Constants.NEW_MESSAGE_NOTIFACATION;
@@ -108,6 +108,7 @@ import static com.gjk.Constants.REMOVE_CHAT_MEMBERS_REQUEST;
 import static com.gjk.Constants.REMOVE_CONVO_MEMBERS_REQUEST;
 import static com.gjk.Constants.SENDER_ID;
 import static com.gjk.Constants.SEND_MESSAGE_REQUEST;
+import static com.gjk.Constants.SEND_MESSAGE_RESPONSE;
 import static com.gjk.Constants.SHOW_TOAST;
 import static com.gjk.Constants.UNSUCCESSFUL;
 import static com.gjk.Constants.USER_ID;
@@ -626,6 +627,16 @@ public class ChassipService extends IntentService {
                 @Override
                 public void onTaskComplete(TaskResult result) {
                     if (result.getResponseCode() == 1) {
+                        fetchMostRecentGroupMessages(groupId, new FetchGroupMessagesAction() {
+                            @Override
+                            public void doThis(List<Message> messages) {
+                                Intent i = new Intent(CHASSIP_ACTION);
+                                i.putExtra(INTENT_TYPE, SEND_MESSAGE_RESPONSE)
+                                        .putExtra(GROUP_ID, groupId)
+                                        .putExtra(NUM_MESSAGES, messages.size());
+                                LocalBroadcastManager.getInstance(ChassipService.this).sendBroadcast(i);
+                            }
+                        });
                         notifyGroupOfMessage(groupId);
                     } else {
                         reportUnsuccess(result.getMessage(), false);
@@ -641,7 +652,7 @@ public class ChassipService extends IntentService {
                             @Override
                             public void doThis(List<Message> messages) {
                                 Intent i = new Intent(CHASSIP_ACTION);
-                                i.putExtra(INTENT_TYPE, MESSAGE_RESPONSE)
+                                i.putExtra(INTENT_TYPE, SEND_MESSAGE_RESPONSE)
                                         .putExtra(GROUP_ID, groupId)
                                         .putExtra(NUM_MESSAGES, messages.size());
                                 LocalBroadcastManager.getInstance(ChassipService.this).sendBroadcast(i);
@@ -668,7 +679,7 @@ public class ChassipService extends IntentService {
                     }
                 }
                 Intent i = new Intent(CHASSIP_ACTION);
-                i.putExtra(INTENT_TYPE, MESSAGE_RESPONSE)
+                i.putExtra(INTENT_TYPE, GCM_MESSAGE_RESPONSE)
                         .putExtra(GROUP_ID, groupId)
                         .putExtra(NUM_MESSAGES, messages.size());
                 LocalBroadcastManager.getInstance(ChassipService.this).sendBroadcast(i);
