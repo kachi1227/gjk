@@ -111,11 +111,7 @@ public class ConvoFragment extends ListFragment {
                     if (mAdapter != null && totalItemCount != 0 && mItemCountAtOnScroll != totalItemCount &&
                             firstVisibleItem == 0 && visibleItemCount != 0 && visibleItemCount < totalItemCount) {
                         mItemCountAtOnScroll = totalItemCount;
-<<<<<<< HEAD
                         loadAndFetchMessages(PROPERTY_SETTING_MESSAGE_LOAD_LIMIT_DEFAULT);
-=======
-                        loadMessagesAndFetchMore();
->>>>>>> 2c08e3b6b5c9accde215d918879c6d0b6341198d
                         getListView().setSelection(getListView().getCount() - totalItemCount);
                     }
                 }
@@ -201,13 +197,8 @@ public class ConvoFragment extends ListFragment {
         }
     }
 
-    public void loadMessages(int numMessages) {
-        swap(numMessages);
-    }
-
     public void loadMessagesAfterFetch(boolean canFetchMore) {
         mArgs.putBoolean("canFetchMoreMessages", canFetchMore);
-<<<<<<< HEAD
         swapCursor(PROPERTY_SETTING_MESSAGE_LOAD_LIMIT_DEFAULT);
     }
 
@@ -215,19 +206,6 @@ public class ConvoFragment extends ListFragment {
         Cursor oldCursor = swapCursor(numMessages);
         if (isCanFetchMoreMessagesSet()) {
             if (mAdapter.getCount() == oldCursor.getCount()) {
-=======
-        swap(PROPERTY_SETTING_MESSAGE_LOAD_LIMIT_DEFAULT);
-        if (!canFetchMore) {
-            GeneralHelper.showLongToast(getActivity(), "No more messages to fetch...");
-        }
-    }
-
-    public void loadMessagesAndFetchMore() {
-        Log.i(mLogtag, "Trying to loading more messages");
-        if (isCanFetchMoreMessagesSet()) {
-            Cursor oldCursor = swap(PROPERTY_SETTING_MESSAGE_LOAD_LIMIT_DEFAULT);
-            if (mAdapter.getCount() - oldCursor.getCount() != PROPERTY_SETTING_MESSAGE_LOAD_LIMIT_DEFAULT) {
->>>>>>> 2c08e3b6b5c9accde215d918879c6d0b6341198d
                 Intent i = new Intent(getActivity(), ChassipService.class);
                 i.setAction(CHASSIP_ACTION);
                 i.putExtra(INTENT_TYPE, FETCH_MORE_MESSAGES_REQUEST)
@@ -235,14 +213,13 @@ public class ConvoFragment extends ListFragment {
                         .putExtra(CONVO_ID, getConvoId());
                 ((MainActivity) getActivity()).sendServerRequest(i);
             }
+        } else {
+            GeneralHelper.showLongToast(getActivity(), "No more messages to fetch...");
         }
-<<<<<<< HEAD
     }
 
     public void loadMessages(int numMessages) {
         swapCursor(numMessages);
-=======
->>>>>>> 2c08e3b6b5c9accde215d918879c6d0b6341198d
     }
 
     private Cursor swapCursor(int numMessages) {
@@ -254,16 +231,5 @@ public class ConvoFragment extends ListFragment {
             newCursor = getMessagesCursor(getChatId(), getConvoId(), mAdapter.getCount() + numMessages);
         }
         return mAdapter.swapCursor(newCursor);
-    }
-
-    private Cursor swap(int numMessages) {
-        Cursor newCursor;
-        if (GeneralHelper.getInterleavingPref()) {
-            newCursor = getMessagesCursor(getChatId(), mAdapter.getCount() + numMessages);
-        } else {
-            newCursor = getMessagesCursor(getChatId(), getConvoId(), mAdapter.getCount() + numMessages);
-        }
-        Cursor oldCursor = mAdapter.swapCursor(newCursor);
-        return oldCursor;
     }
 }

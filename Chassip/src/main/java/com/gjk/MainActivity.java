@@ -345,11 +345,7 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
             mSettingsDialog.show(getSupportFragmentManager(), "SettingsDialog");
             return true;
         } else if (id == R.id.action_fetch_more_messages) {
-<<<<<<< HEAD
             mConvoPagerAdapter.getCurrentConvo().loadAndFetchMessages(Constants.PROPERTY_SETTING_MESSAGE_FETCH_LIMIT_DEFAULT);
-=======
-            mConvoPagerAdapter.getCurrentConvo().loadMessagesAndFetchMore();
->>>>>>> 2c08e3b6b5c9accde215d918879c6d0b6341198d
         } else if (id == R.id.action_convos) {
             if (mDrawerLayout.isDrawerOpen(Gravity.RIGHT)) {
                 mDrawerLayout.closeDrawer(Gravity.RIGHT);
