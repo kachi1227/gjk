@@ -75,6 +75,7 @@ import static com.gjk.Constants.FETCH_CONVO_MEMBERS_RESPONSE;
 import static com.gjk.Constants.FETCH_MORE_MESSAGES_RESPONSE;
 import static com.gjk.Constants.FIRST_NAME;
 import static com.gjk.Constants.GALLERY_REQUEST;
+import static com.gjk.Constants.GCM_MESSAGE_RESPONSE;
 import static com.gjk.Constants.GET_ALL_GROUPS_RESPONSE;
 import static com.gjk.Constants.GROUP_ID;
 import static com.gjk.Constants.GROUP_UPDATE_RESPONSE;
@@ -87,7 +88,6 @@ import static com.gjk.Constants.LOGIN_RESPONSE;
 import static com.gjk.Constants.LOGOUT_REQUEST;
 import static com.gjk.Constants.MEMBER_IDS;
 import static com.gjk.Constants.MESSAGE;
-import static com.gjk.Constants.MESSAGE_RESPONSE;
 import static com.gjk.Constants.NUM_MESSAGES;
 import static com.gjk.Constants.OFFSCREEN_PAGE_LIMIT;
 import static com.gjk.Constants.PASSWORD;
@@ -96,6 +96,7 @@ import static com.gjk.Constants.REGISTER_FACEBOOK_REQUEST;
 import static com.gjk.Constants.REGISTER_REQUEST;
 import static com.gjk.Constants.REGISTER_RESPONSE;
 import static com.gjk.Constants.SEND_MESSAGE_REQUEST;
+import static com.gjk.Constants.SEND_MESSAGE_RESPONSE;
 import static com.gjk.Constants.SHOW_TOAST;
 import static com.gjk.Constants.START_PROGRESS;
 import static com.gjk.Constants.STOP_PROGRESS;
@@ -161,7 +162,7 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
             if (extras != null) {
                 String type = extras.getString(INTENT_TYPE);
                 if (type != null) {
-                    if (type.equals(MESSAGE_RESPONSE)) {
+                    if (type.equals(SEND_MESSAGE_RESPONSE)) {
 
                         mChatDrawerFragment.updateView();
                         if (mConvoPagerAdapter != null) {
@@ -170,8 +171,20 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
                                         Application.get().getCurrentChat().getGlobalId() && mConvoPagerAdapter != null) {
                                     mConvoPagerAdapter.handleMessage(extras.getInt(NUM_MESSAGES));
                                 }
-                                mSend.setEnabled(true);
+                                mSend.setEnabled(false);
                                 mAttach.setEnabled(true);
+                            }
+                        }
+
+                    } else if (type.equals(GCM_MESSAGE_RESPONSE)) {
+
+                        mChatDrawerFragment.updateView();
+                        if (mConvoPagerAdapter != null) {
+                            synchronized (mConvoPagerAdapter) {
+                                if (Application.get().getCurrentChat() != null && extras.getLong(GROUP_ID) ==
+                                        Application.get().getCurrentChat().getGlobalId() && mConvoPagerAdapter != null) {
+                                    mConvoPagerAdapter.handleMessage(extras.getInt(NUM_MESSAGES));
+                                }
                             }
                         }
 
@@ -230,7 +243,7 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
 
                     } else if (type.equals(ERROR) || type.equals(UNSUCCESSFUL)) {
 
-                        mSend.setEnabled(true);
+                        mSend.setEnabled(false);
                         mAttach.setEnabled(true);
                         if (extras.getBoolean(SHOW_TOAST)) {
                             GeneralHelper.reportMessage(MainActivity.this, LOGTAG, extras.getString(MESSAGE), true);
@@ -332,7 +345,11 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
             mSettingsDialog.show(getSupportFragmentManager(), "SettingsDialog");
             return true;
         } else if (id == R.id.action_fetch_more_messages) {
+<<<<<<< HEAD
             mConvoPagerAdapter.getCurrentConvo().loadAndFetchMessages(Constants.PROPERTY_SETTING_MESSAGE_FETCH_LIMIT_DEFAULT);
+=======
+            mConvoPagerAdapter.getCurrentConvo().loadMessagesAndFetchMore();
+>>>>>>> 2c08e3b6b5c9accde215d918879c6d0b6341198d
         } else if (id == R.id.action_convos) {
             if (mDrawerLayout.isDrawerOpen(Gravity.RIGHT)) {
                 mDrawerLayout.closeDrawer(Gravity.RIGHT);
