@@ -31,7 +31,6 @@ Sample JSON response:
 public class CreateGroupTask extends MiluHTTPTask {
     private String mNameOfGroup;//group name
     private long mUserID; //creator_id
-    private HashMap<String, Object> mFieldMapping;
     private long[] mMembers;
 
     public CreateGroupTask(Context ctx, HTTPTaskListener listener, long UserID, String nameOfGroup, HashMap<String, Object> fieldMapping) {
@@ -43,7 +42,6 @@ public class CreateGroupTask extends MiluHTTPTask {
         mNameOfGroup = nameOfGroup;
         mUserID = UserID;
         mMembers = members;
-        mFieldMapping = Maps.newHashMap(fieldMapping);
         extractFiles(fieldMapping, false);
         execute();
     }
@@ -67,10 +65,6 @@ public class CreateGroupTask extends MiluHTTPTask {
             ids.put(id);
         }
         payload.put("recipients", ids);
-//        Set<String> keys = mFieldMapping.keySet();
-//        for (String key : keys) {
-//            payload.put(key, mFieldMapping.get(key));
-//        }
         return payload;
     }
 

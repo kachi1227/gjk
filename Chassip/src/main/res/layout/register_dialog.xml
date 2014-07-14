@@ -1,59 +1,79 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent">
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:facebook="http://schemas.android.com/apk/res-auto"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
 
     <EditText
         android:id="@+id/firstNameReg"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_alignParentTop="true"
-        android:layout_centerHorizontal="true"
+        android:layout_marginBottom="4dp"
+        android:layout_marginLeft="4dp"
+        android:layout_marginRight="4dp"
+        android:layout_marginTop="16dp"
         android:ems="10"
         android:hint="@string/first_name_hint"
         android:inputType="textPersonName|textCapWords">
 
-        <requestFocus/>
+        <requestFocus />
     </EditText>
 
     <EditText
         android:id="@+id/lastNameReg"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_alignRight="@+id/firstNameReg"
-        android:layout_below="@+id/firstNameReg"
+        android:layout_marginBottom="4dp"
+        android:layout_marginLeft="4dp"
+        android:layout_marginRight="4dp"
+        android:layout_marginTop="4dp"
         android:ems="10"
         android:hint="@string/last_name_hint"
-        android:inputType="textPersonName|textCapWords"/>
+        android:inputType="textPersonName|textCapWords" />
 
     <EditText
         android:id="@+id/emailReg"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_alignRight="@+id/firstNameReg"
-        android:layout_below="@+id/lastNameReg"
+        android:layout_marginBottom="4dp"
+        android:layout_marginLeft="4dp"
+        android:layout_marginRight="4dp"
+        android:layout_marginTop="4dp"
         android:ems="10"
         android:hint="@string/email_hint"
-        android:inputType="textEmailAddress"/>
+        android:inputType="textEmailAddress" />
 
     <EditText
         android:id="@+id/passwordReg"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_alignRight="@+id/firstNameReg"
-        android:layout_below="@+id/emailReg"
         android:ems="10"
         android:hint="@string/password_hint"
-        android:inputType="textPassword"/>
+        android:inputType="textPassword" />
 
     <EditText
         android:id="@+id/rePasswordReg"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_alignRight="@+id/firstNameReg"
-        android:layout_below="@+id/passwordReg"
+        android:layout_marginBottom="16dp"
+        android:layout_marginLeft="4dp"
+        android:layout_marginRight="4dp"
+        android:layout_marginTop="4dp"
         android:ems="10"
         android:hint="@string/re_password_hint"
-        android:inputType="textPassword"/>
+        android:inputType="textPassword" />
 
-</RelativeLayout>
+    <com.facebook.widget.LoginButton
+        android:id="@+id/facebookLoginButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="16dp"
+        android:layout_marginLeft="4dp"
+        android:layout_marginRight="4dp"
+        android:layout_marginTop="16dp"
+        facebook:confirm_logout="false"
+        facebook:fetch_user_info="true" />
+
+</LinearLayout>

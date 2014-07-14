@@ -64,4 +64,5 @@
     <string name="logout_title">Logging Out</string>
     <string name="delete_chat">Are you sure you want to delete this chat?</string>
     <string name="delete_chat_title">Deleting %s</string>
+    <string name="app_id">1516871478529316</string>
 </resources>

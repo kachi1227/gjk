@@ -45,6 +45,7 @@ public interface Constants {
     static final String CONVO_ID = "convoId";
     static final String CONVO_NAME = "convoName";
     static final String IMAGE_PATH = "imagePath";
+    static final String IMAGE_URL = "imageUrl";
     static final String NUM_MESSAGES = "numMessages";
     static final String SHOW_TOAST = "showToast";
     static final String MESSAGE_RESPONSE = "sendMessageResponse";
@@ -71,6 +72,7 @@ public interface Constants {
     static final String LOGOUT_REQUEST = "logoutRequest";
     static final String LOGIN_RESPONSE = "loginResponse";
     static final String REGISTER_REQUEST = "registerRequest";
+    static final String REGISTER_FACEBOOK_REQUEST = "registerFacebookRequest";
     static final String REGISTER_RESPONSE = "registerResponse";
     static final String CHAT_DRAWER_ADD_MEMBERS = "Add New Members";
     static final String CHAT_DRAWER_REMOVE_MEMBERS = "Remove Members";

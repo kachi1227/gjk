@@ -1,33 +1,15 @@
-buildscript {
-    repositories {
-        maven { url 'http://download.crashlytics.com/maven' }
-        maven { url "http://jzaccone.github.io/SlidingMenu-aar" }
-        mavenCentral()
-    }
-    dependencies {
-        classpath 'com.android.tools.build:gradle:0.8.+'
-        classpath 'com.crashlytics.tools.gradle:crashlytics-gradle:+'
-    }
-}
-
-allprojects {
-    repositories {
-        maven { url 'http://download.crashlytics.com/maven' }
-        maven { url "http://jzaccone.github.io/SlidingMenu-aar" }
-        mavenCentral()
-    }
-}
-
-apply plugin: 'android'
+apply plugin: 'com.android.application'
 apply plugin: 'crashlytics'
 
 android {
-    compileSdkVersion 19
-    buildToolsVersion "19.0.3"
+    compileSdkVersion Integer.parseInt(project.ANDROID_BUILD_SDK_VERSION)
+    buildToolsVersion project.ANDROID_BUILD_TOOLS_VERSION
 
     defaultConfig {
-        minSdkVersion 16
-        targetSdkVersion 19
+        minSdkVersion Integer.parseInt(project.ANDROID_BUILD_MIN_SDK_VERSION)
+        targetSdkVersion Integer.parseInt(project.ANDROID_BUILD_TARGET_SDK_VERSION)
+        versionCode Integer.parseInt(project.CHASSIP_VERSION_CODE)
+        versionName project.CHASSIP_VERSION_NAME
     }
 
     packagingOptions {
@@ -36,7 +18,16 @@ android {
         exclude 'META-INF/NOTICE.txt'
     }
 
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_6
+        targetCompatibility JavaVersion.VERSION_1_6
+    }
+
     buildTypes {
+        release {
+            runProguard false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.txt'
+        }
         debug {
             versionNameSuffix "-DEBUG"
             buildConfigField "boolean", "USE_KACHIS_CACHE", "false"
@@ -45,11 +36,11 @@ android {
 }
 
 dependencies {
-    compile 'com.jeremyfeinstein.slidingmenu:library:1.3@aar'
-    compile 'com.android.support:support-v4:+'
+    compile 'com.android.support:support-v4:19.+'
     compile 'com.google.android.gms:play-services:+'
-    compile 'com.google.guava:guava:15.0'
+    compile 'com.google.guava:guava:17.0'
     compile 'commons-lang:commons-lang:2.6'
     compile 'org.apache.httpcomponents:httpmime:4.1.3'
     compile 'com.crashlytics.android:crashlytics:1.+'
+    compile project(':facebook')
 }

@@ -5,6 +5,7 @@ import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.v4.app.DialogFragment;
 import android.view.LayoutInflater;
@@ -14,6 +15,10 @@ import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.EditText;
 
+import com.facebook.Session;
+import com.facebook.UiLifecycleHelper;
+import com.facebook.model.GraphUser;
+import com.facebook.widget.LoginButton;
 import com.gjk.helper.GeneralHelper;
 
 public class RegisterDialog extends DialogFragment {
@@ -25,6 +30,9 @@ public class RegisterDialog extends DialogFragment {
     private EditText mEmailReg;
     private EditText mPasswordReg;
     private EditText mRePasswordReg;
+    private LoginButton mFacebookLoginButton;
+    private UiLifecycleHelper mUiHelper;
+    private GraphUser mFacebookUser;
 
     /*
      * The activity that creates an instance of this dialog fragment must implement this interface in order to receive
@@ -32,6 +40,8 @@ public class RegisterDialog extends DialogFragment {
      */
     public interface NoticeDialogListener {
         public void onRegisterDialogPositiveClick(RegisterDialog dialog);
+
+        public void onRegisterDialogFacebookClick(RegisterDialog dialog);
 
         public void onRegisterDialogNegativeClick(RegisterDialog dialog);
     }
@@ -83,6 +93,20 @@ public class RegisterDialog extends DialogFragment {
         mEmailReg = (EditText) view.findViewById(R.id.emailReg);
         mPasswordReg = (EditText) view.findViewById(R.id.passwordReg);
         mRePasswordReg = (EditText) view.findViewById(R.id.rePasswordReg);
+        mFacebookLoginButton = (LoginButton) view.findViewById(R.id.facebookLoginButton);
+        mFacebookLoginButton.setReadPermissions("email", "public_profile");
+        mFacebookLoginButton.setApplicationId(getActivity().getResources().getString(R.string.app_id));
+        mFacebookLoginButton.setUserInfoChangedCallback(new LoginButton.UserInfoChangedCallback() {
+            @Override
+            public void onUserInfoFetched(GraphUser user) {
+                if (user != null) {
+                    mFacebookUser = user;
+                    mListener.onRegisterDialogFacebookClick(RegisterDialog.this);
+                }
+            }
+        });
+        mUiHelper = new UiLifecycleHelper(getActivity(), null);
+        mUiHelper.onCreate(savedInstanceState);
 
         // Inflate and set the layout for the dialog
         // Pass null as the parent view because its going in the dialog layout
@@ -127,10 +151,38 @@ public class RegisterDialog extends DialogFragment {
     }
 
     @Override
+    public void onResume() {
+        super.onResume();
+        mUiHelper.onResume();
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        mUiHelper.onPause();
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        mUiHelper.onDestroy();
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        mUiHelper.onSaveInstanceState(outState);
+    }
+
+    @Override
     public void onDestroyView() {
         if (getDialog() != null && getRetainInstance())
             getDialog().setOnDismissListener(null);
         super.onDestroyView();
+    }
+
+    public void handleOnActivityRequest(int requestCode, int resultCode, Intent data) {
+        mUiHelper.onActivityResult(requestCode, resultCode, data);
     }
 
     public String getFirstName() {
@@ -147,6 +199,10 @@ public class RegisterDialog extends DialogFragment {
 
     public String getPassword() {
         return mPasswordReg.getText().toString();
+    }
+
+    public GraphUser getFacebookUser() {
+        return mFacebookUser;
     }
 
     private boolean isRegistrationReady() {

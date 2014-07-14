@@ -1,12 +1,19 @@
 package com.gjk.helper;
 
 import android.content.Context;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
+import android.content.pm.Signature;
+import android.util.Base64;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.facebook.Session;
 import com.gjk.Application;
 import com.gjk.Constants;
 
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 
 /**
@@ -125,5 +132,34 @@ public final class GeneralHelper {
     public static boolean getCirclizeMemberAvisPref() {
         return Application.get().getPreferences().getBoolean(Constants.PROPERTY_SETTING_CIRCLIZE_MEMBER_AVIS,
                 Constants.PROPERTY_SETTING_CIRCLIZE_MEMBER_AVIS_DEFAULT);
+    }
+
+    public static void showHashKey(Context context) {
+        try {
+            PackageInfo info = context.getPackageManager().getPackageInfo(
+                    "com.gjk", PackageManager.GET_SIGNATURES); //Your package name here
+            for (Signature signature : info.signatures) {
+                MessageDigest md = MessageDigest.getInstance("SHA");
+                md.update(signature.toByteArray());
+                String keyHash = Base64.encodeToString(md.digest(), Base64.DEFAULT);
+                Log.v("KeyHash:", keyHash);
+                showLongToast(context, keyHash);
+            }
+        } catch (PackageManager.NameNotFoundException e) {
+        } catch (NoSuchAlgorithmException e) {
+        }
+    }
+
+    public static void logoutOfFacebook(Context context) {
+        Session session = Session.getActiveSession();
+        if (session != null) {
+            if (!session.isClosed()) {
+                session.closeAndClearTokenInformation();
+            }
+        } else {
+            session = new Session(context);
+            Session.setActiveSession(session);
+            session.closeAndClearTokenInformation();
+        }
     }
 }

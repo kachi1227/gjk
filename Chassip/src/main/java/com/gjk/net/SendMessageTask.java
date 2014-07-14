@@ -49,9 +49,7 @@ public class SendMessageTask extends MiluHTTPTask {
     private long mGroupId;
     private String mContent;// text of the message
 
-
     //optional fields
-    private HashMap<String, Object> mFieldMapping;//attachments to message, if any
     private Long mRecipientId;//if not group message
     private Long mTopicId; //id of current topic of discussion
     private Integer mMessageTypeId; // message type 1:standard 2: Sideconvo 3:whisper
@@ -85,13 +83,9 @@ public class SendMessageTask extends MiluHTTPTask {
         mTopicId = topicId;
         mMessageTypeId = messageTypeId;
         mTableId = tableId;
-        if (fieldMapping != null) {
-            mFieldMapping = Maps.newHashMap(fieldMapping);
-        }
         extractFiles(fieldMapping, false);
         execute();
     }
-
 
     @Override
     public TaskResult handleSuccessfulJSONResponse(DBHttpResponse response,
