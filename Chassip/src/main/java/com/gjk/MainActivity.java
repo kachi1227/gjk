@@ -4,7 +4,6 @@ import android.annotation.TargetApi;
 import android.app.ActionBar;
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -13,7 +12,6 @@ import android.content.IntentFilter;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Environment;
 import android.provider.MediaStore;
 import android.support.v4.app.ActionBarDrawerToggle;
 import android.support.v4.app.Fragment;
@@ -37,20 +35,26 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.Toast;
 
+import com.facebook.HttpMethod;
+import com.facebook.Request;
+import com.facebook.Response;
+import com.facebook.Session;
 import com.gjk.database.objects.Group;
 import com.gjk.database.objects.GroupMember;
 import com.gjk.helper.GeneralHelper;
 import com.gjk.service.ChassipService;
 import com.gjk.utils.media2.ImageManager;
+import com.gjk.utils.media2.ImageUtil;
 import com.gjk.views.DrawerLayout;
+import com.google.android.gms.gcm.GoogleCloudMessaging;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.jeremyfeinstein.slidingmenu.lib.app.SlidingFragmentActivity;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.File;
 import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -75,6 +79,7 @@ import static com.gjk.Constants.GET_ALL_GROUPS_RESPONSE;
 import static com.gjk.Constants.GROUP_ID;
 import static com.gjk.Constants.GROUP_UPDATE_RESPONSE;
 import static com.gjk.Constants.IMAGE_PATH;
+import static com.gjk.Constants.IMAGE_URL;
 import static com.gjk.Constants.INTENT_TYPE;
 import static com.gjk.Constants.LAST_NAME;
 import static com.gjk.Constants.LOGIN_JSON;
@@ -87,6 +92,7 @@ import static com.gjk.Constants.NUM_MESSAGES;
 import static com.gjk.Constants.OFFSCREEN_PAGE_LIMIT;
 import static com.gjk.Constants.PASSWORD;
 import static com.gjk.Constants.PROPERTY_REG_ID;
+import static com.gjk.Constants.REGISTER_FACEBOOK_REQUEST;
 import static com.gjk.Constants.REGISTER_REQUEST;
 import static com.gjk.Constants.REGISTER_RESPONSE;
 import static com.gjk.Constants.SEND_MESSAGE_REQUEST;
@@ -105,8 +111,6 @@ import static com.gjk.helper.DatabaseHelper.getGroupMembers;
 import static com.gjk.helper.DatabaseHelper.getGroupsCursor;
 
 /**
- * Activity for chats. This extends {@link SlidingFragmentActivity} and implements {@link Service}.
- *
  * @author gpl
  */
 public class MainActivity extends FragmentActivity implements LoginDialog.NoticeDialogListener,
@@ -265,17 +269,11 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
         }
     }
 
-    /*
-     * (non-Javadoc)
-     *
-     * @see com.gjk.DrawerActivity#onCreate(android.os.Bundle)
-     */
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         requestWindowFeature(Window.FEATURE_INDETERMINATE_PROGRESS);
         setContentView(R.layout.main_activity);
-        // Debug.waitForDebugger();
 
         initDrawers();
         initMessageViews();
@@ -289,6 +287,8 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
 
         LocalBroadcastManager.getInstance(this).registerReceiver(mServerResponseReceiver,
                 new IntentFilter(CHASSIP_ACTION));
+
+//        GeneralHelper.showHashKey(this);
     }
 
     @Override
@@ -332,7 +332,7 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
             mSettingsDialog.show(getSupportFragmentManager(), "SettingsDialog");
             return true;
         } else if (id == R.id.action_fetch_more_messages) {
-            mConvoPagerAdapter.getCurrentConvo().loadMessages(Constants.PROPERTY_SETTING_MESSAGE_FETCH_LIMIT_DEFAULT);
+            mConvoPagerAdapter.getCurrentConvo().loadAndFetchMessages(Constants.PROPERTY_SETTING_MESSAGE_FETCH_LIMIT_DEFAULT);
         } else if (id == R.id.action_convos) {
             if (mDrawerLayout.isDrawerOpen(Gravity.RIGHT)) {
                 mDrawerLayout.closeDrawer(Gravity.RIGHT);
@@ -557,6 +557,17 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
     }
 
     @Override
+    public void onLoginDialogFacebookClick(LoginDialog dialog) {
+        mLoginDialog = dialog;
+        Intent i = new Intent(this, ChassipService.class);
+        i.putExtra(INTENT_TYPE, Constants.LOGIN_REQUEST)
+                .putExtra(EMAIL, (String) dialog.getFacebookUser().asMap().get("email"))
+                .putExtra(PASSWORD, dialog.getFacebookUser().getId() + dialog.getFacebookUser().asMap().get("email"));
+        GeneralHelper.logoutOfFacebook(this);
+        sendServerRequest(i);
+    }
+
+    @Override
     public void onLoginDialogNegativeClick(LoginDialog dialog) {
         mLoginDialog.dismiss();
         mRegDialog.show(getSupportFragmentManager(), "RegisterDialog");
@@ -569,6 +580,37 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
     }
 
     @Override
+    public void onRegisterDialogFacebookClick(final RegisterDialog dialog) {
+        mRegDialog = dialog;
+        Bundle params = new Bundle();
+        params.putBoolean("redirect", false);
+        params.putString("height", "1000");
+        params.putString("type", "large");
+        params.putString("width", "1000");
+        /* make the API call */
+        new Request(Session.getActiveSession(), "/me/picture", params, HttpMethod.GET, new Request.Callback() {
+            public void onCompleted(Response response) {
+                try {
+                    String aviUrl = ((JSONObject) response.getGraphObject().asMap().get("data")).getString("url");
+                    Intent i = new Intent(MainActivity.this, ChassipService.class);
+                    i.putExtra(INTENT_TYPE, REGISTER_FACEBOOK_REQUEST)
+                            .putExtra(FIRST_NAME, dialog.getFacebookUser().getFirstName())
+                            .putExtra(LAST_NAME, dialog.getFacebookUser().getLastName())
+                            .putExtra(EMAIL, (String) dialog.getFacebookUser().asMap().get("email"))
+                            .putExtra(PASSWORD, dialog.getFacebookUser().getId() + dialog.getFacebookUser().asMap().get("email"))
+                            .putExtra(IMAGE_URL, aviUrl);
+                    GeneralHelper.logoutOfFacebook(MainActivity.this);
+                    sendServerRequest(i);
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        ).executeAsync();
+
+    }
+
+    @Override
     public void onRegisterDialogNegativeClick(RegisterDialog dialog) {
         mRegDialog.dismiss();
         mLoginDialog.show(getSupportFragmentManager(), "mLoginDialog");
@@ -576,6 +618,13 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
+
+        super.onActivityResult(requestCode, resultCode, data);
+        if (mLoginDialog.isAdded()) {
+            mLoginDialog.handleOnActivityRequest(requestCode, resultCode, data);
+        } else if (mRegDialog.isAdded()) {
+            mRegDialog.handleOnActivityRequest(requestCode, resultCode, data);
+        }
 
         if (resultCode == Activity.RESULT_OK) {
             if (requestCode == GALLERY_REQUEST || requestCode == CAMERA_REQUEST) {
@@ -653,28 +702,30 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
     }
 
     protected void toggleChat(Group chat) {
-        mSend.setVisibility(View.VISIBLE);
-        mAttach.setVisibility(View.VISIBLE);
-        mPendingMessage.setVisibility(View.VISIBLE);
-        if (mDrawerLayout.getDrawerLockMode(Gravity.RIGHT) == DrawerLayout.LOCK_MODE_LOCKED_CLOSED) {
-            mDrawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED, Gravity.RIGHT);
+        if (chat != null) {
+            mSend.setVisibility(View.VISIBLE);
+            mAttach.setVisibility(View.VISIBLE);
+            mPendingMessage.setVisibility(View.VISIBLE);
+            if (mDrawerLayout.getDrawerLockMode(Gravity.RIGHT) == DrawerLayout.LOCK_MODE_LOCKED_CLOSED) {
+                mDrawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED, Gravity.RIGHT);
+            }
+            Application.get().setCurrentChat(chat);
+            mDrawerLayout.unregisterViews();
+            mChatDrawerFragment.updateView();
+            // Be careful of potential memory leaks here...
+            mConvoPagerAdapter = new ConvoPagerAdapter(getSupportFragmentManager(), mViewPager);
+            mViewPager.setAdapter(mConvoPagerAdapter);
+            mViewPager.setOnPageChangeListener(mConvoPagerAdapter);
+            mConvoPagerAdapter.setChat(chat);
+            mConvoDrawerFragment.clear();
+            mConvoDrawerFragment.addAll(mConvoPagerAdapter.getCurrentConvos());
+            mConvoDrawerFragment.updateView();
+            setTitle(chat.getName());
+            Application.get().getPreferences().edit()
+                    .putLong("current_group_id", chat.getGlobalId()).commit();
+            invalidateOptionsMenu();
+            toggleConvo(Application.get().getPreferences().getLong("chat_" + chat.getGlobalId() + "_current_convo_id", 0));
         }
-        Application.get().setCurrentChat(chat);
-        mDrawerLayout.unregisterViews();
-        mChatDrawerFragment.updateView();
-        // Be careful of potential memory leaks here...
-        mConvoPagerAdapter = new ConvoPagerAdapter(getSupportFragmentManager(), mViewPager);
-        mViewPager.setAdapter(mConvoPagerAdapter);
-        mViewPager.setOnPageChangeListener(mConvoPagerAdapter);
-        mConvoPagerAdapter.setChat(chat);
-        mConvoDrawerFragment.clear();
-        mConvoDrawerFragment.addAll(mConvoPagerAdapter.getCurrentConvos());
-        mConvoDrawerFragment.updateView();
-        setTitle(chat.getName());
-        Application.get().getPreferences().edit()
-                .putLong("current_group_id", chat.getGlobalId()).commit();
-        invalidateOptionsMenu();
-        toggleConvo(Application.get().getPreferences().getLong("chat_" + chat.getGlobalId() + "_current_convo_id", 0));
     }
 
     protected void toggleConvo(int position) {
@@ -942,21 +993,12 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
             // Create the File where the photo should go
             File photoFile = null;
             try {
-                // Create an image file name
-                String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
-                String imageFileName = String.format("%s_%s.jpg", getResources().getString(R.string.app_name),
-                        timeStamp);
-                File storageDir = new File(Environment.getExternalStorageDirectory(), getResources().getString(
-                        R.string.app_name));
-                storageDir.mkdirs();
-                photoFile = new File(storageDir, imageFileName);
-                photoFile.createNewFile();
-
-                // Save a file: path for use with ACTION_VIEW intents
+                photoFile = ImageUtil.createImageFile(this);
                 mLatestPath = photoFile.getAbsolutePath();
-            } catch (IOException ex) {
-                GeneralHelper.reportMessage(MainActivity.this, LOGTAG, "Saving temp image file failed, the fuck!?");
+            } catch (IOException e) {
+                e.printStackTrace();
             }
+            // Save a file: path for use with ACTION_VIEW intents
             // Continue only if the File was successfully created
             if (photoFile != null) {
                 i.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(photoFile));
@@ -987,10 +1029,17 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
                 .putExtra(USER_NAME, getAccountUserFullName());
         sendServerRequest(i);
 
+        try {
+            GoogleCloudMessaging.getInstance(this).unregister();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
         Application.get().getDatabaseManager().clear();
         Application.get().getPreferences().edit().clear().commit();
         Application.get().setCurrentChat(null);
         mConvoDrawerFragment.clear();
+        mChatDrawerFragment.swapCursor(null);
         mChatDrawerFragment.updateView();
         mConvoPagerAdapter = null;
         mViewPager.setAdapter(null);
@@ -1168,6 +1217,7 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
             b.putLong("convoId", id);
             b.putInt("convoType", type.getValue());
             b.putString("name", name);
+            b.putBoolean("canFetchMoreMessages", true);
             final ConvoFragment frag = new ConvoFragment();
             frag.setArguments(b);
             return frag;

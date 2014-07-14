@@ -25,9 +25,8 @@ public class RegisterTask extends MiluHTTPTask {
         mEmail = email;
         mPassword = password;
         mFieldMapping = Maps.newHashMap(fieldMapping);
-        extractFiles(fieldMapping, false);
+        extractFiles(fieldMapping, true);
         execute();
-
     }
 
     @Override

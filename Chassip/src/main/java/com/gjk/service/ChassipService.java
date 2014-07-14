@@ -10,6 +10,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.content.LocalBroadcastManager;
@@ -50,6 +51,7 @@ import com.gjk.net.RemoveWhisperMembersTask;
 import com.gjk.net.SendMessageTask;
 import com.gjk.net.TaskResult;
 import com.gjk.net.UpdateGCMRegTask;
+import com.gjk.utils.media2.ImageUtil;
 import com.google.android.gms.gcm.GoogleCloudMessaging;
 import com.google.common.collect.Maps;
 
@@ -58,6 +60,10 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.URL;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -79,6 +85,7 @@ import static com.gjk.Constants.FETCH_CONVO_MEMBERS_REQUEST;
 import static com.gjk.Constants.FETCH_CONVO_MEMBERS_RESPONSE;
 import static com.gjk.Constants.FETCH_MORE_MESSAGES_REQUEST;
 import static com.gjk.Constants.FETCH_MORE_MESSAGES_RESPONSE;
+import static com.gjk.Constants.FIRST_NAME;
 import static com.gjk.Constants.GCM_GROUP_INVITE;
 import static com.gjk.Constants.GCM_MESSAGE;
 import static com.gjk.Constants.GCM_SIDECONVO_INVITE;
@@ -86,7 +93,9 @@ import static com.gjk.Constants.GCM_WHISPER_INVITE;
 import static com.gjk.Constants.GROUP_ID;
 import static com.gjk.Constants.GROUP_UPDATE_RESPONSE;
 import static com.gjk.Constants.IMAGE_PATH;
+import static com.gjk.Constants.IMAGE_URL;
 import static com.gjk.Constants.INTENT_TYPE;
+import static com.gjk.Constants.LAST_NAME;
 import static com.gjk.Constants.LOGIN_REQUEST;
 import static com.gjk.Constants.LOGIN_RESPONSE;
 import static com.gjk.Constants.LOGOUT_REQUEST;
@@ -102,6 +111,7 @@ import static com.gjk.Constants.NUM_MESSAGES;
 import static com.gjk.Constants.PASSWORD;
 import static com.gjk.Constants.PROPERTY_APP_VERSION;
 import static com.gjk.Constants.PROPERTY_REG_ID;
+import static com.gjk.Constants.REGISTER_FACEBOOK_REQUEST;
 import static com.gjk.Constants.REGISTER_REQUEST;
 import static com.gjk.Constants.REGISTER_RESPONSE;
 import static com.gjk.Constants.REMOVE_CHAT_MEMBERS_REQUEST;
@@ -176,6 +186,8 @@ public class ChassipService extends IntentService {
                         login(extras);
                     } else if (type.equals(REGISTER_REQUEST)) {
                         register(extras);
+                    } else if (type.equals(REGISTER_FACEBOOK_REQUEST)) {
+                        registerFacebook(extras);
                     } else if (type.equals(LOGOUT_REQUEST)) {
                         logout(extras);
                     }
@@ -194,8 +206,8 @@ public class ChassipService extends IntentService {
     }
 
     private void register(Bundle extras) {
-        final String firstName = extras.getString(EMAIL);
-        final String lastName = extras.getString(PASSWORD);
+        final String firstName = extras.getString(FIRST_NAME);
+        final String lastName = extras.getString(LAST_NAME);
         final String email = extras.getString(EMAIL);
         final String password = extras.getString(PASSWORD);
         String aviPath = extras.getString(IMAGE_PATH);
@@ -218,13 +230,14 @@ public class ChassipService extends IntentService {
                                         .commit();
                                 updateChassipGcm(getAccountUserId(),
                                         Application.get().getPreferences().getString(PROPERTY_REG_ID, "abc"), new AuthenticatedAction() {
-                                    @Override
-                                    public void doThis() {
-                                        Intent i = new Intent(CHASSIP_ACTION);
-                                        i.putExtra(INTENT_TYPE, LOGIN_RESPONSE);
-                                        LocalBroadcastManager.getInstance(ChassipService.this).sendBroadcast(i);
-                                    }
-                                });
+                                            @Override
+                                            public void doThis() {
+                                                Intent i = new Intent(CHASSIP_ACTION);
+                                                i.putExtra(INTENT_TYPE, LOGIN_RESPONSE);
+                                                LocalBroadcastManager.getInstance(ChassipService.this).sendBroadcast(i);
+                                            }
+                                        }
+                                );
                             } catch (Exception e) {
                                 reportError(e.getMessage(), true);
                             }
@@ -237,8 +250,13 @@ public class ChassipService extends IntentService {
                 reportError("GCM registration unsuccessful", true);
             }
         } catch (Exception e) {
+            e.printStackTrace();
             reportError(String.format("GCM registration unsuccessful: %s", e), true);
         }
+    }
+
+    private void registerFacebook(final Bundle extras) {
+        new FetchFacebookAvi().execute(extras);
     }
 
     private void login(Bundle extras) {
@@ -261,13 +279,14 @@ public class ChassipService extends IntentService {
                                         .commit();
                                 updateChassipGcm(getAccountUserId(),
                                         Application.get().getPreferences().getString(PROPERTY_REG_ID, "abc"), new AuthenticatedAction() {
-                                    @Override
-                                    public void doThis() {
-                                        Intent i = new Intent(CHASSIP_ACTION);
-                                        i.putExtra(INTENT_TYPE, REGISTER_RESPONSE);
-                                        LocalBroadcastManager.getInstance(ChassipService.this).sendBroadcast(i);
-                                    }
-                                });
+                                            @Override
+                                            public void doThis() {
+                                                Intent i = new Intent(CHASSIP_ACTION);
+                                                i.putExtra(INTENT_TYPE, REGISTER_RESPONSE);
+                                                LocalBroadcastManager.getInstance(ChassipService.this).sendBroadcast(i);
+                                            }
+                                        }
+                                );
                             } catch (Exception e) {
                                 reportError(e.getMessage(), true);
                             }
@@ -1074,6 +1093,31 @@ public class ChassipService extends IntentService {
 
     private interface AuthenticatedAction {
         void doThis();
+    }
 
+    private class FetchFacebookAvi extends AsyncTask<Bundle, Void, Void> {
+        @Override
+        protected Void doInBackground(Bundle... params) {
+            if (params[0] != null) {
+                try {
+                    URL url = new URL(params[0].getString(IMAGE_URL));
+                    InputStream input = url.openStream();
+                    File file = ImageUtil.createImageFile(ChassipService.this);
+                    OutputStream output = new FileOutputStream(file);
+                    byte[] buffer = new byte[1024];
+                    int bytesRead = 0;
+                    while ((bytesRead = input.read(buffer, 0, buffer.length)) >= 0) {
+                        output.write(buffer, 0, bytesRead);
+                    }
+                    output.close();
+                    input.close();
+                    params[0].putString(IMAGE_PATH, file.getAbsolutePath());
+                    register(params[0]);
+                } catch (Exception e) {
+                    reportError("Downloading facebook avi failed, the fuck!?", true);
+                }
+            }
+            return null;
+        }
     }
 }

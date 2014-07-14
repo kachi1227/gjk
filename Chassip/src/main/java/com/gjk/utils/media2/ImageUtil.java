@@ -1,8 +1,18 @@
 package com.gjk.utils.media2;
 
+import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Path;
+import android.os.Environment;
+
+import com.gjk.R;
+
+import java.io.File;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
 
 public class ImageUtil {
 
@@ -21,5 +31,18 @@ public class ImageUtil {
         canvas.clipPath(path);
         canvas.drawBitmap(bitmap, 0.0f, 0.0f, null);
         return outputBitmap;
+    }
+
+    public static File createImageFile(Context ctx) throws IOException {
+        // Create an image file name
+        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
+        String imageFileName = String.format("%s_%s.jpg", ctx.getResources().getString(R.string.app_name),
+                timeStamp);
+        File storageDir = new File(Environment.getExternalStorageDirectory(), ctx.getResources().getString(
+                R.string.app_name));
+        storageDir.mkdirs();
+        File photoFile = new File(storageDir, imageFileName);
+        photoFile.createNewFile();
+        return photoFile;
     }
 }

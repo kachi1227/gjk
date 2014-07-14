@@ -111,7 +111,7 @@ public class ConvoFragment extends ListFragment {
                     if (mAdapter != null && totalItemCount != 0 && mItemCountAtOnScroll != totalItemCount &&
                             firstVisibleItem == 0 && visibleItemCount != 0 && visibleItemCount < totalItemCount) {
                         mItemCountAtOnScroll = totalItemCount;
-                        loadMessages(PROPERTY_SETTING_MESSAGE_LOAD_LIMIT_DEFAULT);
+                        loadAndFetchMessages(PROPERTY_SETTING_MESSAGE_LOAD_LIMIT_DEFAULT);
                         getListView().setSelection(getListView().getCount() - totalItemCount);
                     }
                 }
@@ -127,6 +127,16 @@ public class ConvoFragment extends ListFragment {
     public void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
         outState.putAll(mArgs);
+    }
+
+    @Override
+    public void setArguments(Bundle args) {
+        super.setArguments(args);
+        if (mArgs == null) {
+            mArgs = args;
+        } else {
+            mArgs.putAll(args);
+        }
     }
 
     public long getChatId() {
@@ -189,20 +199,13 @@ public class ConvoFragment extends ListFragment {
 
     public void loadMessagesAfterFetch(boolean canFetchMore) {
         mArgs.putBoolean("canFetchMoreMessages", canFetchMore);
-        loadMessages(PROPERTY_SETTING_MESSAGE_LOAD_LIMIT_DEFAULT);
+        swapCursor(PROPERTY_SETTING_MESSAGE_LOAD_LIMIT_DEFAULT);
     }
 
-    public void loadMessages(int numMessages) {
-        Log.i(mLogtag, "Trying to loading more messages");
-        Cursor newCursor;
-        if (GeneralHelper.getInterleavingPref()) {
-            newCursor = getMessagesCursor(getChatId(), mAdapter.getCount() + numMessages);
-        } else {
-            newCursor = getMessagesCursor(getChatId(), getConvoId(), mAdapter.getCount() + numMessages);
-        }
-        Cursor oldCursor = mAdapter.swapCursor(newCursor);
+    public void loadAndFetchMessages(int numMessages) {
+        Cursor oldCursor = swapCursor(numMessages);
         if (isCanFetchMoreMessagesSet()) {
-            if (newCursor.getCount() == oldCursor.getCount()) {
+            if (mAdapter.getCount() == oldCursor.getCount()) {
                 Intent i = new Intent(getActivity(), ChassipService.class);
                 i.setAction(CHASSIP_ACTION);
                 i.putExtra(INTENT_TYPE, FETCH_MORE_MESSAGES_REQUEST)
@@ -213,16 +216,20 @@ public class ConvoFragment extends ListFragment {
         } else {
             GeneralHelper.showLongToast(getActivity(), "No more messages to fetch...");
         }
-
     }
 
-    @Override
-    public void setArguments(Bundle args) {
-        super.setArguments(args);
-        if (mArgs == null) {
-            mArgs = args;
+    public void loadMessages(int numMessages) {
+        swapCursor(numMessages);
+    }
+
+    private Cursor swapCursor(int numMessages) {
+        Log.i(mLogtag, "Trying to loading more messages");
+        Cursor newCursor;
+        if (GeneralHelper.getInterleavingPref()) {
+            newCursor = getMessagesCursor(getChatId(), mAdapter.getCount() + numMessages);
         } else {
-            mArgs.putAll(args);
+            newCursor = getMessagesCursor(getChatId(), getConvoId(), mAdapter.getCount() + numMessages);
         }
+        return mAdapter.swapCursor(newCursor);
     }
 }
