@@ -21,40 +21,34 @@ import com.gjk.net.MiluHttpRequest.DBHttpResponse;
 import org.json.JSONObject;
 
 
-public class DeleteGCMRegTask extends MiluHTTPTask {
+public class DeleteGcmRegTask extends MiluHTTPTask {
 
-    private long mID;
-    private boolean mIsDelete;
+    private long mId;
+    private boolean mDelete;
 
-    public DeleteGCMRegTask(Context ctx, HTTPTaskListener listener, long id, boolean _delete) {
+    public DeleteGcmRegTask(Context ctx, HTTPTaskListener listener, long id, boolean delete) {
         super(ctx, listener);
-        // TODO Auto-generated constructor stub
-        mID = id;
-        mIsDelete = _delete;
+        mId = id;
+        mDelete = delete;
         execute();
     }
 
     @Override
-    public TaskResult handleSuccessfulJSONResponse(DBHttpResponse response,
-                                                   JSONObject json) throws Exception {
-        // TODO Auto-generated method stub
+    public TaskResult handleSuccessfulJSONResponse(DBHttpResponse response, JSONObject json) throws Exception {
         return new TaskResult(this, TaskResult.RC_SUCCESS, null, json.getBoolean("success"));
 
     }
 
     @Override
     public JSONObject getPayload() throws Exception {
-        // TODO Auto-generated method stub
         JSONObject payload = new JSONObject();
-        payload.put("id", mID);
-        payload.put("delete", mIsDelete);
-
+        payload.put("id", mId);
+        payload.put("delete", mDelete);
         return payload;
     }
 
     @Override
     public String getUri() {
-        // TODO Auto-generated method stub
         return "api/updateGCMRegistration";
     }
 

@@ -24,18 +24,18 @@ import com.gjk.R;
 import com.gjk.database.objects.Group;
 import com.gjk.database.objects.Message;
 import com.gjk.helper.GeneralHelper;
-import com.gjk.net.AddMemberTask;
+import com.gjk.net.AddMembersTask;
 import com.gjk.net.AddSideChatMembersTask;
 import com.gjk.net.AddWhisperMembersTask;
 import com.gjk.net.CreateGroupTask;
 import com.gjk.net.CreateSideChatTask;
 import com.gjk.net.CreateWhisperTask;
-import com.gjk.net.DeleteGCMRegTask;
+import com.gjk.net.DeleteGcmRegTask;
 import com.gjk.net.GetGroupMembersTask;
-import com.gjk.net.GetMessageTask;
-import com.gjk.net.GetMultipleGroupsTask;
+import com.gjk.net.GetGroupTask;
+import com.gjk.net.GetGroupsTask;
+import com.gjk.net.GetMessagesTask;
 import com.gjk.net.GetSideChatMembersTask;
-import com.gjk.net.GetSpecificGroupTask;
 import com.gjk.net.GetWhisperMembersTask;
 import com.gjk.net.HTTPTask;
 import com.gjk.net.LoginTask;
@@ -45,12 +45,12 @@ import com.gjk.net.NotifySideChatInviteesTask;
 import com.gjk.net.NotifyWhisperInviteesTask;
 import com.gjk.net.RegisterTask;
 import com.gjk.net.RemoveGroupTask;
-import com.gjk.net.RemoveMemberTask;
+import com.gjk.net.RemoveMembersTask;
 import com.gjk.net.RemoveSideChatMembersTask;
 import com.gjk.net.RemoveWhisperMembersTask;
 import com.gjk.net.SendMessageTask;
 import com.gjk.net.TaskResult;
-import com.gjk.net.UpdateGCMRegTask;
+import com.gjk.net.UpdateGcmRegTask;
 import com.gjk.utils.media2.ImageUtil;
 import com.google.android.gms.gcm.GoogleCloudMessaging;
 import com.google.common.collect.Maps;
@@ -334,7 +334,7 @@ public class ChassipService extends IntentService {
     }
 
     private void updateChassipGcm(long id, String gcm, final AuthenticatedAction action) {
-        new UpdateGCMRegTask(this, new HTTPTask.HTTPTaskListener() {
+        new UpdateGcmRegTask(this, new HTTPTask.HTTPTaskListener() {
             @Override
             public void onTaskComplete(TaskResult result) {
                 if (result.getResponseCode() == 1) {
@@ -435,7 +435,7 @@ public class ChassipService extends IntentService {
     private void removeChatMembers(Bundle extras) {
         final long groupId = extras.getLong(GROUP_ID);
         final long[] membersIds = extras.getLongArray(MEMBER_IDS);
-        new RemoveMemberTask(this, new HTTPTask.HTTPTaskListener() {
+        new RemoveMembersTask(this, new HTTPTask.HTTPTaskListener() {
             @Override
             public void onTaskComplete(TaskResult result) {
                 if (result.getResponseCode() == 1) {
@@ -453,7 +453,7 @@ public class ChassipService extends IntentService {
     private void addChatMembers(Bundle extras) {
         final long groupId = extras.getLong(GROUP_ID);
         final long[] membersIds = extras.getLongArray(MEMBER_IDS);
-        new AddMemberTask(this, new HTTPTask.HTTPTaskListener() {
+        new AddMembersTask(this, new HTTPTask.HTTPTaskListener() {
             @Override
             public void onTaskComplete(TaskResult result) {
                 if (result.getResponseCode() == 1) {
@@ -723,7 +723,7 @@ public class ChassipService extends IntentService {
         } catch (JSONException e) {
             e.printStackTrace();
         }
-        new GetMessageTask(getApplicationContext(), new HTTPTask.HTTPTaskListener() {
+        new GetMessagesTask(getApplicationContext(), new HTTPTask.HTTPTaskListener() {
             @Override
             public void onTaskComplete(TaskResult result) {
                 if (result.getResponseCode() == 1) {
@@ -753,7 +753,7 @@ public class ChassipService extends IntentService {
         } catch (JSONException e) {
             e.printStackTrace();
         }
-        new GetMessageTask(this, new HTTPTask.HTTPTaskListener() {
+        new GetMessagesTask(this, new HTTPTask.HTTPTaskListener() {
             @Override
             public void onTaskComplete(TaskResult result) {
                 if (result.getResponseCode() == 1) {
@@ -805,7 +805,7 @@ public class ChassipService extends IntentService {
 
     private void fetchGroup(long chatId) {
         final Context ctx = this;
-        new GetSpecificGroupTask(this, new HTTPTask.HTTPTaskListener() {
+        new GetGroupTask(this, new HTTPTask.HTTPTaskListener() {
             @Override
             public void onTaskComplete(TaskResult result) {
                 if (result.getResponseCode() == 1) {
@@ -825,7 +825,7 @@ public class ChassipService extends IntentService {
     }
 
     private void fetchAllGroups() {
-        new GetMultipleGroupsTask(getApplicationContext(), new HTTPTask.HTTPTaskListener() {
+        new GetGroupsTask(getApplicationContext(), new HTTPTask.HTTPTaskListener() {
             @Override
             public void onTaskComplete(TaskResult result) {
                 if (result.getResponseCode() == 1) {
@@ -924,7 +924,7 @@ public class ChassipService extends IntentService {
 
             final JSONObject whisper = content.getJSONObject("whisper");
             final JSONObject inviter = content.getJSONObject("inviter");
-            new GetSpecificGroupTask(getApplicationContext(), new HTTPTask.HTTPTaskListener() {
+            new GetGroupTask(getApplicationContext(), new HTTPTask.HTTPTaskListener() {
                 @Override
                 public void onTaskComplete(TaskResult result) {
                     if (result.getResponseCode() == 1) {
@@ -953,7 +953,7 @@ public class ChassipService extends IntentService {
             final JSONObject sideConvo = content.getJSONObject("side_chat");
             final JSONArray members = content.getJSONArray("members");
             final JSONObject inviter = content.getJSONObject("inviter");
-            new GetSpecificGroupTask(getApplicationContext(), new HTTPTask.HTTPTaskListener() {
+            new GetGroupTask(getApplicationContext(), new HTTPTask.HTTPTaskListener() {
                 @Override
                 public void onTaskComplete(TaskResult result) {
                     if (result.getResponseCode() == 1) {
@@ -978,7 +978,7 @@ public class ChassipService extends IntentService {
     private void logout(Bundle extras) {
         final String name = extras.getString(USER_NAME);
         long id = extras.getLong(USER_ID);
-        new DeleteGCMRegTask(this, new HTTPTask.HTTPTaskListener() {
+        new DeleteGcmRegTask(this, new HTTPTask.HTTPTaskListener() {
             @Override
             public void onTaskComplete(TaskResult result) {
                 if (result.getResponseCode() == 1) {

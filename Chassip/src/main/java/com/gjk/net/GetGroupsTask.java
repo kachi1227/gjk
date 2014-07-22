@@ -32,37 +32,31 @@ import com.gjk.net.MiluHttpRequest.DBHttpResponse;
 
 import org.json.JSONObject;
 
-public class GetMultipleGroupsTask extends MiluHTTPTask {
+public class GetGroupsTask extends MiluHTTPTask {
 
-    private long mID;
+    private long mId;
 
-    public GetMultipleGroupsTask(Context ctx, HTTPTaskListener listener, long id) {
+    public GetGroupsTask(Context ctx, HTTPTaskListener listener, long id) {
         super(ctx, listener);
-        // TODO Auto-generated constructor stub
-        mID = id;
+        mId = id;
         execute();
     }
 
     @Override
-    public TaskResult handleSuccessfulJSONResponse(DBHttpResponse response,
-                                                   JSONObject json) throws Exception {
-        // TODO Auto-generated method stub
+    public TaskResult handleSuccessfulJSONResponse(DBHttpResponse response, JSONObject json) throws Exception {
         return new TaskResult(this, TaskResult.RC_SUCCESS, null, json.getJSONArray("groups"));
 
     }
 
     @Override
     public JSONObject getPayload() throws Exception {
-        // TODO Auto-generated method stub
         JSONObject payload = new JSONObject();
-        payload.put("id", mID);
-
+        payload.put("id", mId);
         return payload;
     }
 
     @Override
     public String getUri() {
-        // TODO Auto-generated method stub
         return "api/getGroups";
     }
 

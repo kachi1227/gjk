@@ -7,17 +7,15 @@ import com.gjk.net.MiluHttpRequest.DBHttpResponse;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-public class NotifyWhisperInviteesTask extends MiluHTTPTask {
+public class NotifyWhisperMembersOfDeletionTask extends MiluHTTPTask {
 
-    private long mId;
     private long mWhisperId;
-    private long[] mRecipients;
+    private long[] mMembers;
 
-    public NotifyWhisperInviteesTask(Context ctx, HTTPTaskListener listener, long id, long whisperId, long[] recipients) {
+    public NotifyWhisperMembersOfDeletionTask(Context ctx, HTTPTaskListener listener, long whisperID, long[] members) {
         super(ctx, listener);
-        mId = id;
-        mWhisperId = whisperId;
-        mRecipients = recipients;
+        mWhisperId = whisperID;
+        mMembers = members;
         execute();
     }
 
@@ -29,19 +27,18 @@ public class NotifyWhisperInviteesTask extends MiluHTTPTask {
     @Override
     public JSONObject getPayload() throws Exception {
         JSONObject payload = new JSONObject();
-        payload.put("id", mId);
         payload.put("whisper_id", mWhisperId);
         JSONArray ids = new JSONArray();
-        for (long id : mRecipients) {
+        for (long id : mMembers) {
             ids.put(id);
         }
-        payload.put("recipients", ids);
+        payload.put("members", ids);
         return payload;
     }
 
     @Override
     public String getUri() {
-        return "api/notifyWhisperInvitees";
+        return "api/notifyWhisperMembersOfDeletion";
     }
 
 }
