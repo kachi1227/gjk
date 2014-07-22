@@ -21,45 +21,36 @@ import com.gjk.net.MiluHttpRequest.DBHttpResponse;
 
 import org.json.JSONObject;
 
-public class UpdateGCMRegTask extends MiluHTTPTask {
+public class UpdateGcmRegTask extends MiluHTTPTask {
 
-    private long mID;
+    private long mId;
     private String mRegistrationID;
     private String mPhoneType;
 
-    public UpdateGCMRegTask(Context ctx, HTTPTaskListener listener, long id, String registration_id,
-                            String phone_type) {
+    public UpdateGcmRegTask(Context ctx, HTTPTaskListener listener, long id, String registrationId, String phoneType) {
         super(ctx, listener);
-        // TODO Auto-generated constructor stub
-
-        mID = id;
-        mRegistrationID = registration_id;
-        mPhoneType = phone_type;
+        mId = id;
+        mRegistrationID = registrationId;
+        mPhoneType = phoneType;
         execute();
     }
 
     @Override
-    public TaskResult handleSuccessfulJSONResponse(DBHttpResponse response,
-                                                   JSONObject json) throws Exception {
-        // TODO Auto-generated method stub
+    public TaskResult handleSuccessfulJSONResponse(DBHttpResponse response, JSONObject json) throws Exception {
         return new TaskResult(this, TaskResult.RC_SUCCESS, null, json.getBoolean("success"));
     }
 
     @Override
     public JSONObject getPayload() throws Exception {
-        // TODO Auto-generated method stub
-
         JSONObject payload = new JSONObject();
-        payload.put("id", mID);
+        payload.put("id", mId);
         payload.put("registration_id", mRegistrationID);
         payload.put("phone_type", mPhoneType);
-
         return payload;
     }
 
     @Override
     public String getUri() {
-        // TODO Auto-generated method stub
         return "api/updateGCMRegistration";
     }
 

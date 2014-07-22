@@ -30,9 +30,7 @@ public class RegisterTask extends MiluHTTPTask {
     }
 
     @Override
-    public TaskResult handleSuccessfulJSONResponse(DBHttpResponse response,
-                                                   JSONObject json) throws Exception {
-        // TODO Auto-generated method stub
+    public TaskResult handleSuccessfulJSONResponse(DBHttpResponse response, JSONObject json) throws Exception {
         return new TaskResult(this, TaskResult.RC_SUCCESS, null, json.getJSONObject("user"));
     }
 

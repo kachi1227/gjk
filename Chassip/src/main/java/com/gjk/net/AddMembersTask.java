@@ -21,44 +21,36 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 
-public class AddMemberTask extends MiluHTTPTask {
-    private long mGroupID;
-    private long[] mInvitedIDs;
+public class AddMembersTask extends MiluHTTPTask {
+    private long mGroupId;
+    private long[] mRecipients;
 
-    public AddMemberTask(Context ctx, HTTPTaskListener listener, long groupID, long[] invitedIDs) {
+    public AddMembersTask(Context ctx, HTTPTaskListener listener, long groupId, long[] recipients) {
         super(ctx, listener);
-        mGroupID = groupID;
-        mInvitedIDs = invitedIDs;
+        mGroupId = groupId;
+        mRecipients = recipients;
         execute();
     }
 
     @Override
-    public TaskResult handleSuccessfulJSONResponse(DBHttpResponse response,
-                                                   JSONObject json) throws Exception {
-
+    public TaskResult handleSuccessfulJSONResponse(DBHttpResponse response, JSONObject json) throws Exception {
         return new TaskResult(this, TaskResult.RC_SUCCESS, null, json);
-
     }
 
     @Override
     public JSONObject getPayload() throws Exception {
-
         JSONObject payload = new JSONObject();
-        payload.put("group_id", mGroupID);
-
-        //convert long[] to JSONArray
+        payload.put("group_id", mGroupId);
         JSONArray ids = new JSONArray();
-        for (long id : mInvitedIDs) {
+        for (long id : mRecipients) {
             ids.put(id);
-        }//end convert array
+        }
         payload.put("recipients", ids);
-
         return payload;
     }
 
     @Override
     public String getUri() {
-        // TODO Auto-generated method stub
         return "api/addMembers";
     }
 

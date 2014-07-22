@@ -27,32 +27,28 @@ import com.gjk.net.MiluHttpRequest.DBHttpResponse;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-
 public class AddSideChatMembersTask extends MiluHTTPTask {
 
-    private long mSideChatID;
+    private long mSideChatId;
     private long[] mRecipients;
 
 
-    public AddSideChatMembersTask(Context ctx, HTTPTaskListener listener, long side_chat_id, long[] recipients) {
+    public AddSideChatMembersTask(Context ctx, HTTPTaskListener listener, long sideChatId, long[] recipients) {
         super(ctx, listener);
-        // TODO Auto-generated constructor stub
-        mSideChatID = side_chat_id;
+        mSideChatId = sideChatId;
         mRecipients = recipients;
         execute();
     }
 
     @Override
     public TaskResult handleSuccessfulJSONResponse(DBHttpResponse response, JSONObject json) throws Exception {
-        // TODO Auto-generated method stub
         return new TaskResult(this, TaskResult.RC_SUCCESS, null, json);
     }
 
     @Override
     public JSONObject getPayload() throws Exception {
-        // TODO Auto-generated method stub
         JSONObject payload = new JSONObject();
-        payload.put("side_chat_id", mSideChatID);
+        payload.put("side_chat_id", mSideChatId);
         JSONArray ids = new JSONArray();
         for (long id : mRecipients) {
             ids.put(id);
@@ -63,7 +59,6 @@ public class AddSideChatMembersTask extends MiluHTTPTask {
 
     @Override
     public String getUri() {
-        // TODO Auto-generated method stub
         return "api/addSideChatMembers";
     }
 
