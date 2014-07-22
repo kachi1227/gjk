@@ -7,41 +7,39 @@ import com.gjk.net.MiluHttpRequest.DBHttpResponse;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-public class NotifySideChatInviteesTask extends MiluHTTPTask {
+public class NotifySideChatMembersOfMemberRemovalTask extends MiluHTTPTask {
 
-    private long mId;
     private long mSideChatId;
-    private long[] mRecipients;
+    private long[] mRemovedMembers;
 
-    public NotifySideChatInviteesTask(Context ctx, HTTPTaskListener listener, long id, long sideChatId, long[] recipients) {
+    public NotifySideChatMembersOfMemberRemovalTask(Context ctx, HTTPTaskListener listener, long sideChatId, long[] removedMembers) {
         super(ctx, listener);
-        mId = id;
         mSideChatId = sideChatId;
-        mRecipients = recipients;
+        mRemovedMembers = removedMembers;
         execute();
     }
 
     @Override
-    public TaskResult handleSuccessfulJSONResponse(DBHttpResponse response, JSONObject json) throws Exception {
+    public TaskResult handleSuccessfulJSONResponse(DBHttpResponse response,
+                                                   JSONObject json) throws Exception {
         return new TaskResult(this, TaskResult.RC_SUCCESS, null, json);
     }
 
     @Override
     public JSONObject getPayload() throws Exception {
         JSONObject payload = new JSONObject();
-        payload.put("id", mId);
         payload.put("side_chat_id", mSideChatId);
         JSONArray ids = new JSONArray();
-        for (long id : mRecipients) {
+        for (long id : mRemovedMembers) {
             ids.put(id);
         }
-        payload.put("recipients", ids);
+        payload.put("removed_members", ids);
         return payload;
     }
 
     @Override
     public String getUri() {
-        return "api/notifySideChatInvitees";
+        return "api/notifySideChatMembersOfMemberRemoval";
     }
 
 }

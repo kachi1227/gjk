@@ -6,31 +6,32 @@ import com.gjk.net.MiluHttpRequest.DBHttpResponse;
 
 import org.json.JSONObject;
 
-public class NotifyGroupOfMessageTask extends MiluHTTPTask {
+public class CollapseSideChatTask extends MiluHTTPTask {
 
-    private long mGroupId;
+    private long mSideChatId;
 
-    public NotifyGroupOfMessageTask(Context ctx, HTTPTaskListener listener, long groupId) {
+    public CollapseSideChatTask(Context ctx, HTTPTaskListener listener, long sideChatId) {
         super(ctx, listener);
-        mGroupId = groupId;
+        mSideChatId = sideChatId;
         execute();
     }
 
     @Override
-    public TaskResult handleSuccessfulJSONResponse(DBHttpResponse response, JSONObject json) throws Exception {
+    public TaskResult handleSuccessfulJSONResponse(DBHttpResponse response,
+                                                   JSONObject json) throws Exception {
         return new TaskResult(this, TaskResult.RC_SUCCESS, null, json);
     }
 
     @Override
     public JSONObject getPayload() throws Exception {
         JSONObject payload = new JSONObject();
-        payload.put("group_id", mGroupId);
+        payload.put("side_chat_id", mSideChatId);
         return payload;
     }
 
     @Override
     public String getUri() {
-        return "api/notifyGroupOfMessage";
+        return "api/collapseSideChat";
     }
 
 }

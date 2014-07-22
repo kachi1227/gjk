@@ -24,33 +24,28 @@ import org.json.JSONObject;
 
 public class GetSideChatMembersTask extends MiluHTTPTask {
 
-    private long mSideChatID;
+    private long mSideChatId;
 
-    public GetSideChatMembersTask(Context ctx, HTTPTaskListener listener, long side_chat_id) {
+    public GetSideChatMembersTask(Context ctx, HTTPTaskListener listener, long sideChatId) {
         super(ctx, listener);
-        // TODO Auto-generated constructor stub
-        mSideChatID = side_chat_id;
+        mSideChatId = sideChatId;
         execute();
     }
 
     @Override
-    public TaskResult handleSuccessfulJSONResponse(DBHttpResponse response,
-                                                   JSONObject json) throws Exception {
-        // TODO Auto-generated method stub
+    public TaskResult handleSuccessfulJSONResponse(DBHttpResponse response, JSONObject json) throws Exception {
         return new TaskResult(this, TaskResult.RC_SUCCESS, null, json.getJSONArray("members"));
     }
 
     @Override
     public JSONObject getPayload() throws Exception {
-        // TODO Auto-generated method stub
         JSONObject payload = new JSONObject();
-        payload.put("side_chat_id", mSideChatID);
+        payload.put("side_chat_id", mSideChatId);
         return payload;
     }
 
     @Override
     public String getUri() {
-        // TODO Auto-generated method stub
         return "api/getSideChatMembers";
     }
 

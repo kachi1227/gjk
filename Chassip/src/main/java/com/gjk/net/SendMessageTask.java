@@ -37,7 +37,6 @@ Sample JSON response:
 import android.content.Context;
 
 import com.gjk.net.MiluHttpRequest.DBHttpResponse;
-import com.google.common.collect.Maps;
 
 import org.json.JSONObject;
 
@@ -57,13 +56,11 @@ public class SendMessageTask extends MiluHTTPTask {
     //end optional fields
 
 
-    public SendMessageTask(Context ctx, HTTPTaskListener listener, long senderId, long groupId,
-                           String content) {
+    public SendMessageTask(Context ctx, HTTPTaskListener listener, long senderId, long groupId, String content) {
         this(ctx, listener, senderId, groupId, content, null, null, null, null, null);
     }
 
-    public SendMessageTask(Context ctx, HTTPTaskListener listener, long senderId, long groupId, int type, long tableId,
-                           String content) {
+    public SendMessageTask(Context ctx, HTTPTaskListener listener, long senderId, long groupId, int type, long tableId, String content) {
         this(ctx, listener, senderId, groupId, content, null, null, null, type, tableId);
     }
 
@@ -72,9 +69,8 @@ public class SendMessageTask extends MiluHTTPTask {
         this(ctx, listener, senderId, groupId, content, fieldMapping, null, null, type, tableId);
     }
 
-    public SendMessageTask(Context ctx, HTTPTaskListener listener, long senderId, long groupId,
-                           String content, HashMap<String, Object> fieldMapping, Long recipientId, Long topicId,
-                           Integer messageTypeId, Long tableId) {
+    public SendMessageTask(Context ctx, HTTPTaskListener listener, long senderId, long groupId, String content, HashMap<String, Object> fieldMapping,
+                           Long recipientId, Long topicId, Integer messageTypeId, Long tableId) {
         super(ctx, listener);
         mSenderId = senderId;
         mGroupId = groupId;
@@ -88,8 +84,7 @@ public class SendMessageTask extends MiluHTTPTask {
     }
 
     @Override
-    public TaskResult handleSuccessfulJSONResponse(DBHttpResponse response,
-                                                   JSONObject json) throws Exception {
+    public TaskResult handleSuccessfulJSONResponse(DBHttpResponse response, JSONObject json) throws Exception {
         return new TaskResult(this, TaskResult.RC_SUCCESS, null, json.getJSONObject("message"));
     }
 

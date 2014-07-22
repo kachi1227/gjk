@@ -3,7 +3,6 @@ package com.gjk.net;
 import android.content.Context;
 
 import com.gjk.net.MiluHttpRequest.DBHttpResponse;
-import com.google.common.collect.Maps;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -29,39 +28,35 @@ Sample JSON response:
 
 
 public class CreateGroupTask extends MiluHTTPTask {
-    private String mNameOfGroup;//group name
-    private long mUserID; //creator_id
-    private long[] mMembers;
+    private String mName;//group name
+    private long mCreatorId; //creator_id
+    private long[] mRecipients;
 
-    public CreateGroupTask(Context ctx, HTTPTaskListener listener, long UserID, String nameOfGroup, HashMap<String, Object> fieldMapping) {
-        this(ctx, listener, UserID, nameOfGroup, null, fieldMapping);
+    public CreateGroupTask(Context ctx, HTTPTaskListener listener, long creatorId, String name, HashMap<String, Object> fieldMapping) {
+        this(ctx, listener, creatorId, name, null, fieldMapping);
     }
 
-    public CreateGroupTask(Context ctx, HTTPTaskListener listener, long UserID, String nameOfGroup, long[] members, HashMap<String, Object> fieldMapping) {
+    public CreateGroupTask(Context ctx, HTTPTaskListener listener, long creatorId, String name, long[] recipients, HashMap<String, Object> fieldMapping) {
         super(ctx, listener);
-        mNameOfGroup = nameOfGroup;
-        mUserID = UserID;
-        mMembers = members;
+        mName = name;
+        mCreatorId = creatorId;
+        mRecipients = recipients;
         extractFiles(fieldMapping, false);
         execute();
     }
 
     @Override
-    public TaskResult handleSuccessfulJSONResponse(DBHttpResponse response,
-                                                   JSONObject json) throws Exception {
-
+    public TaskResult handleSuccessfulJSONResponse(DBHttpResponse response, JSONObject json) throws Exception {
         return new TaskResult(this, TaskResult.RC_SUCCESS, null, json.getJSONObject("group"));
-
     }
 
     @Override
     public JSONObject getPayload() throws Exception {
-
         JSONObject payload = new JSONObject();
-        payload.put("name", mNameOfGroup);
-        payload.put("creator_id", mUserID);
+        payload.put("name", mName);
+        payload.put("creator_id", mCreatorId);
         JSONArray ids = new JSONArray();
-        for (long id : mMembers) {
+        for (long id : mRecipients) {
             ids.put(id);
         }
         payload.put("recipients", ids);
@@ -70,7 +65,6 @@ public class CreateGroupTask extends MiluHTTPTask {
 
     @Override
     public String getUri() {
-        // TODO Auto-generated method stub
         return "api/createGroup";
     }
 

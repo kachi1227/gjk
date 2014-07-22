@@ -29,26 +29,21 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 public class CreateWhisperTask extends MiluHTTPTask {
-    // members
-    private long mGroup_id;
-    private long mCreator_id;
+    private long mGroupId;
+    private long mCreatorId;
     private long[] mMembers;
     private String mName = null;
 
-    // end members
-
     // constructor with null for optional field
-    public CreateWhisperTask(Context ctx, HTTPTaskListener listener, long group_id, long creator_id, long[] members) {
-        // TODO Auto-generated constructor stub
-        this(ctx, listener, group_id, creator_id, members, null);
+    public CreateWhisperTask(Context ctx, HTTPTaskListener listener, long groupId, long creatorId, long[] members) {
+        this(ctx, listener, groupId, creatorId, members, null);
     }// end constructor sans optional
 
     // main constructor all fields
-    public CreateWhisperTask(Context ctx, HTTPTaskListener listener, long group_id, long creator_id, long[] members, String name) {
+    public CreateWhisperTask(Context ctx, HTTPTaskListener listener, long groupId, long creatorId, long[] members, String name) {
         super(ctx, listener);
-        // TODO Auto-generated constructor stub
-        mGroup_id = group_id;
-        mCreator_id = creator_id;
+        mGroupId = groupId;
+        mCreatorId = creatorId;
         mMembers = members;
         mName = name;
         execute();
@@ -56,16 +51,14 @@ public class CreateWhisperTask extends MiluHTTPTask {
 
     @Override
     public TaskResult handleSuccessfulJSONResponse(DBHttpResponse response, JSONObject json) throws Exception {
-        // TODO Auto-generated method stub
         return new TaskResult(this, TaskResult.RC_SUCCESS, null, json.getJSONObject("whisper"));
     }
 
     @Override
     public JSONObject getPayload() throws Exception {
-        // TODO Auto-generated method stub
         JSONObject payload = new JSONObject();
-        payload.put("group_id", mGroup_id);
-        payload.put("creator_id", mCreator_id);
+        payload.put("group_id", mGroupId);
+        payload.put("creator_id", mCreatorId);
         JSONArray ids = new JSONArray();
         for (long id : mMembers) {
             ids.put(id);
@@ -73,13 +66,11 @@ public class CreateWhisperTask extends MiluHTTPTask {
         payload.put("members", ids);
         if (mName != null)
             payload.put("name", mName);
-
         return payload;
     }// end getPayload
 
     @Override
     public String getUri() {
-        // TODO Auto-generated method stub
         return "api/createWhisper";
     }// end getUri
 

@@ -24,33 +24,28 @@ import org.json.JSONObject;
 
 public class GetWhisperMembersTask extends MiluHTTPTask {
 
-    private long mWhisperID;
+    private long mWhisperId;
 
-    public GetWhisperMembersTask(Context ctx, HTTPTaskListener listener, long whisper_id) {
+    public GetWhisperMembersTask(Context ctx, HTTPTaskListener listener, long whisperId) {
         super(ctx, listener);
-        // TODO Auto-generated constructor stub
-        mWhisperID = whisper_id;
+        mWhisperId = whisperId;
         execute();
     }
 
     @Override
-    public TaskResult handleSuccessfulJSONResponse(DBHttpResponse response,
-                                                   JSONObject json) throws Exception {
-        // TODO Auto-generated method stub
+    public TaskResult handleSuccessfulJSONResponse(DBHttpResponse response, JSONObject json) throws Exception {
         return new TaskResult(this, TaskResult.RC_SUCCESS, null, json.getJSONArray("members"));
     }
 
     @Override
     public JSONObject getPayload() throws Exception {
-        // TODO Auto-generated method stub
         JSONObject payload = new JSONObject();
-        payload.put("whisper_id", mWhisperID);
+        payload.put("whisper_id", mWhisperId);
         return payload;
     }
 
     @Override
     public String getUri() {
-        // TODO Auto-generated method stub
         return "api/getWhisperMembers";
     }
 
