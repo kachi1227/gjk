@@ -31,9 +31,9 @@ import java.util.Map;
 
 import static com.gjk.Constants.BASE_URL;
 import static com.gjk.Constants.CHAT_CONTEXT_MENU_ID;
-import static com.gjk.Constants.CHAT_DRAWER_ADD_MEMBERS;
+import static com.gjk.Constants.CHAT_DRAWER_ADD_CHAT_MEMBERS;
 import static com.gjk.Constants.CHAT_DRAWER_DELETE_CHAT;
-import static com.gjk.Constants.CHAT_DRAWER_REMOVE_MEMBERS;
+import static com.gjk.Constants.CHAT_DRAWER_REMOVE_CHAT_MEMBERS;
 
 /**
  * @author gpl
@@ -86,8 +86,8 @@ public class ChatsDrawerFragment extends Fragment {
         AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo) menuInfo;
         Cursor cursor = (Cursor) mAdapter.getItem(info.position);
         menu.setHeaderTitle(cursor.getString(cursor.getColumnIndex(Group.F_NAME)));
-        menu.add(CHAT_CONTEXT_MENU_ID, v.getId(), 0, CHAT_DRAWER_ADD_MEMBERS);//groupId, itemId, order, title
-        menu.add(CHAT_CONTEXT_MENU_ID, v.getId(), 1, CHAT_DRAWER_REMOVE_MEMBERS);
+        menu.add(CHAT_CONTEXT_MENU_ID, v.getId(), 0, CHAT_DRAWER_ADD_CHAT_MEMBERS);//groupId, itemId, order, title
+        menu.add(CHAT_CONTEXT_MENU_ID, v.getId(), 1, CHAT_DRAWER_REMOVE_CHAT_MEMBERS);
         menu.add(CHAT_CONTEXT_MENU_ID, v.getId(), 2, CHAT_DRAWER_DELETE_CHAT);
     }
 

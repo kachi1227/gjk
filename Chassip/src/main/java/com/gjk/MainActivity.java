@@ -67,6 +67,7 @@ import static com.gjk.Constants.CONVO_CONTEXT_MENU_ID;
 import static com.gjk.Constants.CONVO_ID;
 import static com.gjk.Constants.CONVO_NAME;
 import static com.gjk.Constants.CONVO_TYPE;
+import static com.gjk.Constants.CONVO_UPDATE_RESPONSE;
 import static com.gjk.Constants.CREATE_CHAT_REQUEST;
 import static com.gjk.Constants.DELETE_CHAT_RESPONSE;
 import static com.gjk.Constants.EMAIL;
@@ -103,6 +104,7 @@ import static com.gjk.Constants.STOP_PROGRESS;
 import static com.gjk.Constants.UNSUCCESSFUL;
 import static com.gjk.Constants.USER_ID;
 import static com.gjk.Constants.USER_NAME;
+import static com.gjk.Constants.VERBOSE;
 import static com.gjk.helper.DatabaseHelper.getAccountUserFullName;
 import static com.gjk.helper.DatabaseHelper.getAccountUserId;
 import static com.gjk.helper.DatabaseHelper.getFirstStoredGroup;
@@ -119,7 +121,7 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
         CreateChatDialog.NoticeDialogListener, CreateConvoDialog.NoticeDialogListener,
         AddChatMembersDialog.NoticeDialogListener, RemoveChatMembersDialog.NoticeDialogListener,
         DeleteChatDialog.NoticeDialogListener, AddConvoMembersDialog.NoticeDialogListener,
-        RemoveConvoMembersDialog.NoticeDialogListener {
+        RemoveConvoMembersDialog.NoticeDialogListener, DeleteConvoDialog.NoticeDialogListener {
 
     private final static String LOGTAG = "MainActivity";
 
@@ -147,6 +149,8 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
     private String mLatestPath;
     private ActivityImageState mState;
 
+    private final Object syncObj = new Object();
+
     private enum ActivityImageState {
         NONE,
         REGISTERING,
@@ -162,11 +166,13 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
             if (extras != null) {
                 String type = extras.getString(INTENT_TYPE);
                 if (type != null) {
-                    if (type.equals(SEND_MESSAGE_RESPONSE)) {
 
-                        mChatDrawerFragment.updateView();
-                        if (mConvoPagerAdapter != null) {
-                            synchronized (mConvoPagerAdapter) {
+                    synchronized (syncObj) {
+
+                        if (type.equals(SEND_MESSAGE_RESPONSE)) {
+
+                            mChatDrawerFragment.updateView();
+                            if (mConvoPagerAdapter != null) {
                                 if (Application.get().getCurrentChat() != null && extras.getLong(GROUP_ID) ==
                                         Application.get().getCurrentChat().getGlobalId() && mConvoPagerAdapter != null) {
                                     mConvoPagerAdapter.handleMessage(extras.getInt(NUM_MESSAGES));
@@ -174,89 +180,101 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
                                 mSend.setEnabled(false);
                                 mAttach.setEnabled(true);
                             }
-                        }
 
-                    } else if (type.equals(GCM_MESSAGE_RESPONSE)) {
+                        } else if (type.equals(GCM_MESSAGE_RESPONSE)) {
 
-                        mChatDrawerFragment.updateView();
-                        if (mConvoPagerAdapter != null) {
-                            synchronized (mConvoPagerAdapter) {
+                            mChatDrawerFragment.updateView();
+                            if (mConvoPagerAdapter != null) {
                                 if (Application.get().getCurrentChat() != null && extras.getLong(GROUP_ID) ==
                                         Application.get().getCurrentChat().getGlobalId() && mConvoPagerAdapter != null) {
                                     mConvoPagerAdapter.handleMessage(extras.getInt(NUM_MESSAGES));
                                 }
                             }
-                        }
 
-                    } else if (type.equals(FETCH_CONVO_MEMBERS_RESPONSE)) {
+                        } else if (type.equals(FETCH_CONVO_MEMBERS_RESPONSE)) {
 
-                        if (mConvoPagerAdapter != null) {
-                            synchronized (mConvoPagerAdapter) {
-                                if (mConvoPagerAdapter != null) {
-                                    mConvoPagerAdapter.handleConvoMembers(extras.getLong(GROUP_ID),
-                                            extras.getLong(CONVO_ID), extras.getLongArray(MEMBER_IDS));
-                                }
+                            if (mConvoPagerAdapter != null) {
+                                mConvoPagerAdapter.handleConvoMembers(extras.getLong(GROUP_ID),
+                                        extras.getLong(CONVO_ID), extras.getLongArray(MEMBER_IDS));
                             }
-                        }
 
-                    } else if (type.equals(GROUP_UPDATE_RESPONSE)) {
+                        } else if (type.equals(GROUP_UPDATE_RESPONSE)) {
 
-                        long groupId = extras.getLong(GROUP_ID);
-                        synchronized (mChatDrawerFragment) {
+                            long groupId = extras.getLong(GROUP_ID);
                             mChatDrawerFragment.swapCursor(getGroupsCursor());
                             if (Application.get().getCurrentChat() != null && Application.get().getCurrentChat()
                                     .getGlobalId() == groupId) {
                                 toggleChat(groupId);
                             }
-                        }
 
-                    } else if (type.equals(DELETE_CHAT_RESPONSE)) {
+                        } else if (type.equals(CONVO_UPDATE_RESPONSE)) {
 
-                        long groupId = extras.getLong(GROUP_ID);
-                        mChatDrawerFragment.swapCursor(getGroupsCursor());
-                        if (Application.get().getCurrentChat().getGlobalId() == groupId) {
-                            toggleChat(getFirstStoredGroup());
-                        }
+                            long convoId = extras.getLong(CONVO_ID);
+                            List<ConvoFragment> frags = mConvoPagerAdapter.getCurrentConvos();
+                            for (ConvoFragment frag : frags) {
+                                if (frag.getConvoId() == convoId) {
+                                    toggleChat(frag.getChatId());
+                                    return;
+                                }
+                            }
 
-                    } else if (type.equals(FETCH_MORE_MESSAGES_RESPONSE)) {
+                        } else if (type.equals(DELETE_CHAT_RESPONSE)) {
 
-                        if (mConvoPagerAdapter != null) {
-                            mConvoPagerAdapter.loadMessagesAfterFetch(extras.getLong(GROUP_ID),
-                                    extras.getLong(CONVO_ID), extras.getBoolean(CAN_FETCH_MORE_MESSAGES));
-                        }
+                            long groupId = extras.getLong(GROUP_ID);
+                            mChatDrawerFragment.swapCursor(getGroupsCursor());
+                            if (Application.get().getCurrentChat().getGlobalId() == groupId) {
+                                toggleChat(getFirstStoredGroup());
+                            }
 
-                    } else if (type.equals(LOGIN_RESPONSE) || type.equals(REGISTER_RESPONSE)) {
+                        } else if (type.equals(FETCH_MORE_MESSAGES_RESPONSE)) {
 
-                        authenticated();
+                            if (mConvoPagerAdapter != null) {
+                                mConvoPagerAdapter.loadMessagesAfterFetch(extras.getLong(GROUP_ID),
+                                        extras.getLong(CONVO_ID), extras.getBoolean(CAN_FETCH_MORE_MESSAGES));
+                            }
 
-                    } else if (type.equals(GET_ALL_GROUPS_RESPONSE)) {
+                        } else if (type.equals(LOGIN_RESPONSE) || type.equals(REGISTER_RESPONSE)) {
 
-                        mChatDrawerFragment.swapCursor(getGroupsCursor());
+                            authenticated();
 
-                    } else if (type.equals(START_PROGRESS)) {
+                        } else if (type.equals(GET_ALL_GROUPS_RESPONSE)) {
 
-                        setProgressBarIndeterminateVisibility(true);
+                            mChatDrawerFragment.swapCursor(getGroupsCursor());
 
-                    } else if (type.equals(STOP_PROGRESS)) {
+                        } else if (type.equals(START_PROGRESS)) {
 
-                        setProgressBarIndeterminateVisibility(false);
+                            setProgressBarIndeterminateVisibility(true);
 
-                    } else if (type.equals(ERROR) || type.equals(UNSUCCESSFUL)) {
+                        } else if (type.equals(STOP_PROGRESS)) {
 
-                        mSend.setEnabled(false);
-                        mAttach.setEnabled(true);
-                        if (extras.getBoolean(SHOW_TOAST)) {
-                            GeneralHelper.reportMessage(MainActivity.this, LOGTAG, extras.getString(MESSAGE), true);
+                            setProgressBarIndeterminateVisibility(false);
+
+                        } else if (type.equals(ERROR) || type.equals(UNSUCCESSFUL)) {
+
+                            mSend.setEnabled(false);
+                            mAttach.setEnabled(true);
+                            if (extras.getBoolean(SHOW_TOAST)) {
+                                GeneralHelper.reportMessage(MainActivity.this, LOGTAG, extras.getString(MESSAGE), true);
+                            } else {
+                                GeneralHelper.reportMessage(MainActivity.this, LOGTAG, extras.getString(MESSAGE));
+                            }
+                            setProgressBarIndeterminateVisibility(false);
+
+                        } else if (type.equals(VERBOSE)) {
+
+                            if (extras.getBoolean(SHOW_TOAST)) {
+                                GeneralHelper.reportMessage(MainActivity.this, LOGTAG, extras.getString(MESSAGE), true);
+                            } else {
+                                GeneralHelper.reportMessage(MainActivity.this, LOGTAG, extras.getString(MESSAGE));
+                            }
+
                         } else {
-                            GeneralHelper.reportMessage(MainActivity.this, LOGTAG, extras.getString(MESSAGE));
+
+                            setProgressBarIndeterminateVisibility(false);
+                            GeneralHelper.reportMessage(MainActivity.this, LOGTAG, "Received unhandled intent type=" + type);
                         }
-                        setProgressBarIndeterminateVisibility(false);
-
-                    } else {
-
-                        setProgressBarIndeterminateVisibility(false);
-                        GeneralHelper.reportMessage(MainActivity.this, LOGTAG, "Received unhandled intent type=" + type);
                     }
+
                 } else {
 
                     setProgressBarIndeterminateVisibility(false);
@@ -440,15 +458,7 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
         if (item.getGroupId() == CHAT_CONTEXT_MENU_ID) {
             Cursor c = mChatDrawerFragment.getItem(info.position);
             long groupId = c.getLong(c.getColumnIndex(Group.F_GLOBAL_ID));
-            if (item.getTitle().equals(Constants.CHAT_DRAWER_ADD_MEMBERS)) {
-                showAddChatMembersDialog(groupId);
-            } else if (item.getTitle().equals(Constants.CHAT_DRAWER_REMOVE_MEMBERS)) {
-                showRemoveChatMembersDialog(groupId);
-            } else if (item.getTitle().equals(Constants.CHAT_DRAWER_DELETE_CHAT)) {
-                showDeleteChatDialog(groupId);
-            } else {
-                return false;
-            }
+            return handleChatClicked(item.getTitle(), groupId);
         } else if (item.getGroupId() == CONVO_CONTEXT_MENU_ID) {
             ConvoFragment frag = mConvoDrawerFragment.getItem(info.position);
             long groupId = frag.getChatId();
@@ -456,27 +466,15 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
             ConvoType convoType = frag.getConvoType();
             switch (convoType) {
                 case MAIN_CHAT:
-                    if (item.getTitle().equals(Constants.CONVO_DRAWER_ADD_MEMBERS)) {
-                        showAddChatMembersDialog(groupId);
-                    } else if (item.getTitle().equals(Constants.CONVO_DRAWER_REMOVE_MEMBERS)) {
-                        showRemoveChatMembersDialog(groupId);
-                    } else {
-                        return false;
-                    }
-                    return true;
+                    return handleChatClicked(item.getTitle(), groupId);
+                case SIDE_CONVO:
+                case WHISPER:
+                    return handleConvoClicked(item.getTitle(), groupId, convoId, convoType, frag.getMembers().toArray(new GroupMember[]{}));
                 default:
-                    if (item.getTitle().equals(Constants.CONVO_DRAWER_ADD_MEMBERS)) {
-                        addConvoMembersDialog(groupId, convoId, convoType);
-                    } else if (item.getTitle().equals(Constants.CONVO_DRAWER_REMOVE_MEMBERS)) {
-                        GroupMember[] groupMembers = frag.getMembers().toArray(new GroupMember[]{});
-                        removeConvoMembersDialog(groupId, convoId, convoType, groupMembers);
-                    } else {
-                        return false;
-                    }
-                    return true;
+                    return false;
             }
         }
-        return true;
+        return false;
     }
 
     @Override
@@ -549,6 +547,19 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
                 .putExtra(CONVO_ID, dialog.getConvoId())
                 .putExtra(CONVO_TYPE, dialog.getConvoType().getValue())
                 .putExtra(MEMBER_IDS, dialog.getSelectedIds());
+        sendServerRequest(i);
+    }
+
+
+    @Override
+    public void onDeleteConvoDialogPositiveClick(DeleteConvoDialog dialog) {
+        dialog.dismiss();
+        Intent i = new Intent(this, ChassipService.class);
+        i.putExtra(INTENT_TYPE, Constants.DELETE_CONVO_REQUEST)
+                .putExtra(GROUP_ID, dialog.getGroupId())
+                .putExtra(CONVO_ID, dialog.getConvoId())
+                .putExtra(CONVO_TYPE, dialog.getConvoType().getValue())
+                .putExtra(MEMBER_IDS, dialog.getIds());
         sendServerRequest(i);
     }
 
@@ -751,6 +762,32 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
         finalizeToggleConvo();
     }
 
+    private boolean handleChatClicked(CharSequence title, long groupId) {
+        if (title.equals(Constants.CHAT_DRAWER_ADD_CHAT_MEMBERS)) {
+            showAddChatMembersDialog(groupId);
+        } else if (title.equals(Constants.CHAT_DRAWER_REMOVE_CHAT_MEMBERS)) {
+            showRemoveChatMembersDialog(groupId);
+        } else if (title.equals(Constants.CHAT_DRAWER_DELETE_CHAT)) {
+            showDeleteChatDialog(groupId);
+        } else {
+            return false;
+        }
+        return true;
+    }
+
+    private boolean handleConvoClicked(CharSequence title, long groupId, long convoId, ConvoType convoType, GroupMember[] groupMembers) {
+        if (title.equals(Constants.CONVO_DRAWER_ADD_SIDE_CONVO_MEMBERS) || title.equals(Constants.CONVO_DRAWER_ADD_WHISPER_MEMBERS)) {
+            showAddConvoMembersDialog(groupId, convoId, convoType);
+        } else if (title.equals(Constants.CONVO_DRAWER_REMOVE_SIDE_CONVO_MEMBERS) || title.equals(Constants.CONVO_DRAWER_REMOVE_WHISPER_MEMBERS)) {
+            showRemoveConvoMembersDialog(groupId, convoId, convoType, groupMembers);
+        } else if (title.equals(Constants.CONVO_DRAWER_DELETE_SIDE_CONVO) || title.equals(Constants.CONVO_DRAWER_DELETE_WHISPER)) {
+            showDeleteConvoDialog(groupId, convoId, convoType, groupMembers);
+        } else {
+            return false;
+        }
+        return true;
+    }
+
     private void finalizeToggleConvo() {
         switchTitleToConvoInfo();
         mDrawerLayout.closeDrawer(Gravity.RIGHT);
@@ -889,16 +926,22 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
         d.show(getSupportFragmentManager(), "DeleteChatDialog");
     }
 
-    private void addConvoMembersDialog(long groupId, long convoId, ConvoType convoType) {
+    private void showAddConvoMembersDialog(long groupId, long convoId, ConvoType convoType) {
         AddConvoMembersDialog d = new AddConvoMembersDialog();
         d.setGroupId(groupId).setConvoId(convoId).setConvoType(convoType);
         d.show(getSupportFragmentManager(), "AddConvoMembersDialog");
     }
 
-    private void removeConvoMembersDialog(long groupId, long convoId, ConvoType convoType, GroupMember[] groupMembers) {
+    private void showRemoveConvoMembersDialog(long groupId, long convoId, ConvoType convoType, GroupMember[] groupMembers) {
         RemoveConvoMembersDialog d = new RemoveConvoMembersDialog();
         d.setGroupId(groupId).setConvoId(convoId).setConvoType(convoType).setConvoMembers(groupMembers);
         d.show(getSupportFragmentManager(), "RemoveConvoMembersDialog");
+    }
+
+    private void showDeleteConvoDialog(long groupId, long convoId, ConvoType convoType, GroupMember[] groupMembers) {
+        DeleteConvoDialog d = new DeleteConvoDialog();
+        d.setGroupId(groupId).setConvoId(convoId).setConvoType(convoType).setConvoMembers(groupMembers);
+        d.show(getSupportFragmentManager(), "DeleteConvoDialog");
     }
 
     private void displayImageChooser(ActivityImageState state) {

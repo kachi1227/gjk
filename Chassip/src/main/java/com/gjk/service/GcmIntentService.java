@@ -1,7 +1,6 @@
 package com.gjk.service;
 
 import android.app.IntentService;
-import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
@@ -21,8 +20,6 @@ public class GcmIntentService extends IntentService {
 
     @Override
     protected void onHandleIntent(Intent intent) {
-
-        final Context ctx = getApplicationContext();
 
         Bundle extras = intent.getExtras();
         GoogleCloudMessaging gcm = GoogleCloudMessaging.getInstance(this);
@@ -52,10 +49,22 @@ public class GcmIntentService extends IntentService {
                     sendServerRequest(Constants.GCM_MESSAGE, extras);
                 } else if (extras.getString("msg_type").equals("group_invite")) {
                     sendServerRequest(Constants.GCM_GROUP_INVITE, extras);
+                } else if (extras.getString("msg_type").equals("group_member_removal")) {
+                    sendServerRequest(Constants.GCM_GROUP_REMOVE_MEMBERS, extras);
+                } else if (extras.getString("msg_type").equals("group_delete")) {
+                    sendServerRequest(Constants.GCM_GROUP_DELETE, extras);
                 } else if (extras.getString("msg_type").equals("side_chat_invite")) {
                     sendServerRequest(Constants.GCM_SIDECONVO_INVITE, extras);
+                } else if (extras.getString("msg_type").equals("side_chat_member_removal")) {
+                    sendServerRequest(Constants.GCM_SIDECONVO_REMOVE_MEMBERS, extras);
+                } else if (extras.getString("msg_type").equals("side_chat_collapse")) {
+                    sendServerRequest(Constants.GCM_SIDECONVO_DELETE, extras);
                 } else if (extras.getString("msg_type").equals("whisper_invite")) {
                     sendServerRequest(Constants.GCM_WHISPER_INVITE, extras);
+                } else if (extras.getString("msg_type").equals("whisper_member_removal")) {
+                    sendServerRequest(Constants.GCM_WHISPER_REMOVE_MEMBERS, extras);
+                } else if (extras.getString("msg_type").equals("whisper_delete")) {
+                    sendServerRequest(Constants.GCM_WHISPER_DELETE, extras);
                 }
             }
         }
@@ -65,8 +74,7 @@ public class GcmIntentService extends IntentService {
     private void sendServerRequest(String intentType, Bundle extras) {
         Intent i = new Intent(this, ChassipService.class);
         i.putExtra(Constants.INTENT_TYPE, intentType).putExtras(extras);
-        Log.d(LOGTAG, String.format("Sending %s to server: %s",
-                i.getExtras().getString(Constants.INTENT_TYPE), i));
+        Log.d(LOGTAG, String.format("Sending %s to server: %s", i.getExtras().getString(Constants.INTENT_TYPE), i));
         startService(i);
     }
 }

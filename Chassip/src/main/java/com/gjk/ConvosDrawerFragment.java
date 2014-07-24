@@ -25,8 +25,15 @@ import java.util.List;
 
 import static com.gjk.Constants.BASE_URL;
 import static com.gjk.Constants.CONVO_CONTEXT_MENU_ID;
-import static com.gjk.Constants.CONVO_DRAWER_ADD_MEMBERS;
-import static com.gjk.Constants.CONVO_DRAWER_REMOVE_MEMBERS;
+import static com.gjk.Constants.CONVO_DRAWER_ADD_CHAT_MEMBERS;
+import static com.gjk.Constants.CONVO_DRAWER_ADD_SIDE_CONVO_MEMBERS;
+import static com.gjk.Constants.CONVO_DRAWER_ADD_WHISPER_MEMBERS;
+import static com.gjk.Constants.CONVO_DRAWER_DELETE_CHAT;
+import static com.gjk.Constants.CONVO_DRAWER_DELETE_SIDE_CONVO;
+import static com.gjk.Constants.CONVO_DRAWER_DELETE_WHISPER;
+import static com.gjk.Constants.CONVO_DRAWER_REMOVE_CHAT_MEMBERS;
+import static com.gjk.Constants.CONVO_DRAWER_REMOVE_SIDE_CONVO_MEMBERS;
+import static com.gjk.Constants.CONVO_DRAWER_REMOVE_WHISPER_MEMBERS;
 
 /**
  * @author gpl
@@ -78,9 +85,27 @@ public class ConvosDrawerFragment extends Fragment {
     public void onCreateContextMenu(ContextMenu menu, View v, ContextMenu.ContextMenuInfo menuInfo) {
         super.onCreateContextMenu(menu, v, menuInfo);
         AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo) menuInfo;
-        menu.setHeaderTitle(mAdapter.getItem(info.position).getName());
-        menu.add(CONVO_CONTEXT_MENU_ID, v.getId(), 0, CONVO_DRAWER_ADD_MEMBERS);
-        menu.add(CONVO_CONTEXT_MENU_ID, v.getId(), 1, CONVO_DRAWER_REMOVE_MEMBERS);
+        ConvoFragment frag = mAdapter.getItem(info.position);
+        menu.setHeaderTitle(frag.getName());
+        switch (frag.getConvoType()) {
+            case MAIN_CHAT:
+                menu.add(CONVO_CONTEXT_MENU_ID, v.getId(), 0, CONVO_DRAWER_ADD_CHAT_MEMBERS);
+                menu.add(CONVO_CONTEXT_MENU_ID, v.getId(), 1, CONVO_DRAWER_REMOVE_CHAT_MEMBERS);
+                menu.add(CONVO_CONTEXT_MENU_ID, v.getId(), 2, CONVO_DRAWER_DELETE_CHAT);
+                break;
+            case SIDE_CONVO:
+                menu.add(CONVO_CONTEXT_MENU_ID, v.getId(), 0, CONVO_DRAWER_ADD_SIDE_CONVO_MEMBERS);
+                menu.add(CONVO_CONTEXT_MENU_ID, v.getId(), 1, CONVO_DRAWER_REMOVE_SIDE_CONVO_MEMBERS);
+                menu.add(CONVO_CONTEXT_MENU_ID, v.getId(), 2, CONVO_DRAWER_DELETE_SIDE_CONVO);
+                break;
+            case WHISPER:
+                menu.add(CONVO_CONTEXT_MENU_ID, v.getId(), 0, CONVO_DRAWER_ADD_WHISPER_MEMBERS);
+                menu.add(CONVO_CONTEXT_MENU_ID, v.getId(), 1, CONVO_DRAWER_REMOVE_WHISPER_MEMBERS);
+                menu.add(CONVO_CONTEXT_MENU_ID, v.getId(), 2, CONVO_DRAWER_DELETE_WHISPER);
+                break;
+            default:
+                break;
+        }
     }
 
     public void updateView() {
