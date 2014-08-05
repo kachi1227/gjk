@@ -13,6 +13,7 @@ import android.view.ViewGroup;
 import android.widget.CursorAdapter;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.gjk.database.objects.Message;
 import com.gjk.helper.DatabaseHelper;
@@ -147,8 +148,15 @@ public class MessagesAdapter extends CursorAdapter {
                 avi.configure(Constants.BASE_URL + senderImageUrl, 0, false);
             }
             attachment.setVisibility(!TextUtils.isEmpty(attachmentUrl) ? View.VISIBLE : View.GONE);
-            if (!TextUtils.isEmpty(attachmentUrl))
+            if (!TextUtils.isEmpty(attachmentUrl)) {
                 attachment.configure(Constants.BASE_URL + attachmentUrl, 0, false);
+                attachment.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        Toast.makeText(mA, "Put your callback here Jeff", Toast.LENGTH_LONG).show();
+                    }
+                });
+            }
         } else {
             avi.setVisibility(View.INVISIBLE);
             avi2.setVisibility(View.VISIBLE);
@@ -159,8 +167,15 @@ public class MessagesAdapter extends CursorAdapter {
                 ImageManager.getInstance(mFm).loadUncirclizedImage(senderImageUrl, avi2);
             }
             attachment2.setVisibility(!TextUtils.isEmpty(attachmentUrl) ? View.VISIBLE : View.GONE);
-            if (!TextUtils.isEmpty(attachmentUrl))
+            if (!TextUtils.isEmpty(attachmentUrl)) {
                 ImageManager.getInstance(mFm).loadUncirclizedImage(attachmentUrl, attachment2);
+                attachment2.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        Toast.makeText(mA, "Put your callback here Jeff", Toast.LENGTH_LONG).show();
+                    }
+                });
+            }
         }
 
     }
