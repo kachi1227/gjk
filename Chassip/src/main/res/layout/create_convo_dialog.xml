@@ -65,6 +65,12 @@
     <CheckBox
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:text="Greg3"
+        android:id="@+id/greg3"/>
+
+    <CheckBox
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
         android:text="Jeff"
         android:id="@+id/jeff"/>
 

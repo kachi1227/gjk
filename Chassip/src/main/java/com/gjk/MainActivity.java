@@ -28,6 +28,7 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.AdapterView;
@@ -79,7 +80,6 @@ import static com.gjk.Constants.GALLERY_REQUEST;
 import static com.gjk.Constants.GCM_MESSAGE_RESPONSE;
 import static com.gjk.Constants.GET_ALL_GROUPS_RESPONSE;
 import static com.gjk.Constants.GROUP_ID;
-import static com.gjk.Constants.GROUP_UPDATE_RESPONSE;
 import static com.gjk.Constants.IMAGE_PATH;
 import static com.gjk.Constants.IMAGE_URL;
 import static com.gjk.Constants.INTENT_TYPE;
@@ -198,14 +198,14 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
                                         extras.getLong(CONVO_ID), extras.getLongArray(MEMBER_IDS));
                             }
 
-                        } else if (type.equals(GROUP_UPDATE_RESPONSE)) {
-
-                            long groupId = extras.getLong(GROUP_ID);
-                            mChatDrawerFragment.swapCursor(getGroupsCursor());
-                            if (Application.get().getCurrentChat() != null && Application.get().getCurrentChat()
-                                    .getGlobalId() == groupId) {
-                                toggleChat(groupId);
-                            }
+//                        } else if (type.equals(GROUP_UPDATE_RESPONSE)) {
+//
+//                            long groupId = extras.getLong(GROUP_ID);
+//                            mChatDrawerFragment.swapCursor(getGroupsCursor());
+//                            if (Application.get().getCurrentChat() != null && Application.get().getCurrentChat()
+//                                    .getGlobalId() == groupId) {
+//                                toggleChat(groupId);
+//                            }
 
                         } else if (type.equals(CONVO_UPDATE_RESPONSE)) {
 
@@ -315,6 +315,7 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
 
         mViewPager = (ViewPager) findViewById(R.id.pager);
         mViewPager.setOffscreenPageLimit(OFFSCREEN_PAGE_LIMIT);
+        adjustViewPagerHeight();
 
         LocalBroadcastManager.getInstance(this).registerReceiver(mServerResponseReceiver,
                 new IntentFilter(CHASSIP_ACTION));
@@ -469,7 +470,8 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
                     return handleChatClicked(item.getTitle(), groupId);
                 case SIDE_CONVO:
                 case WHISPER:
-                    return handleConvoClicked(item.getTitle(), groupId, convoId, convoType, frag.getMembers().toArray(new GroupMember[]{}));
+                    return handleConvoClicked(item.getTitle(), groupId, convoId, convoType,
+                            frag.getOtherMembers().toArray(new GroupMember[]{}));
                 default:
                     return false;
             }
@@ -736,8 +738,7 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
             Application.get().setCurrentChat(chat);
             mDrawerLayout.unregisterViews();
             mChatDrawerFragment.updateView();
-            // Be careful of potential memory leaks here...
-            mConvoPagerAdapter = new ConvoPagerAdapter(getSupportFragmentManager(), mViewPager);
+            mConvoPagerAdapter = new ConvoPagerAdapter(getSupportFragmentManager());
             mViewPager.setAdapter(mConvoPagerAdapter);
             mViewPager.setOnPageChangeListener(mConvoPagerAdapter);
             mConvoPagerAdapter.setChat(chat);
@@ -790,7 +791,8 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
 
     private void finalizeToggleConvo() {
         switchTitleToConvoInfo();
-        mDrawerLayout.closeDrawer(Gravity.RIGHT);
+        //TODO: Find a more clever way to control when the convo drawer closes
+//        mDrawerLayout.closeDrawer(Gravity.RIGHT);
         Application.get().getPreferences().edit()
                 .putLong("chat_" + mConvoPagerAdapter.getCurrentConvo().getChatId() + "_current_convo_id",
                         mConvoPagerAdapter.getCurrentConvo().getConvoId()).commit();
@@ -900,12 +902,24 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
             }
 
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+
             }
 
             public void onTextChanged(CharSequence s, int start, int before, int count) {
+                adjustViewPagerHeight();
             }
         });
+    }
 
+    private void adjustViewPagerHeight() {
+        ViewGroup.LayoutParams params = mPendingMessage.getLayoutParams();
+        if (mPendingMessage.getLineCount() > 1) {
+            params.height = ViewGroup.LayoutParams.WRAP_CONTENT;
+        } else {
+            final float scale = getResources().getDisplayMetrics().density;
+            int pixels = (int) (50 * scale + 0.5f);
+            params.height = pixels;
+        }
     }
 
     private void showAddChatMembersDialog(long groupId) {
@@ -1117,7 +1131,7 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
 
         private Map<Long, Integer> mConvoIdToPositionMap;
 
-        protected ConvoPagerAdapter(FragmentManager fm, ViewPager vp) {
+        protected ConvoPagerAdapter(FragmentManager fm) {
             super(fm);
             mCurrentConvos = Lists.newLinkedList();
             mConvoIdToPositionMap = Maps.newHashMap();
@@ -1199,7 +1213,9 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
         }
 
         protected void setConvo(long convoId) {
-            mViewPager.setCurrentItem(mConvoIdToPositionMap.get(convoId), true);
+            if (mConvoIdToPositionMap.get(convoId) != null) {
+                mViewPager.setCurrentItem(mConvoIdToPositionMap.get(convoId), true);
+            }
         }
 
         protected void setConvo(int position) {

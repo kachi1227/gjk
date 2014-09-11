@@ -16,6 +16,7 @@ import com.gjk.helper.GeneralHelper;
 import com.gjk.service.ChassipService;
 import com.google.common.collect.Sets;
 
+import java.util.Collections;
 import java.util.Set;
 
 import static com.gjk.Constants.CHASSIP_ACTION;
@@ -26,6 +27,7 @@ import static com.gjk.Constants.FETCH_MORE_MESSAGES_REQUEST;
 import static com.gjk.Constants.GROUP_ID;
 import static com.gjk.Constants.INTENT_TYPE;
 import static com.gjk.Constants.PROPERTY_SETTING_MESSAGE_LOAD_LIMIT_DEFAULT;
+import static com.gjk.helper.DatabaseHelper.getAccountUserId;
 import static com.gjk.helper.DatabaseHelper.getGroupMember;
 import static com.gjk.helper.DatabaseHelper.getGroupMembers;
 import static com.gjk.helper.DatabaseHelper.getMessagesCursor;
@@ -180,7 +182,19 @@ public class ConvoFragment extends ListFragment {
     }
 
     public Set<GroupMember> getMembers() {
-        return mMembers;
+        if (mMembers == null) {
+            return Collections.emptySet();
+        }
+        return Collections.unmodifiableSet(mMembers);
+    }
+
+    public Set<GroupMember> getOtherMembers() {
+        if (mMembers == null) {
+            return Collections.emptySet();
+        }
+        Set<GroupMember> others = Sets.newHashSet(mMembers);
+        others.remove(getAccountUserId());
+        return others;
     }
 
     private void scrollToBottom() {
@@ -189,8 +203,14 @@ public class ConvoFragment extends ListFragment {
                 @Override
                 public void run() {
                     // Select the last row so it will scroll into view...
-                    if (getListView().getCount() > 0) {
-                        getListView().setSelection(getListView().getCount() - 1);
+                    try {
+                        if (getListView().getCount() > 0) {
+                            getListView().setSelection(getListView().getCount() - 1);
+                        }
+                    }
+                    catch (Exception e) {
+                        Log.e("ConvoFragment", "Whoa hoe..");
+                        e.printStackTrace();
                     }
                 }
             });

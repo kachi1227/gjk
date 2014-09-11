@@ -155,11 +155,13 @@ public final class DatabaseHelper {
                 + " = " + memberId) > 0;
     }
 
-    public static long[] getGroupMemberIds(long chatId) {
+    public static long[] getOtherGroupMemberIds(long chatId) {
         GroupMember[] members = getGroupMembers(chatId);
         long[] ids = new long[members.length];
         for (int i = 0; i < members.length; i++) {
-            ids[i] = members[i].getGlobalId();
+            if (members[i].getGlobalId() != getAccountUserId()) {
+                ids[i] = members[i].getGlobalId();
+            }
         }
         return ids;
     }

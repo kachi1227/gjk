@@ -24,6 +24,7 @@ public class AddConvoMembersDialog extends DialogFragment {
     private ConvoType mConvoType;
     private CheckBox mGreg;
     private CheckBox mGreg2;
+    private CheckBox mGreg3;
     private CheckBox mJeff;
     private CheckBox mKach;
 
@@ -84,6 +85,7 @@ public class AddConvoMembersDialog extends DialogFragment {
 
         mGreg = (CheckBox) view.findViewById(R.id.greg);
         mGreg2 = (CheckBox) view.findViewById(R.id.greg2);
+        mGreg3 = (CheckBox) view.findViewById(R.id.greg3);
         mJeff = (CheckBox) view.findViewById(R.id.jeff);
         mKach = (CheckBox) view.findViewById(R.id.kach);
 
@@ -152,6 +154,9 @@ public class AddConvoMembersDialog extends DialogFragment {
         if (mGreg2.isChecked()) {
             ids.add(9l);
         }
+        if (mGreg3.isChecked()) {
+            ids.add(23l);
+        }
         if (mJeff.isChecked()) {
             ids.add(8l);
         }
@@ -166,6 +171,7 @@ public class AddConvoMembersDialog extends DialogFragment {
     }
 
     private boolean isAddConvoMembersReady() {
-        return (mGreg.isChecked() || mGreg2.isChecked() || mJeff.isChecked() || mKach.isChecked());
+        return (mGreg.isChecked() || mGreg2.isChecked() || mGreg3.isChecked() || mJeff.isChecked() || mKach.isChecked
+                ());
     }
 }

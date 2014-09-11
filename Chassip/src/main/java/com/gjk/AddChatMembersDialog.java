@@ -22,6 +22,7 @@ public class AddChatMembersDialog extends DialogFragment {
     private long mGroupId;
     private CheckBox mGreg;
     private CheckBox mGreg2;
+    private CheckBox mGreg3;
     private CheckBox mJeff;
     private CheckBox mKach;
 
@@ -82,6 +83,7 @@ public class AddChatMembersDialog extends DialogFragment {
 
         mGreg = (CheckBox) view.findViewById(R.id.greg);
         mGreg2 = (CheckBox) view.findViewById(R.id.greg2);
+        mGreg3 = (CheckBox) view.findViewById(R.id.greg3);
         mJeff = (CheckBox) view.findViewById(R.id.jeff);
         mKach = (CheckBox) view.findViewById(R.id.kach);
 
@@ -132,6 +134,9 @@ public class AddChatMembersDialog extends DialogFragment {
         if (mGreg2.isChecked()) {
             ids.add(9l);
         }
+        if (mGreg3.isChecked()) {
+            ids.add(23l);
+        }
         if (mJeff.isChecked()) {
             ids.add(6l);
         }
@@ -146,6 +151,7 @@ public class AddChatMembersDialog extends DialogFragment {
     }
 
     private boolean isAddChatMembersReady() {
-        return (mGreg.isChecked() || mGreg2.isChecked() || mJeff.isChecked() || mKach.isChecked());
+        return (mGreg.isChecked() || mGreg2.isChecked() || mGreg3.isChecked() || mJeff.isChecked() || mKach.isChecked
+                ());
     }
 }
