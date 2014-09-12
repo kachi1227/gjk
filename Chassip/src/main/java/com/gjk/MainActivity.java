@@ -48,8 +48,6 @@ import com.gjk.utils.media2.ImageManager;
 import com.gjk.utils.media2.ImageUtil;
 import com.gjk.views.DrawerLayout;
 import com.google.android.gms.gcm.GoogleCloudMessaging;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -58,8 +56,9 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 
+import static com.gjk.Constants.ADD_CHAT_MEMBERS_RESPONSE;
+import static com.gjk.Constants.ADD_CONVO_MEMBERS_RESPONSE;
 import static com.gjk.Constants.CAMERA_REQUEST;
 import static com.gjk.Constants.CAN_FETCH_MORE_MESSAGES;
 import static com.gjk.Constants.CHASSIP_ACTION;
@@ -70,7 +69,9 @@ import static com.gjk.Constants.CONVO_NAME;
 import static com.gjk.Constants.CONVO_TYPE;
 import static com.gjk.Constants.CONVO_UPDATE_RESPONSE;
 import static com.gjk.Constants.CREATE_CHAT_REQUEST;
+import static com.gjk.Constants.CREATE_CONVO_RESPONSE;
 import static com.gjk.Constants.DELETE_CHAT_RESPONSE;
+import static com.gjk.Constants.DELETE_CONVO_RESPONSE;
 import static com.gjk.Constants.EMAIL;
 import static com.gjk.Constants.ERROR;
 import static com.gjk.Constants.FETCH_CONVO_MEMBERS_RESPONSE;
@@ -80,6 +81,7 @@ import static com.gjk.Constants.GALLERY_REQUEST;
 import static com.gjk.Constants.GCM_MESSAGE_RESPONSE;
 import static com.gjk.Constants.GET_ALL_GROUPS_RESPONSE;
 import static com.gjk.Constants.GROUP_ID;
+import static com.gjk.Constants.GROUP_UPDATE_RESPONSE;
 import static com.gjk.Constants.IMAGE_PATH;
 import static com.gjk.Constants.IMAGE_URL;
 import static com.gjk.Constants.INTENT_TYPE;
@@ -96,6 +98,8 @@ import static com.gjk.Constants.PROPERTY_REG_ID;
 import static com.gjk.Constants.REGISTER_FACEBOOK_REQUEST;
 import static com.gjk.Constants.REGISTER_REQUEST;
 import static com.gjk.Constants.REGISTER_RESPONSE;
+import static com.gjk.Constants.REMOVE_CHAT_MEMBERS_RESPONSE;
+import static com.gjk.Constants.REMOVE_CONVO_MEMBERS_RESPONSE;
 import static com.gjk.Constants.SEND_MESSAGE_REQUEST;
 import static com.gjk.Constants.SEND_MESSAGE_RESPONSE;
 import static com.gjk.Constants.SHOW_TOAST;
@@ -109,9 +113,9 @@ import static com.gjk.helper.DatabaseHelper.getAccountUserFullName;
 import static com.gjk.helper.DatabaseHelper.getAccountUserId;
 import static com.gjk.helper.DatabaseHelper.getFirstStoredGroup;
 import static com.gjk.helper.DatabaseHelper.getGroup;
-import static com.gjk.helper.DatabaseHelper.getGroupMember;
 import static com.gjk.helper.DatabaseHelper.getGroupMembers;
 import static com.gjk.helper.DatabaseHelper.getGroupsCursor;
+import static com.gjk.helper.DatabaseHelper.getOtherGroupMembers;
 
 /**
  * @author gpl
@@ -198,22 +202,84 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
                                         extras.getLong(CONVO_ID), extras.getLongArray(MEMBER_IDS));
                             }
 
-//                        } else if (type.equals(GROUP_UPDATE_RESPONSE)) {
-//
-//                            long groupId = extras.getLong(GROUP_ID);
-//                            mChatDrawerFragment.swapCursor(getGroupsCursor());
-//                            if (Application.get().getCurrentChat() != null && Application.get().getCurrentChat()
-//                                    .getGlobalId() == groupId) {
-//                                toggleChat(groupId);
-//                            }
+                        } else if (type.equals(GROUP_UPDATE_RESPONSE)) {
+
+                            final long groupId = extras.getLong(GROUP_ID);
+                            mChatDrawerFragment.swapCursor(getGroupsCursor());
+                            if (Application.get().getCurrentChat() != null && Application.get().getCurrentChat()
+                                    .getGlobalId() == groupId) {
+                                toggleChat(groupId);
+                            }
+
+                        } else if (type.equals(CREATE_CONVO_RESPONSE)) {
+
+                            final long groupId = extras.getLong(GROUP_ID);
+                            if (Application.get().getCurrentChat() != null && Application.get().getCurrentChat()
+                                    .getGlobalId() == groupId) {
+                                final long convoId = extras.getLong(CONVO_ID);
+                                final String name = extras.getString(CONVO_NAME);
+                                final ConvoType convoType = ConvoType.getFromValue(extras.getInt(CONVO_TYPE));
+                                mConvoPagerAdapter.handleCreateConvo(groupId, convoId, name, convoType);
+                            }
+
+                        } else if (type.equals(DELETE_CONVO_RESPONSE)) {
+
+                            final long groupId = extras.getLong(GROUP_ID);
+                            if (Application.get().getCurrentChat() != null && Application.get().getCurrentChat()
+                                    .getGlobalId() == groupId) {
+                                final long convoId = extras.getLong(CONVO_ID);
+                                mConvoPagerAdapter.handleDeleteConvo(convoId);
+                            }
+
+                        } else if (type.equals(ADD_CHAT_MEMBERS_RESPONSE)) {
+
+                            final long groupId = extras.getLong(GROUP_ID);
+                            final long[] members = extras.getLongArray(MEMBER_IDS);
+                            mChatDrawerFragment.swapCursor(getGroupsCursor());
+                            if (Application.get().getCurrentChat() != null && Application.get().getCurrentChat()
+                                    .getGlobalId() == groupId) {
+                                mConvoPagerAdapter.handleAddChatMembers(groupId, members);
+                            }
+
+                        } else if (type.equals(REMOVE_CHAT_MEMBERS_RESPONSE)) {
+
+                            final long groupId = extras.getLong(GROUP_ID);
+                            if (Application.get().getCurrentChat() != null && Application.get().getCurrentChat().getGlobalId() ==
+                                    groupId) {
+                                final long[] members = extras.getLongArray(MEMBER_IDS);
+                                mConvoPagerAdapter.handleRemoveChatMembers(members);
+                                mConvoDrawerFragment.updateView();
+                            }
+
+                        } else if (type.equals(ADD_CONVO_MEMBERS_RESPONSE)) {
+
+                            final long groupId = extras.getLong(GROUP_ID);
+                            if (Application.get().getCurrentChat() != null && Application.get().getCurrentChat().getGlobalId() ==
+                                    groupId) {
+                                final long[] members = extras.getLongArray(MEMBER_IDS);
+                                final long convoId = extras.getLong(CONVO_ID);
+                                mConvoPagerAdapter.handleAddConvoMembers(convoId, members);
+                                mConvoDrawerFragment.updateView();
+                            }
+
+                        } else if (type.equals(REMOVE_CONVO_MEMBERS_RESPONSE)) {
+
+                            final long groupId = extras.getLong(GROUP_ID);
+                            if (Application.get().getCurrentChat() != null && Application.get().getCurrentChat().getGlobalId() ==
+                                    groupId) {
+                                final long[] members = extras.getLongArray(MEMBER_IDS);
+                                final long convoId = extras.getLong(CONVO_ID);
+                                mConvoPagerAdapter.handleRemoveConvoMembers(convoId, members);
+                                mConvoDrawerFragment.updateView();
+                            }
 
                         } else if (type.equals(CONVO_UPDATE_RESPONSE)) {
 
                             long convoId = extras.getLong(CONVO_ID);
-                            List<ConvoFragment> frags = mConvoPagerAdapter.getCurrentConvos();
+                            List<ConvoFragment> frags = mConvoDrawerFragment.getItems();
                             for (ConvoFragment frag : frags) {
                                 if (frag.getConvoId() == convoId) {
-                                    toggleChat(frag.getChatId());
+                                    toggleChat(frag.getGroupId());
                                     return;
                                 }
                             }
@@ -364,7 +430,7 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
             mSettingsDialog.show(getSupportFragmentManager(), "SettingsDialog");
             return true;
         } else if (id == R.id.action_fetch_more_messages) {
-            mConvoPagerAdapter.getCurrentConvo().loadAndFetchMessages(Constants.PROPERTY_SETTING_MESSAGE_FETCH_LIMIT_DEFAULT);
+            mConvoDrawerFragment.getCurrentConvo().loadAndFetchMessages(Constants.PROPERTY_SETTING_MESSAGE_FETCH_LIMIT_DEFAULT);
         } else if (id == R.id.action_convos) {
             if (mDrawerLayout.isDrawerOpen(Gravity.RIGHT)) {
                 mDrawerLayout.closeDrawer(Gravity.RIGHT);
@@ -462,7 +528,7 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
             return handleChatClicked(item.getTitle(), groupId);
         } else if (item.getGroupId() == CONVO_CONTEXT_MENU_ID) {
             ConvoFragment frag = mConvoDrawerFragment.getItem(info.position);
-            long groupId = frag.getChatId();
+            long groupId = frag.getGroupId();
             long convoId = frag.getConvoId();
             ConvoType convoType = frag.getConvoType();
             switch (convoType) {
@@ -741,9 +807,8 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
             mConvoPagerAdapter = new ConvoPagerAdapter(getSupportFragmentManager());
             mViewPager.setAdapter(mConvoPagerAdapter);
             mViewPager.setOnPageChangeListener(mConvoPagerAdapter);
-            mConvoPagerAdapter.setChat(chat);
             mConvoDrawerFragment.clear();
-            mConvoDrawerFragment.addAll(mConvoPagerAdapter.getCurrentConvos());
+            mConvoPagerAdapter.setChat(chat);
             mConvoDrawerFragment.updateView();
             setTitle(chat.getName());
             Application.get().getPreferences().edit()
@@ -794,8 +859,8 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
         //TODO: Find a more clever way to control when the convo drawer closes
 //        mDrawerLayout.closeDrawer(Gravity.RIGHT);
         Application.get().getPreferences().edit()
-                .putLong("chat_" + mConvoPagerAdapter.getCurrentConvo().getChatId() + "_current_convo_id",
-                        mConvoPagerAdapter.getCurrentConvo().getConvoId()).commit();
+                .putLong("chat_" + mConvoDrawerFragment.getCurrentConvo().getGroupId() + "_current_convo_id",
+                        mConvoDrawerFragment.getCurrentConvo().getConvoId()).commit();
         invalidateOptionsMenu();
     }
 
@@ -824,7 +889,7 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
             @Override
             public void onDrawerClosed(View drawerView) {
                 super.onDrawerClosed(drawerView);
-                if (mConvoPagerAdapter != null && mConvoPagerAdapter.getCurrentConvo() != null) {
+                if (mConvoDrawerFragment != null && mConvoDrawerFragment.getCurrentConvo() != null) {
                     switchTitleToConvoInfo();
                 }
             }
@@ -832,7 +897,7 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
             @Override
             public void onDrawerOpened(View drawerView) {
                 super.onDrawerOpened(drawerView);
-                if (mConvoPagerAdapter != null && mConvoPagerAdapter.getMainConvo() != null) {
+                if (mConvoDrawerFragment != null && mConvoDrawerFragment.getMainConvo() != null) {
                     switchTitleToMainChatInfo();
                 }
             }
@@ -847,7 +912,6 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
         });
 
         mDrawerLayout.setDrawerListener(mDrawerToggle);
-        mDrawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED, Gravity.RIGHT);
         invalidateOptionsMenu();
     }
 
@@ -875,11 +939,11 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
                 if (newSideConvo) {
                     GeneralHelper.showLongToast(MainActivity.this, "WANTS TO SIDE-CONVO");
                 }
-                ConvoFragment frag = mConvoPagerAdapter.getCurrentConvo();
+                ConvoFragment frag = mConvoDrawerFragment.getCurrentConvo();
                 Intent i = new Intent(MainActivity.this, ChassipService.class);
                 i.putExtra(INTENT_TYPE, SEND_MESSAGE_REQUEST)
                         .putExtra(USER_ID, getAccountUserId())
-                        .putExtra(GROUP_ID, frag.getChatId())
+                        .putExtra(GROUP_ID, frag.getGroupId())
                         .putExtra(CONVO_TYPE, frag.getConvoType().getValue())
                         .putExtra(CONVO_ID, frag.getConvoId())
                         .putExtra(MESSAGE, text);
@@ -930,7 +994,7 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
 
     private void showRemoveChatMembersDialog(long groupId) {
         RemoveChatMembersDialog d = new RemoveChatMembersDialog();
-        d.setGroupId(groupId).setGroupMembers(getGroupMembers(groupId));
+        d.setGroupId(groupId).setGroupMembers(getOtherGroupMembers(groupId));
         d.show(getSupportFragmentManager(), "RemoveChatMembersDialog");
     }
 
@@ -993,10 +1057,10 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
     }
 
     private void switchTitleToConvoInfo() {
-        if (mConvoPagerAdapter.getCurrentConvo() != null) {
-            setTitle(mConvoPagerAdapter.getCurrentConvo().getName());
+        if (mConvoDrawerFragment.getCurrentConvo() != null) {
+            setTitle(mConvoDrawerFragment.getCurrentConvo().getName());
             int icon;
-            switch (mConvoPagerAdapter.getCurrentConvo().getConvoType()) {
+            switch (mConvoDrawerFragment.getCurrentConvo().getConvoType()) {
                 case MAIN_CHAT:
                     icon = R.drawable.ic_launcher;
                     break;
@@ -1015,7 +1079,7 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
     }
 
     private void switchTitleToMainChatInfo() {
-        setTitle(mConvoPagerAdapter.getMainConvo().getName());
+        setTitle(mConvoDrawerFragment.getMainConvo().getName());
         getActionBar().setIcon(R.drawable.ic_launcher);
     }
 
@@ -1030,6 +1094,7 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
                 fullName);
         Toast.makeText(MainActivity.this, message, Toast.LENGTH_SHORT).show();
         mDrawerLayout.openDrawer(Gravity.LEFT);
+        mDrawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED, Gravity.RIGHT);
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_HIDDEN);
     }
 
@@ -1127,24 +1192,18 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
 
     private class ConvoPagerAdapter extends FragmentStatePagerAdapter implements ViewPager.OnPageChangeListener {
 
-        private List<ConvoFragment> mCurrentConvos;
-
-        private Map<Long, Integer> mConvoIdToPositionMap;
-
         protected ConvoPagerAdapter(FragmentManager fm) {
             super(fm);
-            mCurrentConvos = Lists.newLinkedList();
-            mConvoIdToPositionMap = Maps.newHashMap();
         }
 
         @Override
         public int getCount() {
-            return mCurrentConvos == null ? 0 : mCurrentConvos.size();
+            return mConvoDrawerFragment != null ? mConvoDrawerFragment.getCount() : 0;
         }
 
         @Override
         public Fragment getItem(int position) {
-            return mCurrentConvos.get(position);
+            return mConvoDrawerFragment.getItem(position);
         }
 
         @Override
@@ -1162,39 +1221,25 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
 
         @Override
         public void onPageSelected(int position) {
-            if (position < getCount() && mCurrentConvos.get(position) != null) {
+            if (position < getCount() && mConvoDrawerFragment.getItem(position) != null) {
                 toggleConvo(position);
             }
         }
 
-        protected ConvoFragment getCurrentConvo() {
-            if (mCurrentConvos == null) {
-                return null;
-            }
-            return mCurrentConvos.get(mViewPager.getCurrentItem());
-        }
-
-        protected List<ConvoFragment> getCurrentConvos() {
-            return mCurrentConvos;
-        }
-
         protected void handleMessage(int numMessages) {
-            if (mCurrentConvos != null) {
-                for (ConvoFragment frag : mCurrentConvos) {
+            if (mConvoDrawerFragment != null) {
+                for (ConvoFragment frag : mConvoDrawerFragment.getItems()) {
                     frag.loadMessages(numMessages);
                 }
             }
         }
 
         protected void handleConvoMembers(long groupId, long convoId, long[] memberIds) {
-            if (getCurrentConvo().getChatId() == groupId) {
-                for (ConvoFragment frag : mCurrentConvos) {
+            if (mConvoDrawerFragment != null && mConvoDrawerFragment.getCurrentConvo().getGroupId() == groupId) {
+                for (ConvoFragment frag : mConvoDrawerFragment.getItems()) {
                     if (frag.getConvoId() == convoId) {
-                        for (long memberId : memberIds) {
-                            GroupMember gm = getGroupMember(memberId);
-                            frag.addMembers(gm);
-                            mConvoDrawerFragment.getItem(mCurrentConvos.indexOf(frag)).addMembers(gm);
-                        }
+                        GroupMember[] gms = getGroupMembers(memberIds);
+                        frag.addMembers(gms);
                         mConvoDrawerFragment.updateView();
                     }
                 }
@@ -1208,23 +1253,21 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
             addConvos(GeneralHelper.concat(mainFrag, sideConvoFrags, whisperFrags));
         }
 
-        protected ConvoFragment getMainConvo() {
-            return mCurrentConvos.get(0);
-        }
-
         protected void setConvo(long convoId) {
-            if (mConvoIdToPositionMap.get(convoId) != null) {
-                mViewPager.setCurrentItem(mConvoIdToPositionMap.get(convoId), true);
+            if (mConvoDrawerFragment != null) {
+                mConvoDrawerFragment.setConvo(mConvoDrawerFragment.getPosition(convoId));
+                mViewPager.setCurrentItem(mConvoDrawerFragment.getPosition(convoId), true);
             }
         }
 
         protected void setConvo(int position) {
+            mConvoDrawerFragment.setConvo(position);
             mViewPager.setCurrentItem(position, true);
         }
 
         protected void loadMessagesAfterFetch(long groupId, long convoId, boolean canFetchMore) {
-            ConvoFragment frag = getCurrentConvo();
-            if (frag == null || frag.getChatId() != groupId || frag.getConvoId() != convoId) {
+            ConvoFragment frag = mConvoDrawerFragment.getCurrentConvo();
+            if (frag == null || frag.getGroupId() != groupId || frag.getConvoId() != convoId) {
                 return;
             }
             frag.loadMessagesAfterFetch(canFetchMore);
@@ -1246,8 +1289,7 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
 
         private void addConvos(ConvoFragment... frags) {
             for (ConvoFragment frag : frags) {
-                mConvoIdToPositionMap.put(frag.getConvoId(), mCurrentConvos.size());
-                mCurrentConvos.add(frag);
+                mConvoDrawerFragment.add(frag);
                 notifyDataSetChanged();
             }
         }
@@ -1293,6 +1335,87 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
             final ConvoFragment frag = new ConvoFragment();
             frag.setArguments(b);
             return frag;
+        }
+
+        private ConvoFragment generateConvoFragment(long convoId, String name, ConvoType type, final long chatId) {
+            Bundle b = new Bundle();
+            b.putLong("chatId", chatId);
+            b.putLong("convoId", convoId);
+            b.putInt("convoType", type.getValue());
+            b.putString("name", name);
+            b.putBoolean("canFetchMoreMessages", true);
+            final ConvoFragment frag = new ConvoFragment();
+            frag.setArguments(b);
+            return frag;
+        }
+
+        private void handleAddChatMembers(long groupId, long[] members) {
+            if (Application.get().getCurrentChat() != null && Application.get().getCurrentChat().getGlobalId() ==
+                    groupId) {
+                if (mConvoDrawerFragment != null) {
+                    mConvoDrawerFragment.getMainConvo().addMembers(getGroupMembers(members));
+                    mConvoDrawerFragment.updateView();
+                }
+            }
+        }
+
+        private void handleRemoveChatMembers(long[] members) {
+            if (mConvoDrawerFragment != null && !mConvoDrawerFragment.getItems().isEmpty()) {
+                mConvoDrawerFragment.getMainConvo().removeMembers(members);
+                for (ConvoFragment frag : mConvoDrawerFragment.getItems()) {
+                    if (frag.getConvoType() != ConvoType.MAIN_CHAT) {
+                        Intent i = new Intent(MainActivity.this, ChassipService.class);
+                        i.putExtra(INTENT_TYPE, Constants.REMOVE_CONVO_MEMBERS_REQUEST)
+                                .putExtra(GROUP_ID, frag.getGroupId())
+                                .putExtra(CONVO_ID, frag.getConvoId())
+                                .putExtra(CONVO_TYPE, frag.getConvoType().getValue())
+                                .putExtra(MEMBER_IDS, members);
+                        sendServerRequest(i);
+                    }
+                }
+            }
+        }
+
+        private void handleAddConvoMembers(long convoId, long[] members) {
+            if (Application.get().getCurrentChat() != null && Application.get().getCurrentChat().getGlobalId() ==
+                    convoId) {
+                if (mConvoDrawerFragment != null) {
+                    mConvoDrawerFragment.getFrag(convoId).addMembers(getGroupMembers(members));
+                    mConvoDrawerFragment.updateView();
+                }
+            }
+        }
+
+        private void handleRemoveConvoMembers(long convoId, long[] members) {
+            if (mConvoDrawerFragment != null) {
+                ConvoFragment frag = mConvoDrawerFragment.getFrag(convoId);
+                frag.removeMembers(members);
+                if (frag.getMembers().size() < 2) {
+                    Intent i = new Intent(MainActivity.this, ChassipService.class);
+                    i.putExtra(INTENT_TYPE, Constants.DELETE_CONVO_REQUEST)
+                            .putExtra(GROUP_ID, frag.getGroupId())
+                            .putExtra(CONVO_ID, frag.getConvoId())
+                            .putExtra(CONVO_TYPE, frag.getConvoType().getValue())
+                            .putExtra(MEMBER_IDS, GeneralHelper.convertLong(frag.getMemberIds()));
+                    sendServerRequest(i);
+                }
+            }
+        }
+
+        public void handleCreateConvo(long groupId, long convoId, String name, ConvoType type) {
+            if (mConvoDrawerFragment != null) {
+                ConvoFragment frag = mConvoPagerAdapter.generateConvoFragment(convoId, name, type, groupId);
+                mConvoDrawerFragment.add(frag);
+                mConvoPagerAdapter.notifyDataSetChanged();
+                invalidateOptionsMenu();
+            }
+        }
+
+        public void handleDeleteConvo(long convoId) {
+            if (mConvoDrawerFragment != null) {
+                mConvoDrawerFragment.removeFrag(convoId);
+                invalidateOptionsMenu();
+            }
         }
     }
 }

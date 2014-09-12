@@ -77,7 +77,9 @@ public final class GeneralHelper {
         Long[] array = concat(first, rest);
         long[] result = new long[array.length];
         for (int i = 0; i < array.length; i++) {
-            result[i] = array[i];
+            if (array[i] != null) {
+                result[i] = array[i];
+            }
         }
         return result;
     }

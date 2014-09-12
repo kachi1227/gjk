@@ -137,6 +137,14 @@ public final class DatabaseHelper {
         return GroupMember.findOneByGlobalId(sDm, memberId);
     }
 
+    public static GroupMember[] getGroupMembers(long[] memberIds) {
+        final GroupMember[] groupMembers = new GroupMember[memberIds.length];
+        for (int i = 0; i < memberIds.length; i++) {
+            groupMembers[i] = getGroupMember(memberIds[i]);
+        }
+        return groupMembers;
+    }
+
     public static GroupMember[] getGroupMembers(long chatId) {
         Cursor cursor = sDm.getReadableDatabase().query(GroupMember.TABLE_NAME, GroupMember.ALL_COLUMN_NAMES,
                 GroupMember.F_GROUP_ID + " = " + chatId, null, null, null, null);
@@ -148,6 +156,19 @@ public final class DatabaseHelper {
         }
         cursor.close();
         return members;
+    }
+
+    public static GroupMember[] getOtherGroupMembers(long chatId) {
+        final GroupMember[] allGms = getGroupMembers(chatId);
+        final GroupMember[] otherGms = new GroupMember[allGms.length - 1];
+        int j = 0;
+        for (GroupMember gm : allGms) {
+            if (gm.getGlobalId() != getAccountUserId()) {
+                otherGms[j] = gm;
+                j++;
+            }
+        }
+        return otherGms;
     }
 
     public static boolean removeGroupMember(long chatId, long memberId) {

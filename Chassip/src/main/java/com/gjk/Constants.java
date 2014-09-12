@@ -77,7 +77,7 @@ public interface Constants {
     static final String DELETE_CHAT_REQUEST = "deleteChatRequest";
     static final String DELETE_CHAT_RESPONSE = "deleteChatResponse";
     static final String ADD_CONVO_MEMBERS_REQUEST = "addConvoMembersRequest";
-    static final String ADD_CONVO_MEMBERS_RESPONE = "addConvoMembersResponse";
+    static final String ADD_CONVO_MEMBERS_RESPONSE = "addConvoMembersResponse";
     static final String REMOVE_CONVO_MEMBERS_REQUEST = "removeConvoMembersRequest";
     static final String REMOVE_CONVO_MEMBERS_RESPONSE = "removeConvoMembersResponse";
     static final String CREATE_CONVO_REQUEST = "createConvoRequest";
@@ -109,5 +109,5 @@ public interface Constants {
     static final int NEW_GROUP_INVITE_NOTIFACATION = 2;
     static final int NEW_SIDECONVO_INVITE_NOTIFACATION = 3;
     static final int NEW_WHISPER_INVITE_NOTIFACATION = 4;
-    static final int MAX_SEMAPHORE_COUNT = 3;
+    static final int MAX_SEMAPHORE_COUNT = 7;
 }
