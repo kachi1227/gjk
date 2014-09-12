@@ -1414,6 +1414,7 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
         public void handleDeleteConvo(long convoId) {
             if (mConvoDrawerFragment != null) {
                 mConvoDrawerFragment.removeFrag(convoId);
+                mConvoPagerAdapter.notifyDataSetChanged();
                 invalidateOptionsMenu();
             }
         }
