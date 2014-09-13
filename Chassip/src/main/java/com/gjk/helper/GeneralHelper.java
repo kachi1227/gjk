@@ -13,6 +13,10 @@ import com.gjk.Application;
 import com.gjk.Constants;
 import com.google.common.collect.Sets;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
@@ -74,6 +78,10 @@ public final class GeneralHelper {
             offset += array.length;
         }
         return result;
+    }
+
+    public static long[] concatLong(long[] first, long[]... rest) {
+        return concatLong(convertLong(first), convertLong(rest[0]));
     }
 
     public static long[] concatLong(Long[] first, Long[]... rest) {
@@ -174,7 +182,40 @@ public final class GeneralHelper {
         final Set<Long> set2 = new HashSet<Long>();
         set2.addAll(Arrays.asList(convertLong(array2)));
         final Set<Long> diffSet = Sets.difference(set2, set1);
-        final Long[] diffArray = diffSet.toArray(new Long[]{});
+        final Long[] diffArray = diffSet.toArray(new Long[diffSet.size()]);
         return convertLong(diffArray);
+    }
+
+
+    public static long[] getConvoIds(String convoString) {
+        final JSONObject convos = splitConvos(convoString);
+        final JSONArray convoNames = convos.names();
+        final long[] ids = new long[convoNames == null ? 0 : convoNames.length()];
+        for (int i = 0; i < ids.length; i++) {
+            try {
+                ids[i] = convos.getLong(convoNames.getString(i));
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+        }
+        return ids;
+    }
+
+    public static JSONObject splitConvos(String convoString) {
+        final String[] convosStrSplit = convoString.split("\\|");
+        final JSONObject ret = new JSONObject();
+        try {
+            for (String convo : convosStrSplit) {
+                final String[] convoStrSplit = convo.split(":");
+                if (convoStrSplit.length > 1) {
+                    final long id = Long.valueOf(convoStrSplit[0]);
+                    final String name = convoStrSplit[1];
+                    ret.put(name, id);
+                }
+            }
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        return ret;
     }
 }

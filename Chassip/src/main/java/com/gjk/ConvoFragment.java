@@ -18,8 +18,10 @@ import com.google.common.collect.Sets;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.gjk.Constants.CHASSIP_ACTION;
 import static com.gjk.Constants.CONVO_ID;
@@ -106,24 +108,23 @@ public class ConvoFragment extends ListFragment {
     public void onViewCreated(View view, Bundle savedInstance) {
         super.onViewCreated(view, savedInstance);
         getListView().setOnScrollListener(new AbsListView.OnScrollListener() {
-            private Integer mItemCountAtOnScroll = 0;
+              private AtomicInteger mItemCountAtOnScroll = new AtomicInteger(0);
 
-            @Override
-            public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
-                synchronized (mItemCountAtOnScroll) {
-                    if (mAdapter != null && totalItemCount != 0 && mItemCountAtOnScroll != totalItemCount &&
-                            firstVisibleItem == 0 && visibleItemCount != 0 && visibleItemCount < totalItemCount) {
-                        mItemCountAtOnScroll = totalItemCount;
-                        loadAndFetchMessages(PROPERTY_SETTING_MESSAGE_LOAD_LIMIT_DEFAULT);
-                        getListView().setSelection(getListView().getCount() - totalItemCount);
-                    }
-                }
-            }
+              @Override
+              public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
+                  if (mAdapter != null && totalItemCount != 0 && mItemCountAtOnScroll.get() != totalItemCount &&
+                          firstVisibleItem == 0 && visibleItemCount != 0 && visibleItemCount < totalItemCount) {
+                      mItemCountAtOnScroll.set(totalItemCount);
+                      loadAndFetchMessages(PROPERTY_SETTING_MESSAGE_LOAD_LIMIT_DEFAULT);
+                      getListView().setSelection(getListView().getCount() - totalItemCount);
+                  }
+              }
 
-            @Override
-            public void onScrollStateChanged(AbsListView view, int scrollState) {
-            }
-        });
+              @Override
+              public void onScrollStateChanged(AbsListView view, int scrollState) {
+              }
+          }
+        );
     }
 
     @Override
@@ -186,7 +187,7 @@ public class ConvoFragment extends ListFragment {
         if (mMembers == null) {
             return Collections.emptySet();
         }
-        return Collections.unmodifiableSet(mMembers);
+        return new HashSet<GroupMember>(mMembers);
     }
 
     public Long[] getMemberIds() {
@@ -223,6 +224,17 @@ public class ConvoFragment extends ListFragment {
             }
         }
         return others;
+    }
+
+
+    public long[] getOtherMemberIds() {
+        final long[] ids = new long[getOtherMembers().size()];
+        int i = 0;
+        for (GroupMember gm : getOtherMembers()) {
+            ids[i] = gm.getGlobalId();
+            i++;
+        }
+        return ids;
     }
 
     private void scrollToBottom() {

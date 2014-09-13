@@ -6,11 +6,11 @@ import android.app.Dialog;
 import android.content.DialogInterface;
 import android.os.Bundle;
 import android.support.v4.app.DialogFragment;
-import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
-import android.widget.CheckBox;
 
+import com.gjk.database.objects.GroupMember;
+import com.gjk.helper.GeneralHelper;
 import com.google.common.collect.Lists;
 
 import java.util.List;
@@ -21,12 +21,9 @@ public class AddConvoMembersDialog extends DialogFragment {
 
     private long mGroupId;
     private long mConvoId;
+    private GroupMember[] mGroupMembers;
     private ConvoType mConvoType;
-    private CheckBox mGreg;
-    private CheckBox mGreg2;
-    private CheckBox mGreg3;
-    private CheckBox mJeff;
-    private CheckBox mKach;
+    private List<Long> mSelectedMembers;
 
     /*
      * The activity that creates an instance of this dialog fragment must implement this interface in order to receive
@@ -65,7 +62,7 @@ public class AddConvoMembersDialog extends DialogFragment {
                 positiveButton.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        if (isAddConvoMembersReady()) {
+                        if (mSelectedMembers != null && mSelectedMembers.size() > 0) {
                             mListener.onAddConvoMembersDialogPositiveClick(AddConvoMembersDialog.this);
                             AddConvoMembersDialog.this.dismiss();
                         }
@@ -79,21 +76,31 @@ public class AddConvoMembersDialog extends DialogFragment {
     public Dialog onCreateDialog(Bundle savedInstanceState) {
 
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
-        // Get the layout inflater
-        LayoutInflater inflater = getActivity().getLayoutInflater();
-        View view = inflater.inflate(R.layout.add_convo_members_dialog, null);
 
-        mGreg = (CheckBox) view.findViewById(R.id.greg);
-        mGreg2 = (CheckBox) view.findViewById(R.id.greg2);
-        mGreg3 = (CheckBox) view.findViewById(R.id.greg3);
-        mJeff = (CheckBox) view.findViewById(R.id.jeff);
-        mKach = (CheckBox) view.findViewById(R.id.kach);
-
-        // Inflate and set the layout for the dialog
-        // Pass null as the parent view because its going in the dialog layout
-        builder.setView(view).setTitle(R.string.add_members_to_convo_title)
-                // Add action buttons
-                .setPositiveButton(R.string.add_members_to_convo, new DialogInterface.OnClickListener() {
+        final String[] array = new String[mGroupMembers.length];
+        for (int i = 0; i < mGroupMembers.length; i++) {
+            array[i] = mGroupMembers[i].getFullName();
+        }
+        mSelectedMembers = Lists.newArrayList();
+        builder.setTitle(R.string.add_members_to_convo)
+                // Specify the list array, the items to be selected by default (null for none),
+                // and the listener through which to receive callbacks when items are selected
+                .setMultiChoiceItems(array, null,
+                        new DialogInterface.OnMultiChoiceClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which, boolean isChecked) {
+                                GroupMember gm = mGroupMembers[which];
+                                if (isChecked) {
+                                    // If the user checked the item, add it to the selected items
+                                    mSelectedMembers.add(gm.getGlobalId());
+                                } else if (mSelectedMembers.contains(gm.getGlobalId())) {
+                                    // Else, if the item is already in the array, remove it
+                                    mSelectedMembers.remove(gm.getGlobalId());
+                                }
+                            }
+                        })
+                        // Set the action buttons
+                .setPositiveButton(R.string.ok, new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int id) {
                     }
@@ -146,32 +153,12 @@ public class AddConvoMembersDialog extends DialogFragment {
         return this;
     }
 
-    public long[] getSelectedIds() {
-        List<Long> ids = Lists.newArrayList();
-        if (mGreg.isChecked()) {
-            ids.add(3l);
-        }
-        if (mGreg2.isChecked()) {
-            ids.add(9l);
-        }
-        if (mGreg3.isChecked()) {
-            ids.add(23l);
-        }
-        if (mJeff.isChecked()) {
-            ids.add(8l);
-        }
-        if (mKach.isChecked()) {
-            ids.add(6l);
-        }
-        long[] primitveIds = new long[ids.size()];
-        for (int i = 0; i < ids.size(); i++) {
-            primitveIds[i] = ids.get(i);
-        }
-        return primitveIds;
+    public AddConvoMembersDialog setGroupMembers(GroupMember[] members) {
+        mGroupMembers = members;
+        return this;
     }
 
-    private boolean isAddConvoMembersReady() {
-        return (mGreg.isChecked() || mGreg2.isChecked() || mGreg3.isChecked() || mJeff.isChecked() || mKach.isChecked
-                ());
+    public long[] getSelectedIds() {
+        return GeneralHelper.convertLong(mSelectedMembers.toArray(new Long[mSelectedMembers.size()]));
     }
 }

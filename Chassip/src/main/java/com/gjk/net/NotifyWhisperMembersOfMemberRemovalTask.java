@@ -27,7 +27,7 @@ public class NotifyWhisperMembersOfMemberRemovalTask extends MiluHTTPTask {
     @Override
     public JSONObject getPayload() throws Exception {
         JSONObject payload = new JSONObject();
-        payload.put("whsiper_id", mWhisperId);
+        payload.put("whisper_id", mWhisperId);
         JSONArray ids = new JSONArray();
         for (long id : mRemovedMembers) {
             ids.put(id);

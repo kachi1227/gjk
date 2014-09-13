@@ -42,6 +42,7 @@ public interface Constants {
     static final String MESSAGE = "message";
     static final String GROUP_ID = "groupId";
     static final String MEMBER_IDS = "memberIds";
+    static final String ALL_MEMBER_IDS = "allMemberIds";
     static final String CONVO_TYPE = "convoType";
     static final String CONVO_ID = "convoId";
     static final String CONVO_NAME = "convoName";
@@ -110,5 +111,5 @@ public interface Constants {
     static final int NEW_SIDECONVO_INVITE_NOTIFACATION = 3;
     static final int NEW_WHISPER_INVITE_NOTIFACATION = 4;
     static final int NEW_GROUP_MEMBER_INVITE_NOTIFACATION = 5;
-    static final int MAX_SEMAPHORE_COUNT = 7;
+    static final int MAX_SEMAPHORE_COUNT = 5;
 }

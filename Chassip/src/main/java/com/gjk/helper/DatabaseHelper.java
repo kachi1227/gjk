@@ -70,37 +70,48 @@ public final class DatabaseHelper {
     }
 
     public static long getGroupIdFromSideConvoId(long sideConvoId) {
-        Cursor c = sDm.getReadableDatabase().query(Message.TABLE_NAME, new String[]{Message.F_GROUP_ID},
-                Message.F_MESSAGE_TYPE_ID + " = " + ConvoType.SIDE_CONVO.getValue() + " AND " + Message.F_TABLE_ID +
-                        " = " + sideConvoId, null, null, null, null
-        );
-        c.moveToFirst();
-        if (c.isAfterLast()) {
-            c.close();
-            return -1;
+        final List<Group> gs = getAllGroups();
+        for (Group g : gs) {
+            final long[] ids = GeneralHelper.getConvoIds(g.getSideChats());
+            for (long id : ids) {
+                if (id == sideConvoId) {
+                    return g.getGlobalId();
+                }
+            }
         }
-        long id = c.getLong(c.getColumnIndex(Message.F_GLOBAL_ID));
-        c.close();
-        return id;
+        return -1;
     }
 
     public static long getGroupIdFromWhisperId(long whisperId) {
-        Cursor c = sDm.getReadableDatabase().query(Message.TABLE_NAME, new String[]{Message.F_GROUP_ID},
-                Message.F_MESSAGE_TYPE_ID + " = " + ConvoType.WHISPER.getValue() + " AND " + Message.F_TABLE_ID +
-                        " = " + whisperId, null, null, null, null
-        );
-        c.moveToFirst();
-        if (c.isAfterLast()) {
-            c.close();
-            return -1;
+        final List<Group> gs = getAllGroups();
+        for (Group g : gs) {
+            final long[] ids = GeneralHelper.getConvoIds(g.getWhispers());
+            for (long id : ids) {
+                if (id == whisperId) {
+                    return g.getGlobalId();
+                }
+            }
         }
-        long id = c.getLong(c.getColumnIndex(Message.F_GLOBAL_ID));
-        c.close();
-        return id;
+        return -1;
     }
 
     public static Cursor getGroupsCursor() {
         return sDm.getReadableDatabase().query(Group.TABLE_NAME, Group.ALL_COLUMN_NAMES, null, null, null, null, Group.F_ID + " ASC");
+    }
+
+    public static List<Group> getAllGroups() {
+        final List<Group> gs = new ArrayList<Group>();
+        final Cursor c = getGroupsCursor();
+        c.moveToFirst();
+        if (c.isAfterLast()) {
+            c.close();
+            return gs;
+        }
+        while (!c.isAfterLast()) {
+            gs.add(0, new Group(sDm, c, false));
+            c.moveToNext();
+        }
+        return gs;
     }
 
     public static boolean groupExists(JSONObject json) {
@@ -119,9 +130,8 @@ public final class DatabaseHelper {
             return null;
         }
         cursor.moveToFirst();
-        long id = cursor.getLong(cursor.getColumnIndex(Group.F_GLOBAL_ID));
         cursor.close();
-        return getGroup(id);
+        return new Group(sDm, cursor, true);
     }
 
     public static boolean removeGroup(long groupId) {

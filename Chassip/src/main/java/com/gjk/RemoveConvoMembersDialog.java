@@ -159,6 +159,6 @@ public class RemoveConvoMembersDialog extends DialogFragment {
     }
 
     public long[] getSelectedIds() {
-        return GeneralHelper.convertLong(mSelectedMembers.toArray(new Long[]{}));
+        return GeneralHelper.convertLong(mSelectedMembers.toArray(new Long[mSelectedMembers.size()]));
     }
 }
