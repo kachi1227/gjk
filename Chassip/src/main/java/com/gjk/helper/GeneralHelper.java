@@ -11,10 +11,13 @@ import android.widget.Toast;
 import com.facebook.Session;
 import com.gjk.Application;
 import com.gjk.Constants;
+import com.google.common.collect.Sets;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * @author gpl
@@ -163,5 +166,15 @@ public final class GeneralHelper {
             Session.setActiveSession(session);
             session.closeAndClearTokenInformation();
         }
+    }
+
+    public static long[] diff(long[] array1, long[] array2) {
+        final Set<Long> set1 = new HashSet<Long>();
+        set1.addAll(Arrays.asList(convertLong(array1)));
+        final Set<Long> set2 = new HashSet<Long>();
+        set2.addAll(Arrays.asList(convertLong(array2)));
+        final Set<Long> diffSet = Sets.difference(set2, set1);
+        final Long[] diffArray = diffSet.toArray(new Long[]{});
+        return convertLong(diffArray);
     }
 }

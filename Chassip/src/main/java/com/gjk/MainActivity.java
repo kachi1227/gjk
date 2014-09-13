@@ -204,12 +204,7 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
 
                         } else if (type.equals(GROUP_UPDATE_RESPONSE)) {
 
-                            final long groupId = extras.getLong(GROUP_ID);
                             mChatDrawerFragment.swapCursor(getGroupsCursor());
-                            if (Application.get().getCurrentChat() != null && Application.get().getCurrentChat()
-                                    .getGlobalId() == groupId) {
-                                toggleChat(groupId);
-                            }
 
                         } else if (type.equals(CREATE_CONVO_RESPONSE)) {
 
@@ -464,6 +459,11 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
     @Override
     protected void onResume() {
         super.onResume();
+
+        if (!Application.get().checkPlayServices()) {
+            throw new RuntimeException("The fuck");
+        }
+
         invalidateOptionsMenu();
         Application.get().activityResumed();
 
@@ -484,12 +484,15 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
             if (!mLoginDialog.isAdded() && !mRegDialog.isAdded()) {
                 mLoginDialog.show(getSupportFragmentManager(), "LoginDialog");
             }
-        } else if (Application.get().getPreferences().contains("current_group_id")) {
-            if (Application.get().getCurrentChat() == null) {
-                toggleChat(Application.get().getPreferences().getLong("current_group_id", 0));
-            }
         } else {
-            mDrawerLayout.openDrawer(Gravity.LEFT);
+            if (Application.get().getPreferences().contains("current_group_id")) {
+                if (Application.get().getCurrentChat() == null) {
+                    toggleChat(Application.get().getPreferences().getLong("current_group_id", 0));
+                }
+            } else {
+                mDrawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED, Gravity.RIGHT);
+                mDrawerLayout.openDrawer(Gravity.LEFT);
+            }
         }
     }
 
@@ -1093,8 +1096,8 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
         String message = String.format(Locale.getDefault(), "Welcome, %s! Holy shit, you're swagged out kid!",
                 fullName);
         Toast.makeText(MainActivity.this, message, Toast.LENGTH_SHORT).show();
-        mDrawerLayout.openDrawer(Gravity.LEFT);
         mDrawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED, Gravity.RIGHT);
+        mDrawerLayout.openDrawer(Gravity.LEFT);
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_HIDDEN);
     }
 

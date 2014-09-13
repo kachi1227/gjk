@@ -103,6 +103,14 @@ public final class DatabaseHelper {
         return sDm.getReadableDatabase().query(Group.TABLE_NAME, Group.ALL_COLUMN_NAMES, null, null, null, null, Group.F_ID + " ASC");
     }
 
+    public static boolean groupExists(JSONObject json) {
+        try {
+            return Group.findOneByGlobalId(sDm, json.getLong("id")) != null;
+        } catch (JSONException e) {
+            return false;
+        }
+    }
+
     public static Group getFirstStoredGroup() {
         Cursor cursor = sDm.getReadableDatabase().query(Group.TABLE_NAME, Group.ALL_COLUMN_NAMES, null,
                 null, null, null, Group.F_ID + " ASC", "1");
@@ -174,6 +182,15 @@ public final class DatabaseHelper {
     public static boolean removeGroupMember(long chatId, long memberId) {
         return GroupMember.deleteWhere(sDm, GroupMember.F_GROUP_ID + " = " + chatId + " AND " + GroupMember.F_GLOBAL_ID
                 + " = " + memberId) > 0;
+    }
+
+    public static long[] getGroupMemberIds(long chatId) {
+        GroupMember[] members = getGroupMembers(chatId);
+        long[] ids = new long[members.length];
+        for (int i = 0; i < members.length; i++) {
+            ids[i] = members[i].getGlobalId();
+        }
+        return ids;
     }
 
     public static long[] getOtherGroupMemberIds(long chatId) {

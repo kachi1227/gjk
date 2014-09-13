@@ -109,5 +109,6 @@ public interface Constants {
     static final int NEW_GROUP_INVITE_NOTIFACATION = 2;
     static final int NEW_SIDECONVO_INVITE_NOTIFACATION = 3;
     static final int NEW_WHISPER_INVITE_NOTIFACATION = 4;
+    static final int NEW_GROUP_MEMBER_INVITE_NOTIFACATION = 5;
     static final int MAX_SEMAPHORE_COUNT = 7;
 }

@@ -21,6 +21,7 @@ import com.gjk.ConvoType;
 import com.gjk.MainActivity;
 import com.gjk.R;
 import com.gjk.database.objects.Group;
+import com.gjk.database.objects.GroupMember;
 import com.gjk.database.objects.Message;
 import com.gjk.helper.DatabaseHelper;
 import com.gjk.helper.GeneralHelper;
@@ -123,6 +124,7 @@ import static com.gjk.Constants.MEMBER_IDS;
 import static com.gjk.Constants.MESSAGE;
 import static com.gjk.Constants.MESSAGE_RESPONSE_LIMIT_DEFAULT;
 import static com.gjk.Constants.NEW_GROUP_INVITE_NOTIFACATION;
+import static com.gjk.Constants.NEW_GROUP_MEMBER_INVITE_NOTIFACATION;
 import static com.gjk.Constants.NEW_MESSAGE_NOTIFACATION;
 import static com.gjk.Constants.NEW_SIDECONVO_INVITE_NOTIFACATION;
 import static com.gjk.Constants.NEW_WHISPER_INVITE_NOTIFACATION;
@@ -153,9 +155,12 @@ import static com.gjk.helper.DatabaseHelper.getAccountUserId;
 import static com.gjk.helper.DatabaseHelper.getGroup;
 import static com.gjk.helper.DatabaseHelper.getGroupIdFromSideConvoId;
 import static com.gjk.helper.DatabaseHelper.getGroupIdFromWhisperId;
+import static com.gjk.helper.DatabaseHelper.getGroupMemberIds;
+import static com.gjk.helper.DatabaseHelper.getGroupMembers;
 import static com.gjk.helper.DatabaseHelper.getLeastRecentMessageId;
 import static com.gjk.helper.DatabaseHelper.getMostRecentMessageId;
 import static com.gjk.helper.DatabaseHelper.getOtherGroupMemberIds;
+import static com.gjk.helper.DatabaseHelper.groupExists;
 import static com.gjk.helper.DatabaseHelper.removeGroup;
 import static com.gjk.helper.DatabaseHelper.removeGroupMember;
 import static com.gjk.helper.DatabaseHelper.setAccountUser;
@@ -665,7 +670,9 @@ public class ChassipService extends IntentService {
                                         updateUiForAddConvo(groupId, convoId, name, ConvoType.SIDE_CONVO);
                                     }
                                 });
-                                fetchConvoMembers(extras, new FetchConvoMemberAction() {
+                                final Bundle moreExtras = new Bundle(extras);
+                                moreExtras.putLong(CONVO_ID, convoId);
+                                fetchConvoMembers(moreExtras, new FetchConvoMemberAction() {
                                     @Override
                                     public void doThis(long convoId, ConvoType convoType, long[] memberIds) {
                                         notifyConvoMembers(memberIds, convoType, convoId);
@@ -696,7 +703,9 @@ public class ChassipService extends IntentService {
                                         updateUiForAddConvo(groupId, convoId, name, ConvoType.WHISPER);
                                     }
                                 });
-                                fetchConvoMembers(extras, new FetchConvoMemberAction() {
+                                final Bundle moreExtras = new Bundle(extras);
+                                moreExtras.putLong(CONVO_ID, convoId);
+                                fetchConvoMembers(moreExtras, new FetchConvoMemberAction() {
                                     @Override
                                     public void doThis(long convoId, ConvoType convoType, long[] memberIds) {
                                         notifyConvoMembers(memberIds, convoType, convoId);
@@ -731,7 +740,8 @@ public class ChassipService extends IntentService {
                         fetchGroup(response.getLong("id"), new FetchGroupAction() {
                             @Override
                             public void doThis(long groupId) {
-                                updateUiForGroupUpdate(groupId);
+                                updateUiForGroupUpdate();
+                                fetchMembersAndMessagesForGroup(groupId);
                             }
                         });
                         notifyGroupOfInvite(response.getLong("id"), memberIds);
@@ -1030,7 +1040,7 @@ public class ChassipService extends IntentService {
                         JSONArray response = (JSONArray) result.getExtraInfo();
                         List<Group> groups = addGroups(response, false);
                         for (Group g : groups) {
-                            fetchMembersAndMessages(g.getGlobalId());
+                            fetchMembersAndMessagesForGroup(g.getGlobalId());
                         }
                     } catch (Exception e) {
                         reportError(e.getMessage(), false);
@@ -1101,11 +1111,27 @@ public class ChassipService extends IntentService {
     private void handleGroupInvite(Bundle extras) {
         try {
             final JSONObject content = new JSONObject(extras.getString("msg_content")).getJSONObject("content");
-            JSONObject group = content.getJSONObject("group");
-            JSONObject inviter = content.getJSONObject("inviter");
-            Group g = addGroup(group, false);
-            updateUiForGroupUpdate(g.getGlobalId());
-            notifyUserOfNewGroup(g, inviter);
+            final JSONObject group = content.getJSONObject("group");
+            final JSONObject inviter = content.getJSONObject("inviter");
+            final JSONArray members = content.getJSONArray("members");
+            final boolean groupAlreadyExists = groupExists(group);
+            final long[] previousMemberIds = getGroupMemberIds(group.getLong("id"));
+            final Group g = addGroup(group, false);
+            addGroupMembers(members, g.getGlobalId(), false);
+            if (!groupAlreadyExists) {
+                notifyUserOfNewGroup(g, inviter);
+                fetchMembersAndMessagesForGroup(g.getGlobalId());
+                updateUiForGroupUpdate();
+            } else {
+                final long groupId = g.getGlobalId();
+                final long[] memberIds = getGroupMemberIds(groupId);
+                final Bundle moreExtras = new Bundle();
+                moreExtras.putLong(GROUP_ID, groupId);
+                moreExtras.putLongArray(MEMBER_IDS, memberIds);
+                updateUiForAddChatMembers(moreExtras);
+                final long[] newMembers = GeneralHelper.diff(previousMemberIds, memberIds);
+                notifyUserOfNewGroupMember(g, newMembers);
+            }
         } catch (Exception e) {
             reportError(e.getMessage(), false);
         }
@@ -1120,7 +1146,10 @@ public class ChassipService extends IntentService {
             for (int i = 0; i < removedMembers.length(); i++) {
                 memberIds[i] = removedMembers.getLong(i);
             }
-            finalizeChatMemberRemoval(extras);
+            final Bundle moreExtras = new Bundle();
+            moreExtras.putLong(GROUP_ID, groupId);
+            moreExtras.putLongArray(MEMBER_IDS, memberIds);
+            finalizeChatMemberRemoval(moreExtras);
         } catch (Exception e) {
             reportError(e.getMessage(), false);
         }
@@ -1262,17 +1291,16 @@ public class ChassipService extends IntentService {
         }, id, true);
     }
 
-    private void fetchMembersAndMessages(final long groupId) {
+    private void fetchMembersAndMessagesForGroup(final long groupId) {
         fetchGroupMembers(groupId, new FetchGroupMemberAction() {
             @Override
-            public void doThis(long groupId) {
-            }
-        });
-        fetchMostRecentGroupMessages(groupId, new FetchGroupMessagesAction() {
-            @Override
-            public void doThis(List<Message> messages) {
-                updateUiForMessages(groupId, messages.size());
-                updateUiForGroupUpdate(groupId);
+            public void doThis(final long groupId) {
+                fetchMostRecentGroupMessages(groupId, new FetchGroupMessagesAction() {
+                    @Override
+                    public void doThis(List<Message> messages) {
+                        updateUiForMessages(groupId, messages.size());
+                    }
+                });
             }
         });
     }
@@ -1332,7 +1360,7 @@ public class ChassipService extends IntentService {
         i.putExtra(INTENT_TYPE, REMOVE_CONVO_MEMBERS_RESPONSE)
                 .putExtra(GROUP_ID, extras.getLong(GROUP_ID))
                 .putExtra(CONVO_ID, extras.getLong(CONVO_ID))
-                .putExtra(CONVO_TYPE, ConvoType.getFromValue(extras.getInt(GROUP_ID)))
+                .putExtra(CONVO_TYPE, ConvoType.getFromValue(extras.getInt(CONVO_TYPE)))
                 .putExtra(MEMBER_IDS, extras.getLongArray(MEMBER_IDS));
         LocalBroadcastManager.getInstance(ChassipService.this).sendBroadcast(i);
     }
@@ -1345,18 +1373,17 @@ public class ChassipService extends IntentService {
         LocalBroadcastManager.getInstance(ChassipService.this).sendBroadcast(i);
     }
 
-    private void updateUiForGroupUpdate(long groupId) {
-        Intent i = new Intent(CHASSIP_ACTION);
-        i.putExtra(INTENT_TYPE, GROUP_UPDATE_RESPONSE)
-                .putExtra(GROUP_ID, groupId);
-        LocalBroadcastManager.getInstance(ChassipService.this).sendBroadcast(i);
-    }
-
     private void updateUiForMessages(long groupId, int numMessages) {
         final Intent i = new Intent(CHASSIP_ACTION);
         i.putExtra(INTENT_TYPE, SEND_MESSAGE_RESPONSE)
                 .putExtra(GROUP_ID, groupId)
                 .putExtra(NUM_MESSAGES, numMessages);
+        LocalBroadcastManager.getInstance(ChassipService.this).sendBroadcast(i);
+    }
+
+    private void updateUiForGroupUpdate() {
+        Intent i = new Intent(CHASSIP_ACTION);
+        i.putExtra(INTENT_TYPE, GROUP_UPDATE_RESPONSE);
         LocalBroadcastManager.getInstance(ChassipService.this).sendBroadcast(i);
     }
 
@@ -1377,15 +1404,26 @@ public class ChassipService extends IntentService {
         notificationAlert(title, content, m.getGroupId(), NEW_MESSAGE_NOTIFACATION);
     }
 
-    // Put the message into a notification and post it.
-    // This is just one simple example of what you might choose to do with
-    // a GCM message.
     private void notifyUserOfNewGroup(Group g, JSONObject inviter) throws Exception {
         if (inviter.getLong("id") != getAccountUserId()) {
             String content = String.format(Locale.getDefault(), "You've been added to %s's chat called \"%s\"",
                     g.getCreatorName(), g.getName());
             String title = "New Chat Invite";
             notificationAlert(title, content, g.getGlobalId(), NEW_GROUP_INVITE_NOTIFACATION);
+        }
+    }
+
+    private void notifyUserOfNewGroupMember(Group g, long[] newMembers) throws Exception {
+        if (newMembers.length > 0) {
+            final GroupMember[] gms = getGroupMembers(newMembers);
+            String names = gms[0].getFullName();
+            for (int i = 1; i < gms.length; i++) {
+                names = names + ", " + gms[i].getFullName();
+            }
+            String content = String.format(Locale.getDefault(), "%s been added to %s's chat called \"%s\"", names,
+                    g.getCreatorName(), g.getName());
+            String title = "New Group Member";
+            notificationAlert(title, content, g.getGlobalId(), NEW_GROUP_MEMBER_INVITE_NOTIFACATION);
         }
     }
 
@@ -1424,6 +1462,7 @@ public class ChassipService extends IntentService {
             case NEW_GROUP_INVITE_NOTIFACATION:
             case NEW_SIDECONVO_INVITE_NOTIFACATION:
             case NEW_WHISPER_INVITE_NOTIFACATION:
+            case NEW_GROUP_MEMBER_INVITE_NOTIFACATION:
             default:
                 icon = R.drawable.ic_action_add_group;
                 break;

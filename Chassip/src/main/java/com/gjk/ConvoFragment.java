@@ -251,6 +251,9 @@ public class ConvoFragment extends ListFragment {
 
     public void loadAndFetchMessages(int numMessages) {
         final Cursor oldCursor = swapCursor(numMessages);
+        if (oldCursor == null) {
+            return;
+        }
         if (isCanFetchMoreMessagesSet()) {
             if (mAdapter.getCount() == oldCursor.getCount()) {
                 final Intent i = new Intent(getActivity(), ChassipService.class);
@@ -270,13 +273,16 @@ public class ConvoFragment extends ListFragment {
     }
 
     private Cursor swapCursor(int numMessages) {
-        Log.i(mLogtag, "Trying to loading more messages");
-        final Cursor newCursor;
-        if (GeneralHelper.getInterleavingPref()) {
-            newCursor = getMessagesCursor(getGroupId(), mAdapter.getCount() + numMessages);
-        } else {
-            newCursor = getMessagesCursor(getGroupId(), getConvoId(), mAdapter.getCount() + numMessages);
+        if (mAdapter != null) {
+            Log.i(mLogtag, "Trying to loading more messages");
+            final Cursor newCursor;
+            if (GeneralHelper.getInterleavingPref()) {
+                newCursor = getMessagesCursor(getGroupId(), mAdapter.getCount() + numMessages);
+            } else {
+                newCursor = getMessagesCursor(getGroupId(), getConvoId(), mAdapter.getCount() + numMessages);
+            }
+            return mAdapter.swapCursor(newCursor);
         }
-        return mAdapter.swapCursor(newCursor);
+        return null;
     }
 }
