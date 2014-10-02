@@ -33,16 +33,37 @@ public class ImageUtil {
         return outputBitmap;
     }
 
-    public static File createImageFile(Context ctx) throws IOException {
+    public static File createTimestampedImageFile(Context ctx) throws IOException {
         // Create an image file name
-        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
-        String imageFileName = String.format("%s_%s.jpg", ctx.getResources().getString(R.string.app_name),
+        final String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
+        final String imageFileName = String.format("%s_%s.jpg", ctx.getResources().getString(R.string.app_name),
                 timeStamp);
-        File storageDir = new File(Environment.getExternalStorageDirectory(), ctx.getResources().getString(
-                R.string.app_name));
-        storageDir.mkdirs();
-        File photoFile = new File(storageDir, imageFileName);
+        return createImageFile(ctx, imageFileName);
+    }
+
+    public static File createTempImageFile(Context ctx) throws IOException {
+        // Create an image file name
+        return createImageFile(ctx, "temp");
+    }
+
+    public static void removeTempImageFile(Context ctx) throws IOException {
+        // Create an image file name
+        final File photoFile = getFile(ctx, "temp");
+        if (photoFile != null) {
+            photoFile.delete();
+        }
+    }
+
+    private static File createImageFile(Context ctx, String imageFileName) throws IOException {
+        final File photoFile = getFile(ctx, imageFileName);
         photoFile.createNewFile();
         return photoFile;
+    }
+
+    private static File getFile(Context ctx, String imageFileName) throws IOException {
+        final File storageDir = new File(Environment.getExternalStorageDirectory(), ctx.getResources().getString(
+                R.string.app_name));
+        storageDir.mkdirs();
+        return new File(storageDir, imageFileName);
     }
 }

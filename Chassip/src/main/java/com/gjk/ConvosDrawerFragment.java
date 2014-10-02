@@ -3,6 +3,7 @@ package com.gjk;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.view.ContextMenu;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -21,12 +22,20 @@ import com.gjk.views.CacheImageView;
 import com.gjk.views.RecyclingImageView;
 import com.google.common.collect.Lists;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static com.gjk.Constants.BASE_URL;
 import static com.gjk.Constants.CONVO_CONTEXT_MENU_ID;
-import static com.gjk.Constants.CONVO_DRAWER_ADD_MEMBERS;
-import static com.gjk.Constants.CONVO_DRAWER_REMOVE_MEMBERS;
+import static com.gjk.Constants.CONVO_DRAWER_ADD_CHAT_MEMBERS;
+import static com.gjk.Constants.CONVO_DRAWER_ADD_SIDE_CONVO_MEMBERS;
+import static com.gjk.Constants.CONVO_DRAWER_ADD_WHISPER_MEMBERS;
+import static com.gjk.Constants.CONVO_DRAWER_DELETE_CHAT;
+import static com.gjk.Constants.CONVO_DRAWER_DELETE_SIDE_CONVO;
+import static com.gjk.Constants.CONVO_DRAWER_DELETE_WHISPER;
+import static com.gjk.Constants.CONVO_DRAWER_REMOVE_CHAT_MEMBERS;
+import static com.gjk.Constants.CONVO_DRAWER_REMOVE_SIDE_CONVO_MEMBERS;
+import static com.gjk.Constants.CONVO_DRAWER_REMOVE_WHISPER_MEMBERS;
 
 /**
  * @author gpl
@@ -36,6 +45,8 @@ public class ConvosDrawerFragment extends Fragment {
     private ConvoDrawerAdapter mAdapter;
     private ListView mConvosList;
     private Button mCreateConvo;
+
+    private int mCurrentConvoPosition;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -78,9 +89,27 @@ public class ConvosDrawerFragment extends Fragment {
     public void onCreateContextMenu(ContextMenu menu, View v, ContextMenu.ContextMenuInfo menuInfo) {
         super.onCreateContextMenu(menu, v, menuInfo);
         AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo) menuInfo;
-        menu.setHeaderTitle(mAdapter.getItem(info.position).getName());
-        menu.add(CONVO_CONTEXT_MENU_ID, v.getId(), 0, CONVO_DRAWER_ADD_MEMBERS);
-        menu.add(CONVO_CONTEXT_MENU_ID, v.getId(), 1, CONVO_DRAWER_REMOVE_MEMBERS);
+        final ConvoFragment frag = mAdapter.getItem(info.position);
+        menu.setHeaderTitle(frag.getName());
+        switch (frag.getConvoType()) {
+            case MAIN_CHAT:
+                menu.add(CONVO_CONTEXT_MENU_ID, v.getId(), 0, CONVO_DRAWER_ADD_CHAT_MEMBERS);
+                menu.add(CONVO_CONTEXT_MENU_ID, v.getId(), 1, CONVO_DRAWER_REMOVE_CHAT_MEMBERS);
+                menu.add(CONVO_CONTEXT_MENU_ID, v.getId(), 2, CONVO_DRAWER_DELETE_CHAT);
+                break;
+            case SIDE_CONVO:
+                menu.add(CONVO_CONTEXT_MENU_ID, v.getId(), 0, CONVO_DRAWER_ADD_SIDE_CONVO_MEMBERS);
+                menu.add(CONVO_CONTEXT_MENU_ID, v.getId(), 1, CONVO_DRAWER_REMOVE_SIDE_CONVO_MEMBERS);
+                menu.add(CONVO_CONTEXT_MENU_ID, v.getId(), 2, CONVO_DRAWER_DELETE_SIDE_CONVO);
+                break;
+            case WHISPER:
+                menu.add(CONVO_CONTEXT_MENU_ID, v.getId(), 0, CONVO_DRAWER_ADD_WHISPER_MEMBERS);
+                menu.add(CONVO_CONTEXT_MENU_ID, v.getId(), 1, CONVO_DRAWER_REMOVE_WHISPER_MEMBERS);
+                menu.add(CONVO_CONTEXT_MENU_ID, v.getId(), 2, CONVO_DRAWER_DELETE_WHISPER);
+                break;
+            default:
+                break;
+        }
     }
 
     public void updateView() {
@@ -95,6 +124,13 @@ public class ConvosDrawerFragment extends Fragment {
         }
     }
 
+    public void add(ConvoFragment frag) {
+        if (mAdapter == null) {
+            mAdapter = new ConvoDrawerAdapter((MainActivity) getActivity());
+        }
+        mAdapter.add(frag);
+    }
+
     public void addAll(List<ConvoFragment> convos) {
         if (mAdapter == null) {
             mAdapter = new ConvoDrawerAdapter((MainActivity) getActivity());
@@ -103,7 +139,57 @@ public class ConvosDrawerFragment extends Fragment {
     }
 
     public ConvoFragment getItem(int i) {
-        return mAdapter.getItem(i);
+        return mAdapter != null && i < mAdapter.getCount() ? mAdapter.getItem(i) : null;
+    }
+
+    public int getCount() {
+        return mAdapter != null ? mAdapter.getCount() : 0;
+    }
+
+    public List<ConvoFragment> getItems() {
+        List<ConvoFragment> frags = new ArrayList<ConvoFragment>();
+        if (mAdapter == null) {
+            return frags;
+        }
+        for (int i = 0; i < mAdapter.getCount(); i++) {
+            frags.add(mAdapter.getItem(i));
+        }
+        return frags;
+    }
+
+    public int getPosition(long convoId) {
+        List<ConvoFragment> frags = getItems();
+        for (int i = 0; i < frags.size(); i++) {
+            if (frags.get(i).getConvoId() == convoId) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    public ConvoFragment getFrag(long convoId) {
+        final int position = getPosition(convoId);
+        return position > -1 ? getItem(position) : null;
+    }
+
+    public void removeFrag(long convoId) {
+        mAdapter.remove(getFrag(convoId));
+    }
+
+    public void setConvo(int position) {
+        mCurrentConvoPosition = position;
+    }
+
+    public int getCurrentConvoPosition() {
+        return mCurrentConvoPosition;
+    }
+
+    public ConvoFragment getCurrentConvo() {
+        return getItem(mCurrentConvoPosition);
+    }
+
+    public ConvoFragment getMainConvo() {
+        return getItem(0);
     }
 
     private class ConvoDrawerAdapter extends ArrayAdapter<ConvoFragment> {
@@ -122,14 +208,14 @@ public class ConvosDrawerFragment extends Fragment {
                 convertView = LayoutInflater.from(getContext()).inflate(R.layout.convos_drawer_row, null);
             }
 
-            TextView convoLabel = (TextView) convertView.findViewById(R.id.convoLabel);
+            final TextView convoLabel = (TextView) convertView.findViewById(R.id.convoLabel);
             convoLabel.setText(getItem(position).getName());
             LinearLayout gallery = (LinearLayout) convertView.findViewById(R.id.gallery);
             gallery.removeAllViews();
             mMa.getDrawerLayout().unregisterViews(getItem(position).getConvoId());
             if (getItem(position) != null && getItem(position).getMembers() != null) {
                 for (GroupMember gm : Lists.newArrayList(getItem(position).getMembers())) {
-                    View view = insertPhoto(gm);
+                    final View view = insertPhoto(gm);
                     gallery.addView(view);
                 }
             }
@@ -138,6 +224,7 @@ public class ConvosDrawerFragment extends Fragment {
                 @Override
                 public void onClick(View v) {
                     mMa.toggleConvo(position);
+                    mMa.getDrawerLayout().closeDrawer(Gravity.RIGHT);
                 }
             });
 
@@ -151,14 +238,14 @@ public class ConvosDrawerFragment extends Fragment {
 
         private View insertPhoto(GroupMember gm) {
             if (GeneralHelper.getKachisCachePref()) {
-                CacheImageView imageView = new CacheImageView(getActivity().getApplicationContext());
+                final CacheImageView imageView = new CacheImageView(getActivity().getApplicationContext());
                 imageView.setLayoutParams(new ViewGroup.LayoutParams(300, 300));
                 imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
                 imageView.setPadding(10, 10, 10, 10);
                 imageView.configure(BASE_URL + gm.getImageUrl(), 0, false);
                 return imageView;
             }
-            RecyclingImageView imageView = new RecyclingImageView(getActivity().getApplicationContext());
+            final RecyclingImageView imageView = new RecyclingImageView(getActivity().getApplicationContext());
             imageView.setLayoutParams(new ViewGroup.LayoutParams(300, 300));
             imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
             imageView.setPadding(10, 10, 10, 10);

@@ -16,7 +16,12 @@ import com.gjk.helper.GeneralHelper;
 import com.gjk.service.ChassipService;
 import com.google.common.collect.Sets;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.gjk.Constants.CHASSIP_ACTION;
 import static com.gjk.Constants.CONVO_ID;
@@ -26,6 +31,7 @@ import static com.gjk.Constants.FETCH_MORE_MESSAGES_REQUEST;
 import static com.gjk.Constants.GROUP_ID;
 import static com.gjk.Constants.INTENT_TYPE;
 import static com.gjk.Constants.PROPERTY_SETTING_MESSAGE_LOAD_LIMIT_DEFAULT;
+import static com.gjk.helper.DatabaseHelper.getAccountUserId;
 import static com.gjk.helper.DatabaseHelper.getGroupMember;
 import static com.gjk.helper.DatabaseHelper.getGroupMembers;
 import static com.gjk.helper.DatabaseHelper.getMessagesCursor;
@@ -50,7 +56,6 @@ public class ConvoFragment extends ListFragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         mCtx = getActivity();
-        Bundle useTheseArgs;
         if (mArgs == null && savedInstanceState != null) {
             mArgs = savedInstanceState;
         }
@@ -58,10 +63,10 @@ public class ConvoFragment extends ListFragment {
             mMembers = Sets.newHashSet();
         }
         if (getConvoType() == ConvoType.MAIN_CHAT) {
-            addMembers(getGroupMembers(getChatId()));
+            addMembers(getGroupMembers(getGroupId()));
         } else {
             if (mArgs.containsKey("members")) {
-                long[] ids = mArgs.getLongArray("members");
+                final long[] ids = mArgs.getLongArray("members");
                 for (long id : ids) {
                     mMembers.add(getGroupMember(id));
                 }
@@ -79,20 +84,20 @@ public class ConvoFragment extends ListFragment {
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
-        Cursor cursor;
+        final Cursor cursor;
         if (GeneralHelper.getInterleavingPref()) {
-            cursor = getMessagesCursor(getChatId(), PROPERTY_SETTING_MESSAGE_LOAD_LIMIT_DEFAULT);
+            cursor = getMessagesCursor(getGroupId(), PROPERTY_SETTING_MESSAGE_LOAD_LIMIT_DEFAULT);
         } else {
-            cursor = getMessagesCursor(getChatId(), getConvoId(), PROPERTY_SETTING_MESSAGE_LOAD_LIMIT_DEFAULT);
+            cursor = getMessagesCursor(getGroupId(), getConvoId(), PROPERTY_SETTING_MESSAGE_LOAD_LIMIT_DEFAULT);
         }
         mAdapter = new MessagesAdapter(getActivity(), cursor, getConvoId(), getConvoType());
         setListAdapter(mAdapter);
         scrollToBottom();
         if (getConvoType() != ConvoType.MAIN_CHAT) {
-            Intent i = new Intent(getActivity(), ChassipService.class);
+            final Intent i = new Intent(getActivity(), ChassipService.class);
             i.setAction(CHASSIP_ACTION);
             i.putExtra(INTENT_TYPE, FETCH_CONVO_MEMBERS_REQUEST)
-                    .putExtra(GROUP_ID, getChatId())
+                    .putExtra(GROUP_ID, getGroupId())
                     .putExtra(CONVO_TYPE, getConvoType().getValue())
                     .putExtra(CONVO_ID, getConvoId());
             ((MainActivity) getActivity()).sendServerRequest(i);
@@ -103,24 +108,23 @@ public class ConvoFragment extends ListFragment {
     public void onViewCreated(View view, Bundle savedInstance) {
         super.onViewCreated(view, savedInstance);
         getListView().setOnScrollListener(new AbsListView.OnScrollListener() {
-            private Integer mItemCountAtOnScroll = 0;
+              private AtomicInteger mItemCountAtOnScroll = new AtomicInteger(0);
 
-            @Override
-            public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
-                synchronized (mItemCountAtOnScroll) {
-                    if (mAdapter != null && totalItemCount != 0 && mItemCountAtOnScroll != totalItemCount &&
-                            firstVisibleItem == 0 && visibleItemCount != 0 && visibleItemCount < totalItemCount) {
-                        mItemCountAtOnScroll = totalItemCount;
-                        loadAndFetchMessages(PROPERTY_SETTING_MESSAGE_LOAD_LIMIT_DEFAULT);
-                        getListView().setSelection(getListView().getCount() - totalItemCount);
-                    }
-                }
-            }
+              @Override
+              public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
+                  if (mAdapter != null && totalItemCount != 0 && mItemCountAtOnScroll.get() != totalItemCount &&
+                          firstVisibleItem == 0 && visibleItemCount != 0 && visibleItemCount < totalItemCount) {
+                      mItemCountAtOnScroll.set(totalItemCount);
+                      loadAndFetchMessages(PROPERTY_SETTING_MESSAGE_LOAD_LIMIT_DEFAULT);
+                      getListView().setSelection(getListView().getCount() - totalItemCount);
+                  }
+              }
 
-            @Override
-            public void onScrollStateChanged(AbsListView view, int scrollState) {
-            }
-        });
+              @Override
+              public void onScrollStateChanged(AbsListView view, int scrollState) {
+              }
+          }
+        );
     }
 
     @Override
@@ -139,7 +143,7 @@ public class ConvoFragment extends ListFragment {
         }
     }
 
-    public long getChatId() {
+    public long getGroupId() {
         return mArgs.getLong("chatId");
     }
 
@@ -163,24 +167,74 @@ public class ConvoFragment extends ListFragment {
         if (mMembers == null) {
             mMembers = Sets.newHashSet();
         }
-        Long[] newIds = new Long[members.length];
-        for (int i = 0; i < members.length; i++) {
-            mMembers.add(members[i]);
-            newIds[i] = members[i].getGlobalId();
+        for (GroupMember member : members) {
+            if (member != null) {
+                mMembers.add(member);
+            }
         }
         if (mArgs == null) {
             mArgs = new Bundle();
-            mArgs.putLongArray("members", GeneralHelper.convertLong(newIds));
-        } else if (!mArgs.containsKey("members")) {
-            mArgs.putLongArray("members", GeneralHelper.convertLong(newIds));
-        } else if (mArgs.containsKey("members")) {
+        }
+        if (mArgs.containsKey("members")) {
             Long[] currentIds = GeneralHelper.convertLong(mArgs.getLongArray("members"));
-            mArgs.putLongArray("members", GeneralHelper.concatLong(currentIds, newIds));
+            mArgs.putLongArray("members", GeneralHelper.concatLong(currentIds, getMemberIds()));
+        } else {
+            mArgs.putLongArray("members", GeneralHelper.convertLong(getMemberIds()));
         }
     }
 
     public Set<GroupMember> getMembers() {
-        return mMembers;
+        if (mMembers == null) {
+            return Collections.emptySet();
+        }
+        return new HashSet<GroupMember>(mMembers);
+    }
+
+    public Long[] getMemberIds() {
+        final List<GroupMember> members = new ArrayList<GroupMember>(mMembers);
+        Long[] ids = new Long[members.size()];
+        for (int i = 0; i < members.size(); i++) {
+            ids[i] = members.get(i).getGlobalId();
+        }
+        return ids;
+    }
+
+    public void removeMembers(long[] ids) {
+        if (mMembers != null) {
+            List<GroupMember> removeThese = new ArrayList<GroupMember>();
+            for (GroupMember gm : mMembers) {
+                for (long id : ids) {
+                    if (gm.getGlobalId() == id) {
+                        removeThese.add(gm);
+                    }
+                }
+            }
+            mMembers.removeAll(removeThese);
+        }
+    }
+
+    public Set<GroupMember> getOtherMembers() {
+        if (mMembers == null) {
+            return Collections.emptySet();
+        }
+        final Set<GroupMember> others = Sets.newHashSet(mMembers);
+        for (GroupMember gm : mMembers) {
+            if (gm.getGlobalId() == getAccountUserId()) {
+                others.remove(gm);
+            }
+        }
+        return others;
+    }
+
+
+    public long[] getOtherMemberIds() {
+        final long[] ids = new long[getOtherMembers().size()];
+        int i = 0;
+        for (GroupMember gm : getOtherMembers()) {
+            ids[i] = gm.getGlobalId();
+            i++;
+        }
+        return ids;
     }
 
     private void scrollToBottom() {
@@ -189,8 +243,13 @@ public class ConvoFragment extends ListFragment {
                 @Override
                 public void run() {
                     // Select the last row so it will scroll into view...
-                    if (getListView().getCount() > 0) {
-                        getListView().setSelection(getListView().getCount() - 1);
+                    try {
+                        if (getListView().getCount() > 0) {
+                            getListView().setSelection(getListView().getCount() - 1);
+                        }
+                    } catch (Exception e) {
+                        Log.e("ConvoFragment", "Whoa hoe..");
+                        e.printStackTrace();
                     }
                 }
             });
@@ -203,13 +262,16 @@ public class ConvoFragment extends ListFragment {
     }
 
     public void loadAndFetchMessages(int numMessages) {
-        Cursor oldCursor = swapCursor(numMessages);
+        final Cursor oldCursor = swapCursor(numMessages);
+        if (oldCursor == null) {
+            return;
+        }
         if (isCanFetchMoreMessagesSet()) {
             if (mAdapter.getCount() == oldCursor.getCount()) {
-                Intent i = new Intent(getActivity(), ChassipService.class);
+                final Intent i = new Intent(getActivity(), ChassipService.class);
                 i.setAction(CHASSIP_ACTION);
                 i.putExtra(INTENT_TYPE, FETCH_MORE_MESSAGES_REQUEST)
-                        .putExtra(GROUP_ID, getChatId())
+                        .putExtra(GROUP_ID, getGroupId())
                         .putExtra(CONVO_ID, getConvoId());
                 ((MainActivity) getActivity()).sendServerRequest(i);
             }
@@ -223,13 +285,16 @@ public class ConvoFragment extends ListFragment {
     }
 
     private Cursor swapCursor(int numMessages) {
-        Log.i(mLogtag, "Trying to loading more messages");
-        Cursor newCursor;
-        if (GeneralHelper.getInterleavingPref()) {
-            newCursor = getMessagesCursor(getChatId(), mAdapter.getCount() + numMessages);
-        } else {
-            newCursor = getMessagesCursor(getChatId(), getConvoId(), mAdapter.getCount() + numMessages);
+        if (mAdapter != null) {
+            Log.i(mLogtag, "Trying to loading more messages");
+            final Cursor newCursor;
+            if (GeneralHelper.getInterleavingPref()) {
+                newCursor = getMessagesCursor(getGroupId(), mAdapter.getCount() + numMessages);
+            } else {
+                newCursor = getMessagesCursor(getGroupId(), getConvoId(), mAdapter.getCount() + numMessages);
+            }
+            return mAdapter.swapCursor(newCursor);
         }
-        return mAdapter.swapCursor(newCursor);
+        return null;
     }
 }

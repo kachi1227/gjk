@@ -25,15 +25,12 @@ import com.gjk.helper.GeneralHelper;
 import com.gjk.utils.media2.ImageManager;
 import com.gjk.views.CacheImageView;
 import com.gjk.views.RecyclingImageView;
-import com.google.common.collect.Maps;
-
-import java.util.Map;
 
 import static com.gjk.Constants.BASE_URL;
 import static com.gjk.Constants.CHAT_CONTEXT_MENU_ID;
-import static com.gjk.Constants.CHAT_DRAWER_ADD_MEMBERS;
+import static com.gjk.Constants.CHAT_DRAWER_ADD_CHAT_MEMBERS;
 import static com.gjk.Constants.CHAT_DRAWER_DELETE_CHAT;
-import static com.gjk.Constants.CHAT_DRAWER_REMOVE_MEMBERS;
+import static com.gjk.Constants.CHAT_DRAWER_REMOVE_CHAT_MEMBERS;
 
 /**
  * @author gpl
@@ -86,8 +83,8 @@ public class ChatsDrawerFragment extends Fragment {
         AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo) menuInfo;
         Cursor cursor = (Cursor) mAdapter.getItem(info.position);
         menu.setHeaderTitle(cursor.getString(cursor.getColumnIndex(Group.F_NAME)));
-        menu.add(CHAT_CONTEXT_MENU_ID, v.getId(), 0, CHAT_DRAWER_ADD_MEMBERS);//groupId, itemId, order, title
-        menu.add(CHAT_CONTEXT_MENU_ID, v.getId(), 1, CHAT_DRAWER_REMOVE_MEMBERS);
+        menu.add(CHAT_CONTEXT_MENU_ID, v.getId(), 0, CHAT_DRAWER_ADD_CHAT_MEMBERS);//groupId, itemId, order, title
+        menu.add(CHAT_CONTEXT_MENU_ID, v.getId(), 1, CHAT_DRAWER_REMOVE_CHAT_MEMBERS);
         menu.add(CHAT_CONTEXT_MENU_ID, v.getId(), 2, CHAT_DRAWER_DELETE_CHAT);
     }
 
@@ -112,11 +109,8 @@ public class ChatsDrawerFragment extends Fragment {
 
     private class ChatDrawerAdapter extends CursorAdapter {
 
-        private Map<Long, Boolean> mNotifyMap;
-
         public ChatDrawerAdapter(FragmentActivity a, Cursor c) {
             super(a, c, true);
-            mNotifyMap = Maps.newHashMap();
         }
 
         @Override
@@ -132,22 +126,20 @@ public class ChatsDrawerFragment extends Fragment {
         }
 
         public void buildView(View view, Cursor cursor) {
-            RelativeLayout row = (RelativeLayout) view.findViewById(R.id.chatRow);
-            long globalId = cursor.getLong(cursor.getColumnIndex(Group.F_GLOBAL_ID));
-            Message last = DatabaseHelper.getLatestMessage(globalId);
+            final RelativeLayout row = (RelativeLayout) view.findViewById(R.id.chatRow);
+            final long globalId = cursor.getLong(cursor.getColumnIndex(Group.F_GLOBAL_ID));
+            final Message last = DatabaseHelper.getLatestMessage(globalId);
             row.setBackgroundResource(getColor(last));
-            TextView chatLabel = (TextView) view.findViewById(R.id.chatLabel);
+            final TextView chatLabel = (TextView) view.findViewById(R.id.chatLabel);
             chatLabel.setText(cursor.getString(cursor.getColumnIndex(Group.F_NAME)));
-            TextView latestMessage = (TextView) view.findViewById(R.id.latestMessage);
-            String latestMessageStr = getText(last);
-            latestMessage.setText(latestMessageStr);
-            if (mNotifyMap.containsKey(globalId) && mNotifyMap.get(globalId)) {
-                latestMessage.setTypeface(null, Typeface.BOLD);
-            } else if (latestMessageStr.isEmpty()) {
+            final TextView latestMessage = (TextView) view.findViewById(R.id.latestMessage);
+            final String latestMessageStr = getText(last);
+            if (latestMessageStr == null) {
                 latestMessage.setTypeface(null, Typeface.ITALIC);
                 latestMessage.setText("Be first to say something dope");
             } else {
                 latestMessage.setTypeface(null, Typeface.NORMAL);
+                latestMessage.setText(latestMessageStr);
             }
 
             CacheImageView avi = (CacheImageView) view.findViewById(R.id.groupAvi);
@@ -167,10 +159,10 @@ public class ChatsDrawerFragment extends Fragment {
 
         private String getText(Message m) {
             if (m == null) {
-                return "";
+                return null;
             }
             return String.format("%s %s: %s", m.getSenderFirstName(), m.getSenderLastName(),
-                    m.getContent());
+                    m.getContent().isEmpty() && !m.getAttachments().isEmpty() ? "an image was sent" : m.getContent());
         }
 
         private int getColor(Message m) {

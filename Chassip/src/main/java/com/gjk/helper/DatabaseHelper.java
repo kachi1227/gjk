@@ -4,12 +4,13 @@ import android.database.Cursor;
 import android.os.Bundle;
 
 import com.gjk.Application;
-import com.gjk.Constants;
+import com.gjk.ConvoType;
 import com.gjk.database.DatabaseManager;
 import com.gjk.database.objects.Group;
 import com.gjk.database.objects.GroupMember;
 import com.gjk.database.objects.Message;
 import com.gjk.database.objects.User;
+import com.gjk.database.objects.base.BaseMessage;
 import com.google.common.collect.Lists;
 
 import org.json.JSONArray;
@@ -52,10 +53,6 @@ public final class DatabaseHelper {
         return String.format("%s %s", firstName, lastName);
     }
 
-    public static boolean isGroupTableEmpty() {
-        return Group.isTableEmpty(sDm);
-    }
-
     public static List<Group> addGroups(JSONArray groups, boolean notify) throws Exception {
         List<Group> listOfGroups = Lists.newArrayList();
         for (int i = 0; i < groups.length(); i++) {
@@ -72,12 +69,57 @@ public final class DatabaseHelper {
         return Group.findOneByGlobalId(sDm, chatId);
     }
 
-    public static List<Group> getGroups() {
-        return Group.findAllObjects(sDm, Group.F_ID + " ASC");
+    public static long getGroupIdFromSideConvoId(long sideConvoId) {
+        final List<Group> gs = getAllGroups();
+        for (Group g : gs) {
+            final long[] ids = GeneralHelper.getConvoIds(g.getSideChats());
+            for (long id : ids) {
+                if (id == sideConvoId) {
+                    return g.getGlobalId();
+                }
+            }
+        }
+        return -1;
+    }
+
+    public static long getGroupIdFromWhisperId(long whisperId) {
+        final List<Group> gs = getAllGroups();
+        for (Group g : gs) {
+            final long[] ids = GeneralHelper.getConvoIds(g.getWhispers());
+            for (long id : ids) {
+                if (id == whisperId) {
+                    return g.getGlobalId();
+                }
+            }
+        }
+        return -1;
     }
 
     public static Cursor getGroupsCursor() {
         return sDm.getReadableDatabase().query(Group.TABLE_NAME, Group.ALL_COLUMN_NAMES, null, null, null, null, Group.F_ID + " ASC");
+    }
+
+    public static List<Group> getAllGroups() {
+        final List<Group> gs = new ArrayList<Group>();
+        final Cursor c = getGroupsCursor();
+        c.moveToFirst();
+        if (c.isAfterLast()) {
+            c.close();
+            return gs;
+        }
+        while (!c.isAfterLast()) {
+            gs.add(0, new Group(sDm, c, false));
+            c.moveToNext();
+        }
+        return gs;
+    }
+
+    public static boolean groupExists(JSONObject json) {
+        try {
+            return Group.findOneByGlobalId(sDm, json.getLong("id")) != null;
+        } catch (JSONException e) {
+            return false;
+        }
     }
 
     public static Group getFirstStoredGroup() {
@@ -88,30 +130,8 @@ public final class DatabaseHelper {
             return null;
         }
         cursor.moveToFirst();
-        long id = cursor.getLong(cursor.getColumnIndex(Group.F_GLOBAL_ID));
         cursor.close();
-        return getGroup(id);
-    }
-
-    public static Group getLastStoredGroup() {
-        Cursor cursor = sDm.getReadableDatabase().query(Group.TABLE_NAME, new String[]{Group.F_GLOBAL_ID}, null,
-                null, null, null, Group.F_ID + " DESC", "1");
-        if (cursor.isAfterLast()) {
-            cursor.close();
-            return null;
-        }
-        cursor.moveToFirst();
-        long id = cursor.getLong(cursor.getColumnIndex(Group.F_GLOBAL_ID));
-        cursor.close();
-        return getGroup(id);
-    }
-
-    public static boolean groupExists(long groupId) {
-        return Group.findOneByGlobalId(sDm, groupId) != null;
-    }
-
-    public static boolean groupExists(Group group) {
-        return Group.findOneByGlobalId(sDm, group.getGlobalId()) != null;
+        return new Group(sDm, cursor, true);
     }
 
     public static boolean removeGroup(long groupId) {
@@ -135,6 +155,14 @@ public final class DatabaseHelper {
         return GroupMember.findOneByGlobalId(sDm, memberId);
     }
 
+    public static GroupMember[] getGroupMembers(long[] memberIds) {
+        final GroupMember[] groupMembers = new GroupMember[memberIds.length];
+        for (int i = 0; i < memberIds.length; i++) {
+            groupMembers[i] = getGroupMember(memberIds[i]);
+        }
+        return groupMembers;
+    }
+
     public static GroupMember[] getGroupMembers(long chatId) {
         Cursor cursor = sDm.getReadableDatabase().query(GroupMember.TABLE_NAME, GroupMember.ALL_COLUMN_NAMES,
                 GroupMember.F_GROUP_ID + " = " + chatId, null, null, null, null);
@@ -148,9 +176,17 @@ public final class DatabaseHelper {
         return members;
     }
 
-    public static Cursor getGroupMembersCursor(long chatId) {
-        return sDm.getReadableDatabase().query(GroupMember.TABLE_NAME, GroupMember.ALL_COLUMN_NAMES,
-                GroupMember.F_GROUP_ID + " = " + chatId, null, null, null, null);
+    public static GroupMember[] getOtherGroupMembers(long chatId) {
+        final GroupMember[] allGms = getGroupMembers(chatId);
+        final GroupMember[] otherGms = new GroupMember[allGms.length - 1];
+        int j = 0;
+        for (GroupMember gm : allGms) {
+            if (gm.getGlobalId() != getAccountUserId()) {
+                otherGms[j] = gm;
+                j++;
+            }
+        }
+        return otherGms;
     }
 
     public static boolean removeGroupMember(long chatId, long memberId) {
@@ -163,6 +199,17 @@ public final class DatabaseHelper {
         long[] ids = new long[members.length];
         for (int i = 0; i < members.length; i++) {
             ids[i] = members[i].getGlobalId();
+        }
+        return ids;
+    }
+
+    public static long[] getOtherGroupMemberIds(long chatId) {
+        GroupMember[] members = getGroupMembers(chatId);
+        long[] ids = new long[members.length];
+        for (int i = 0; i < members.length; i++) {
+            if (members[i].getGlobalId() != getAccountUserId()) {
+                ids[i] = members[i].getGlobalId();
+            }
         }
         return ids;
     }
@@ -195,50 +242,12 @@ public final class DatabaseHelper {
         return messageExists(message) ? null : Message.insertOrUpdate(sDm, message, isLast);
     }
 
-    public static List<Message> getMessages(long chatId) {
-        ArrayList<Message> objList = new ArrayList<Message>();
-        Cursor c = sDm.getReadableDatabase().query(Message.TABLE_NAME, Message.ALL_COLUMN_NAMES,
-                Message.F_GROUP_ID + " = " + chatId, null, null, null, Message.F_ID + " DESC",
-                String.valueOf(Constants.PROPERTY_SETTING_MESSAGE_LOAD_LIMIT_DEFAULT));
-        c.moveToFirst();
-        if (c.isAfterLast()) {
-            c.close();
-            return objList;
-        }
-        while (!c.isAfterLast()) {
-            objList.add(0, new Message(sDm, c, false));
-            c.moveToNext();
-        }
-        c.close();
-        return objList;
-    }
-
     public static Cursor getMessagesCursor(long chatId, int limit) {
         String where = Message.F_GROUP_ID + " = " + chatId;
         long totalNum = Message.getCount(sDm, where);
         long offset = Math.max(totalNum - limit, 0);
         return sDm.getReadableDatabase().query(Message.TABLE_NAME, Message.ALL_COLUMN_NAMES, where, null, null, null,
                 Message.F_DATE + " ASC", offset + "," + limit);
-    }
-
-    public static List<Message> getMessages(long chatId, Message before) {
-        ArrayList<Message> objList = new ArrayList<Message>();
-        Cursor c = sDm.getReadableDatabase().query(Message.TABLE_NAME, Message.ALL_COLUMN_NAMES,
-                Message.F_GROUP_ID + " = " + chatId + " AND " + Message.F_DATE + " < " + String.valueOf(before
-                        .getDate())
-                , null, null, null, Message.F_ID + " DESC", String.valueOf(Constants.PROPERTY_SETTING_MESSAGE_LOAD_LIMIT_DEFAULT));
-        c.moveToFirst();
-        if (c.isAfterLast()) {
-            c.close();
-            return objList;
-        }
-        while (!c.isAfterLast()) {
-
-            objList.add(0, new Message(sDm, c, false));
-            c.moveToNext();
-        }
-        c.close();
-        return objList;
     }
 
     public static Cursor getMessagesCursor(long chatId, Message before, int limit) {
@@ -250,18 +259,18 @@ public final class DatabaseHelper {
                 Message.F_DATE + " ASC", offset + "," + limit);
     }
 
-    public static List<Message> getMessages(long chatId, long convoId) {
+    public static List<Message> getMessagesBySideConvo(long sideConvoId) {
         ArrayList<Message> objList = new ArrayList<Message>();
         Cursor c = sDm.getReadableDatabase().query(Message.TABLE_NAME, Message.ALL_COLUMN_NAMES,
-                Message.F_GROUP_ID + " = " + chatId + " AND " + Message.F_TABLE_ID + " = " + convoId
-                , null, null, null, Message.F_ID + " DESC", String.valueOf(Constants.PROPERTY_SETTING_MESSAGE_LOAD_LIMIT_DEFAULT));
+                Message.F_MESSAGE_TYPE_ID + " = " + ConvoType.SIDE_CONVO.getValue() + " AND " + Message.F_TABLE_ID +
+                        " = " + sideConvoId, null, null, null, null
+        );
         c.moveToFirst();
         if (c.isAfterLast()) {
             c.close();
             return objList;
         }
         while (!c.isAfterLast()) {
-
             objList.add(0, new Message(sDm, c, false));
             c.moveToNext();
         }
@@ -275,26 +284,6 @@ public final class DatabaseHelper {
         long offset = Math.max(totalNum - limit, 0);
         return sDm.getReadableDatabase().query(Message.TABLE_NAME, Message.ALL_COLUMN_NAMES, where, null, null, null,
                 Message.F_DATE + " ASC", offset + "," + limit);
-    }
-
-    public static List<Message> getMessages(long chatId, long convoId, Message before) {
-        ArrayList<Message> objList = new ArrayList<Message>();
-        Cursor c = sDm.getReadableDatabase().query(Message.TABLE_NAME, Message.ALL_COLUMN_NAMES,
-                Message.F_GROUP_ID + " = " + chatId + " AND " + Message.F_TABLE_ID + " = " + convoId + " AND " +
-                        Message.F_DATE + " < " + before.getDate(), null, null, null, Message.F_ID + " DESC",
-                String.valueOf(Constants.PROPERTY_SETTING_MESSAGE_LOAD_LIMIT_DEFAULT));
-        c.moveToFirst();
-        if (c.isAfterLast()) {
-            c.close();
-            return objList;
-        }
-        while (!c.isAfterLast()) {
-
-            objList.add(0, new Message(sDm, c, false));
-            c.moveToNext();
-        }
-        c.close();
-        return objList;
     }
 
     public static Cursor getMessagesCursor(long chatId, long convoId, Message before, int limit) {
@@ -346,6 +335,21 @@ public final class DatabaseHelper {
         }
         cursor.close();
         return id;
+    }
+
+    public static int collaspeSideConvoMessages(long sideConvoId) {
+        List<Message> sideConvoMessages = getMessagesBySideConvo(sideConvoId);
+        for (Message m : sideConvoMessages) {
+            m.setMessageTypeId(ConvoType.MAIN_CHAT.getValue());
+            m.setTableId(0l);
+            m.save();
+        }
+        return sideConvoMessages.size();
+    }
+
+    public static int removeWhisperMessages(long whisperId) {
+        return BaseMessage.deleteWhere(sDm, Message.F_MESSAGE_TYPE_ID + " = " + ConvoType.WHISPER.getValue() + " AND " +
+                Message.F_TABLE_ID + " = " + whisperId);
     }
 
     public static JSONObject bundleToJson(Bundle bundle) throws JSONException {

@@ -13,45 +13,39 @@
             android:id="@+id/pager"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_above="@+id/pendMessagesLayout"/>
+            android:layout_above="@+id/pendingMessage"/>
 
-        <RelativeLayout
+        <EditText
+            android:id="@+id/pendingMessage"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:id="@+id/pendMessagesLayout"
+            android:layout_height="50dp"
             android:layout_alignParentBottom="true"
+            android:windowSoftInputMode="adjustResize"
+            android:inputType="text|textCapSentences|textMultiLine"
+            android:hint="@string/pending_message_hint"
+            android:layout_toLeftOf="@+id/attach"
+            android:layout_toStartOf="@+id/attach"
             android:layout_alignParentLeft="true"
-            android:layout_alignParentStart="true">
+            android:layout_alignParentStart="true"/>
 
-            <EditText
-                android:id="@+id/pendingMessage"
-                android:layout_width="fill_parent"
-                android:layout_height="wrap_content"
-                android:ems="10"
-                android:windowSoftInputMode="adjustResize"
-                android:inputType="text|textCapSentences|textMultiLine"
-                android:hint="@string/pending_message_hint"
-                android:layout_alignBottom="@+id/send"
-                android:layout_toLeftOf="@+id/attach"/>
+        <ImageView
+            android:id="@+id/attach"
+            android:src="@drawable/ic_action_attachment"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:layout_alignParentBottom="true"
+            android:layout_toLeftOf="@+id/send"
+            android:layout_toStartOf="@+id/send"/>
 
-            <ImageView
-                android:id="@+id/attach"
-                android:src="@drawable/ic_action_attachment"
-                android:layout_width="50dp"
-                android:layout_height="50dp"
-                android:layout_alignBottom="@+id/pendingMessage"
-                android:layout_toLeftOf="@+id/send"/>
+        <ImageView
+            android:id="@+id/send"
+            android:src="@drawable/ic_action_send_now"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:layout_alignParentBottom="true"
+            android:layout_alignParentRight="true"
+            android:layout_alignParentEnd="true"/>
 
-            <ImageView
-                android:id="@+id/send"
-                android:src="@drawable/ic_action_send_now"
-                android:layout_width="50dp"
-                android:layout_height="50dp"
-                android:layout_alignParentTop="true"
-                android:layout_alignParentRight="true"
-                android:layout_alignParentEnd="true"/>
-
-        </RelativeLayout>
     </RelativeLayout>
 
     <FrameLayout

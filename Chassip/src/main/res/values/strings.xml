@@ -64,5 +64,9 @@
     <string name="logout_title">Logging Out</string>
     <string name="delete_chat">Are you sure you want to delete this chat?</string>
     <string name="delete_chat_title">Deleting %s</string>
+    <string name="delete_side_convo">Are you sure you want to delete this side-convo?</string>
+    <string name="delete_side_convo_title">Deleting %s</string>
+    <string name="delete_whisper">Are you sure you want to delete this whisper?</string>
+    <string name="delete_whisper_title">Deleting %s</string>
     <string name="app_id">1516871478529316</string>
 </resources>

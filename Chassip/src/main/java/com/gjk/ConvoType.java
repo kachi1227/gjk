@@ -18,10 +18,6 @@ public enum ConvoType {
         return this.value;
     }
 
-    public static ConvoType getFromValue(Integer value) {
-        return getFromValue(value.intValue());
-    }
-
     public static ConvoType getFromValue(int value) {
         if (MAIN_CHAT.value == value) {
             return MAIN_CHAT;

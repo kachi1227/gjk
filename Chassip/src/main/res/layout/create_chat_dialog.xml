@@ -13,8 +13,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textAppearance="?android:attr/textAppearanceLarge"
-        android:text="@string/choose_name"
-        android:id="@+id/textView"/>
+        android:text="@string/choose_name"/>
 
     <EditText
         android:id="@+id/chatName"
@@ -30,8 +29,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textAppearance="?android:attr/textAppearanceLarge"
-        android:text="@string/choose_members"
-        android:id="@+id/textView"/>
+        android:text="@string/choose_members"/>
 
     <CheckBox
         android:layout_width="wrap_content"
@@ -45,6 +43,11 @@
         android:text="Greg2"
         android:id="@+id/greg2"/>
 
+    <CheckBox
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Greg3"
+        android:id="@+id/greg3"/>
     <CheckBox
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

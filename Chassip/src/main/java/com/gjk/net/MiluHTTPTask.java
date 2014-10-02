@@ -109,7 +109,8 @@ public abstract class MiluHTTPTask extends HTTPTask {
             if (mPermit != null) {
                 Application.get().getPool().putItem(mCtx, mPermit);
                 mPermit = null;
-                JSONObject json = new JSONObject(response.getResponseText());
+                String[] split = response.getResponseText().split("\n");
+                JSONObject json = new JSONObject(split[split.length-1]);
                 if (!json.getBoolean("success")) {
 
                     String message = getJSONErrorMessage(json);

@@ -10,6 +10,7 @@ import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.wifi.WifiManager;
 import android.os.Build;
+import android.util.Log;
 import android.util.LruCache;
 import android.widget.Toast;
 
@@ -20,6 +21,11 @@ import com.gjk.net.Pool;
 import com.gjk.utils.media.BitmapLoader;
 import com.gjk.utils.media.CacheManager;
 import com.gjk.utils.media.SampledBitmap;
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.GooglePlayServicesUtil;
+
+import static com.gjk.Constants.LOGIN_JSON;
+import static com.gjk.Constants.PROPERTY_REG_ID;
 
 public class Application extends android.app.Application {
 
@@ -67,6 +73,11 @@ public class Application extends android.app.Application {
             mDm = new DatabaseManager(this);
         }
         return mDm;
+    }
+
+    public boolean isLoggedIn() {
+        return Application.get().getPreferences().contains(LOGIN_JSON) &&
+                Application.get().getPreferences().contains(PROPERTY_REG_ID);
     }
 
     private void initCacheManager() {
@@ -217,5 +228,24 @@ public class Application extends android.app.Application {
 
     public void logout(boolean shouldLaunchLogin) {
 
+    }
+
+    /**
+     * Check the device to make sure it has the Google Play Services APK. If
+     * it doesn't, display a dialog that allows users to download the APK from
+     * the Google Play Store or enable it in the device's system settings.
+     */
+    public boolean checkPlayServices() {
+        int resultCode = GooglePlayServicesUtil.isGooglePlayServicesAvailable(this);
+        if (resultCode != ConnectionResult.SUCCESS) {
+//            if (GooglePlayServicesUtil.isUserRecoverableError(resultCode)) {
+//                GooglePlayServicesUtil.getErrorDialog(resultCode, this,
+//                        PLAY_SERVICES_RESOLUTION_REQUEST).show();
+//            } else {
+                Log.i("Chassip", "This device is not supported.");
+//            }
+            return false;
+        }
+        return true;
     }
 }

@@ -1,7 +1,6 @@
 package com.gjk.service;
 
 import android.app.IntentService;
-import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
@@ -9,6 +8,16 @@ import android.util.Log;
 import com.gjk.Constants;
 import com.google.android.gms.gcm.GoogleCloudMessaging;
 
+import static com.gjk.Constants.GCM_GROUP_DELETE;
+import static com.gjk.Constants.GCM_GROUP_INVITE;
+import static com.gjk.Constants.GCM_GROUP_REMOVE_MEMBERS;
+import static com.gjk.Constants.GCM_MESSAGE;
+import static com.gjk.Constants.GCM_SIDECONVO_DELETE;
+import static com.gjk.Constants.GCM_SIDECONVO_INVITE;
+import static com.gjk.Constants.GCM_SIDECONVO_REMOVE_MEMBERS;
+import static com.gjk.Constants.GCM_WHISPER_DELETE;
+import static com.gjk.Constants.GCM_WHISPER_INVITE;
+import static com.gjk.Constants.GCM_WHISPER_REMOVE_MEMBERS;
 import static com.gjk.helper.DatabaseHelper.getAccountUserId;
 
 public class GcmIntentService extends IntentService {
@@ -21,8 +30,6 @@ public class GcmIntentService extends IntentService {
 
     @Override
     protected void onHandleIntent(Intent intent) {
-
-        final Context ctx = getApplicationContext();
 
         Bundle extras = intent.getExtras();
         GoogleCloudMessaging gcm = GoogleCloudMessaging.getInstance(this);
@@ -48,14 +55,27 @@ public class GcmIntentService extends IntentService {
                     return;
                 }
 
-                if (extras.getString("msg_type").equals("chat_message")) {
-                    sendServerRequest(Constants.GCM_MESSAGE, extras);
-                } else if (extras.getString("msg_type").equals("group_invite")) {
-                    sendServerRequest(Constants.GCM_GROUP_INVITE, extras);
-                } else if (extras.getString("msg_type").equals("side_chat_invite")) {
-                    sendServerRequest(Constants.GCM_SIDECONVO_INVITE, extras);
-                } else if (extras.getString("msg_type").equals("whisper_invite")) {
-                    sendServerRequest(Constants.GCM_WHISPER_INVITE, extras);
+                final String msgType = extras.getString("msg_type");
+                if (msgType.equals("chat_message")) {
+                    sendServerRequest(GCM_MESSAGE, extras);
+                } else if (msgType.equals("group_invite")) {
+                    sendServerRequest(GCM_GROUP_INVITE, extras);
+                } else if (msgType.equals("group_member_removal")) {
+                    sendServerRequest(GCM_GROUP_REMOVE_MEMBERS, extras);
+                } else if (msgType.equals("group_delete")) {
+                    sendServerRequest(GCM_GROUP_DELETE, extras);
+                } else if (msgType.equals("side_chat_invite")) {
+                    sendServerRequest(GCM_SIDECONVO_INVITE, extras);
+                } else if (msgType.equals("side_chat_member_removal")) {
+                    sendServerRequest(GCM_SIDECONVO_REMOVE_MEMBERS, extras);
+                } else if (msgType.equals("side_chat_collapse")) {
+                    sendServerRequest(GCM_SIDECONVO_DELETE, extras);
+                } else if (msgType.equals("whisper_invite")) {
+                    sendServerRequest(GCM_WHISPER_INVITE, extras);
+                } else if (msgType.equals("whisper_member_removal")) {
+                    sendServerRequest(GCM_WHISPER_REMOVE_MEMBERS, extras);
+                } else if (msgType.equals("whisper_delete")) {
+                    sendServerRequest(GCM_WHISPER_DELETE, extras);
                 }
             }
         }
@@ -65,8 +85,7 @@ public class GcmIntentService extends IntentService {
     private void sendServerRequest(String intentType, Bundle extras) {
         Intent i = new Intent(this, ChassipService.class);
         i.putExtra(Constants.INTENT_TYPE, intentType).putExtras(extras);
-        Log.d(LOGTAG, String.format("Sending %s to server: %s",
-                i.getExtras().getString(Constants.INTENT_TYPE), i));
+        Log.d(LOGTAG, String.format("Sending %s to server: %s", i.getExtras().getString(Constants.INTENT_TYPE), i));
         startService(i);
     }
 }

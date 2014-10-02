@@ -10,25 +10,23 @@ import android.view.View;
 import android.widget.Button;
 
 import com.gjk.database.objects.GroupMember;
-import com.gjk.helper.GeneralHelper;
-import com.google.common.collect.Lists;
+import com.gjk.helper.DatabaseHelper;
 
-import java.util.List;
+public class DeleteConvoDialog extends DialogFragment {
 
-public class AddChatMembersDialog extends DialogFragment {
-
-    private static final String LOGTAG = "AddChatMembersDialog";
+    private static final String LOGTAG = "DeleteConvoDialog";
 
     private long mGroupId;
-    private GroupMember[] mGroupMembers;
-    private List<Long> mSelectedMembers;
+    private long mConvoId;
+    private ConvoType mConvoType;
+    private GroupMember[] mConvoMembers;
 
     /*
      * The activity that creates an instance of this dialog fragment must implement this interface in order to receive
      * event callbacks. Each method passes the DialogFragment in case the host needs to query it.
      */
     public interface NoticeDialogListener {
-        public void onAddChatMembersDialogPositiveClick(AddChatMembersDialog dialog);
+        public void onDeleteConvoDialogPositiveClick(DeleteConvoDialog dialog);
     }
 
     // Use this instance of the interface to deliver action events
@@ -60,14 +58,13 @@ public class AddChatMembersDialog extends DialogFragment {
                 positiveButton.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        if (mSelectedMembers != null && mSelectedMembers.size() > 0) {
-                            mListener.onAddChatMembersDialogPositiveClick(AddChatMembersDialog.this);
-                            AddChatMembersDialog.this.dismiss();
-                        }
+                        mListener.onDeleteConvoDialogPositiveClick(DeleteConvoDialog.this);
+                        DeleteConvoDialog.this.dismiss();
                     }
                 });
             }
         }
+
     }
 
     @Override
@@ -75,30 +72,13 @@ public class AddChatMembersDialog extends DialogFragment {
 
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
 
-        final String[] array = new String[mGroupMembers.length];
-        for (int i = 0; i < mGroupMembers.length; i++) {
-            array[i] = mGroupMembers[i].getFullName();
-        }
-        mSelectedMembers = Lists.newArrayList();
-        builder.setTitle(R.string.add_members_to_chat_title)
+        int titleId =  mConvoType == ConvoType.SIDE_CONVO ? R.string.delete_side_convo_title : R.string.delete_whisper_title;
+        int messageId = mConvoType == ConvoType.SIDE_CONVO ? R.string.delete_side_convo : R.string.delete_whisper;
+        builder.setTitle(String.format(getResources().getString(titleId),
+                DatabaseHelper.getGroup(mGroupId).getName())).setMessage(messageId)
                 // Specify the list array, the items to be selected by default (null for none),
                 // and the listener through which to receive callbacks when items are selected
-                .setMultiChoiceItems(array, null,
-                        new DialogInterface.OnMultiChoiceClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialog, int which, boolean isChecked) {
-                                GroupMember gm = mGroupMembers[which];
-                                if (isChecked) {
-                                    // If the user checked the item, add it to the selected items
-                                    mSelectedMembers.add(gm.getGlobalId());
-                                } else if (mSelectedMembers.contains(gm.getGlobalId())) {
-                                    // Else, if the item is already in the array, remove it
-                                    mSelectedMembers.remove(gm.getGlobalId());
-                                }
-                            }
-                        })
-                        // Set the action buttons
-                .setPositiveButton(R.string.ok, new DialogInterface.OnClickListener() {
+                .setPositiveButton(R.string.yes, new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int id) {
                     }
@@ -128,17 +108,39 @@ public class AddChatMembersDialog extends DialogFragment {
         return mGroupId;
     }
 
-    public AddChatMembersDialog setGroupId(long groupId) {
-        mGroupId = groupId;
+    public DeleteConvoDialog setGroupId(long groupId) {
+        this.mGroupId = groupId;
         return this;
     }
 
-    public AddChatMembersDialog setGroupMembers(GroupMember[] groupMembers) {
-        mGroupMembers = groupMembers;
+    public long getConvoId() {
+        return mConvoId;
+    }
+
+    public DeleteConvoDialog setConvoId(long convoId) {
+        this.mConvoId = convoId;
         return this;
     }
 
-    public long[] getSelectedIds() {
-        return GeneralHelper.convertLong(mSelectedMembers.toArray(new Long[mSelectedMembers.size()]));
+    public ConvoType getConvoType() {
+        return mConvoType;
+    }
+
+    public DeleteConvoDialog setConvoType(ConvoType convoType) {
+        this.mConvoType = convoType;
+        return this;
+    }
+
+    public DeleteConvoDialog setConvoMembers(GroupMember[] members) {
+        mConvoMembers = members;
+        return this;
+    }
+
+    public long[] getIds() {
+        long[] ids = new long[mConvoMembers.length];
+        for (int i=0; i<mConvoMembers.length; i++) {
+            ids[i] = mConvoMembers[i].getGlobalId();
+        }
+        return ids;
     }
 }

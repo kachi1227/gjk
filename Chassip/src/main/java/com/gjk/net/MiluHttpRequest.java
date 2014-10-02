@@ -603,7 +603,7 @@ public class MiluHttpRequest {
     }
 
 
-    private class DBHttpRequestTask extends AsyncTask<Void, Void, Integer> {
+    private class DBHttpRequestTask extends AsyncTask<Void, Void, Void> {
         private MiluHttpRequest mRequest;
         private DBHttpResponse mResponse;
 
@@ -613,7 +613,7 @@ public class MiluHttpRequest {
 
 
         @Override
-        protected Integer doInBackground(Void... arg0) {
+        protected Void doInBackground(Void... arg0) {
             mResponse = mRequest.execute();
             mRequest.mAsyncTask = null;
             if (mResponse.wasSuccesful()) {
@@ -628,13 +628,6 @@ public class MiluHttpRequest {
                 mRequest.getListener().onHttpRequestFailedInBackground(mResponse);
             }
 
-            return 0;
-        }
-
-
-        @Override
-        protected void onPostExecute(Integer result) {
-            super.onPostExecute(result);
             if (mRequest.getListener() != null) {
                 if (mResponse.wasSuccesful()) {
                     mRequest.getListener().onHttpRequestSuccess(mResponse);
@@ -642,9 +635,8 @@ public class MiluHttpRequest {
                     mRequest.getListener().onHttpRequestFailed(mResponse);
                 }
             }
+
+            return null;
         }
-
     }
-
-
 }
