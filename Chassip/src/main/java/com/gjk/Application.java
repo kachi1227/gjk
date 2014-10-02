@@ -24,6 +24,9 @@ import com.gjk.utils.media.SampledBitmap;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesUtil;
 
+import static com.gjk.Constants.LOGIN_JSON;
+import static com.gjk.Constants.PROPERTY_REG_ID;
+
 public class Application extends android.app.Application {
 
     private static Application mInstance;
@@ -70,6 +73,11 @@ public class Application extends android.app.Application {
             mDm = new DatabaseManager(this);
         }
         return mDm;
+    }
+
+    public boolean isLoggedIn() {
+        return Application.get().getPreferences().contains(LOGIN_JSON) &&
+                Application.get().getPreferences().contains(PROPERTY_REG_ID);
     }
 
     private void initCacheManager() {

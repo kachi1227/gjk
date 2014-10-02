@@ -57,7 +57,7 @@
         <service android:name=".service.GcmIntentService"/>
         <service android:name=".service.ChassipService">
             <intent-filter>
-                <action android:name="com.gjk.service.ChassipService.CHASSIP_ACTION"></action>
+                <action android:name="com.gjk.service.ChassipService.CHASSIP_ACTION"/>
             </intent-filter>
         </service>
 

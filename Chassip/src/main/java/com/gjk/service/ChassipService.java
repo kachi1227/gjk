@@ -1643,7 +1643,7 @@ public class ChassipService extends IntentService {
                 try {
                     URL url = new URL(params[0].getString(IMAGE_URL));
                     InputStream input = url.openStream();
-                    File file = ImageUtil.createImageFile(ChassipService.this);
+                    File file = ImageUtil.createTimestampedImageFile(ChassipService.this);
                     OutputStream output = new FileOutputStream(file);
                     byte[] buffer = new byte[1024];
                     int bytesRead = 0;
