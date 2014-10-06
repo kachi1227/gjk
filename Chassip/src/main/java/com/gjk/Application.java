@@ -199,6 +199,10 @@ public class Application extends android.app.Application {
         return mActivityIsInForeground;
     }
 
+    public boolean isActivityIsInBackground() {
+        return !mActivityIsInForeground;
+    }
+
     public void setCurrentChat(Group chat) {
         mCurrentChat = chat;
     }

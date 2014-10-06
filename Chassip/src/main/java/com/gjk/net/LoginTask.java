@@ -10,7 +10,6 @@ public class LoginTask extends MiluHTTPTask {
     private String mPassword;
     private String mEmail;
 
-
     public LoginTask(Context ctx, HTTPTaskListener listener, String email, String password) {
         super(ctx, listener);
         mPassword = password;
@@ -33,9 +32,13 @@ public class LoginTask extends MiluHTTPTask {
         return payload;
     }
 
-
     @Override
     public String getUri() {
         return "api/login";
+    }
+
+    @Override
+    public boolean showProgress() {
+        return true;
     }
 }

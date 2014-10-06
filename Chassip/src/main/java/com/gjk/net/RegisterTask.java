@@ -54,5 +54,8 @@ public class RegisterTask extends MiluHTTPTask {
         return "api/register";
     }
 
-
+    @Override
+    public boolean showProgress() {
+        return true;
+    }
 }

@@ -49,4 +49,8 @@ public class GetSideChatMembersTask extends MiluHTTPTask {
         return "api/getSideChatMembers";
     }
 
+    @Override
+    public boolean showProgress() {
+        return true;
+    }
 }

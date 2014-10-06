@@ -11,6 +11,7 @@ import com.google.android.gms.gcm.GoogleCloudMessaging;
 import static com.gjk.Constants.GCM_GROUP_DELETE;
 import static com.gjk.Constants.GCM_GROUP_INVITE;
 import static com.gjk.Constants.GCM_GROUP_REMOVE_MEMBERS;
+import static com.gjk.Constants.GCM_IS_TYPING;
 import static com.gjk.Constants.GCM_MESSAGE;
 import static com.gjk.Constants.GCM_SIDECONVO_DELETE;
 import static com.gjk.Constants.GCM_SIDECONVO_INVITE;
@@ -56,7 +57,9 @@ public class GcmIntentService extends IntentService {
                 }
 
                 final String msgType = extras.getString("msg_type");
-                if (msgType.equals("chat_message")) {
+                if (msgType.equals("typing_change")) {
+                    sendServerRequest(GCM_IS_TYPING, extras);
+                } else if (msgType.equals("chat_message")) {
                     sendServerRequest(GCM_MESSAGE, extras);
                 } else if (msgType.equals("group_invite")) {
                     sendServerRequest(GCM_GROUP_INVITE, extras);
@@ -79,7 +82,6 @@ public class GcmIntentService extends IntentService {
                 }
             }
         }
-
     }
 
     private void sendServerRequest(String intentType, Bundle extras) {

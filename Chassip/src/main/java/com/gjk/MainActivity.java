@@ -4,6 +4,7 @@ import android.annotation.TargetApi;
 import android.app.ActionBar;
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.NotificationManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -34,6 +35,7 @@ import android.view.WindowManager;
 import android.widget.AdapterView;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.facebook.HttpMethod;
@@ -42,13 +44,14 @@ import com.facebook.Response;
 import com.facebook.Session;
 import com.gjk.database.objects.Group;
 import com.gjk.database.objects.GroupMember;
-import com.gjk.utils.FileUtils;
 import com.gjk.helper.GeneralHelper;
 import com.gjk.service.ChassipService;
+import com.gjk.utils.FileUtils;
 import com.gjk.utils.media2.ImageManager;
 import com.gjk.utils.media2.ImageUtil;
 import com.gjk.views.DrawerLayout;
 import com.google.android.gms.gcm.GoogleCloudMessaging;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import org.json.JSONException;
@@ -57,9 +60,14 @@ import org.json.JSONObject;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.gjk.Constants.ADD_CHAT_MEMBERS_RESPONSE;
 import static com.gjk.Constants.ADD_CONVO_MEMBERS_RESPONSE;
@@ -83,6 +91,7 @@ import static com.gjk.Constants.FETCH_CONVO_MEMBERS_RESPONSE;
 import static com.gjk.Constants.FETCH_MORE_MESSAGES_RESPONSE;
 import static com.gjk.Constants.FIRST_NAME;
 import static com.gjk.Constants.GALLERY_REQUEST;
+import static com.gjk.Constants.GCM_IS_TYPING;
 import static com.gjk.Constants.GCM_MESSAGE_RESPONSE;
 import static com.gjk.Constants.GET_ALL_GROUPS_RESPONSE;
 import static com.gjk.Constants.GROUP_ID;
@@ -90,6 +99,10 @@ import static com.gjk.Constants.GROUP_UPDATE_RESPONSE;
 import static com.gjk.Constants.IMAGE_PATH;
 import static com.gjk.Constants.IMAGE_URL;
 import static com.gjk.Constants.INTENT_TYPE;
+import static com.gjk.Constants.IS_TYPING;
+import static com.gjk.Constants.IS_TYPING_INTERVAL_FOR_ME;
+import static com.gjk.Constants.IS_TYPING_INTERVAL_FOR_SOMEONE_ELSE;
+import static com.gjk.Constants.IS_TYPING_REQUEST;
 import static com.gjk.Constants.LAST_NAME;
 import static com.gjk.Constants.LOGIN_RESPONSE;
 import static com.gjk.Constants.LOGOUT_REQUEST;
@@ -116,6 +129,7 @@ import static com.gjk.helper.DatabaseHelper.getAccountUserFullName;
 import static com.gjk.helper.DatabaseHelper.getAccountUserId;
 import static com.gjk.helper.DatabaseHelper.getFirstStoredGroup;
 import static com.gjk.helper.DatabaseHelper.getGroup;
+import static com.gjk.helper.DatabaseHelper.getGroupMember;
 import static com.gjk.helper.DatabaseHelper.getGroupMemberIds;
 import static com.gjk.helper.DatabaseHelper.getGroupMembers;
 import static com.gjk.helper.DatabaseHelper.getGroupsCursor;
@@ -141,23 +155,28 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
 
     private DrawerLayout mDrawerLayout;
 
+    private TextView mWhosTpying;
     private EditText mPendingMessage;
     private ImageView mAttach;
-    private ImageView mSend;
 
+    private ImageView mSend;
     private LoginDialog mLoginDialog;
+
     private RegisterDialog mRegDialog;
 
     private AlertDialog mDialog;
 
     private SettingsDialog mSettingsDialog;
-
     private long[] mLatestChosenMemberIds;
     private String mLatestCreatedName;
     private String mLatestPath;
-    private ActivityImageState mState;
 
+    private ActivityImageState mState;
     private final Object syncObj = new Object();
+
+    private Timer mTimer;
+    private AmITypingTask mSendIsTypingTask;
+    private Map<Long, IsSomeoneElseTypingTask> mWhosTpyingIds;
 
     private enum ActivityImageState {
         NONE,
@@ -191,7 +210,15 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
 
                 synchronized (syncObj) {
 
-                    if (type.equals(SEND_MESSAGE_RESPONSE)) {
+                    if (type.equals(GCM_IS_TYPING)) {
+
+                        if (Application.get().isActivityIsInBackground()) {
+                            return;
+                        }
+
+                        updateIsTpying(extras.getLong(USER_ID), extras.getLong(GROUP_ID), extras.getBoolean(IS_TYPING));
+
+                    } else if (type.equals(SEND_MESSAGE_RESPONSE)) {
 
                         mChatDrawerFragment.updateView();
                         if (mConvoPagerAdapter != null) {
@@ -361,6 +388,42 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
         }
     };
 
+    private void updateIsTpying(long id, long groupId, boolean isTyping) {
+
+        if (Application.get().isActivityIsInBackground() || Application.get().getCurrentChat() == null || groupId !=
+                Application.get().getCurrentChat().getGlobalId() || getAccountUserId() == id) {
+            return;
+        }
+
+        if (mWhosTpyingIds.containsKey(id)) {
+            mWhosTpyingIds.get(id).cancel();
+            mWhosTpyingIds.remove(id);
+        }
+
+        if (isTyping) {
+            IsSomeoneElseTypingTask task = new IsSomeoneElseTypingTask(id, groupId);
+            mTimer.schedule(task, IS_TYPING_INTERVAL_FOR_SOMEONE_ELSE);
+            mWhosTpyingIds.put(id, task);
+        }
+
+        if (mWhosTpyingIds.isEmpty()) {
+            resetIsTypingField();
+            return;
+        }
+
+        String whosTyping;
+        final Iterator<Long> iter = mWhosTpyingIds.keySet().iterator();
+        if (mWhosTpyingIds.size() == 1) {
+            whosTyping = getGroupMember(iter.next()).getFullName() + " [...]";
+        } else if (mWhosTpyingIds.size() == 1) {
+            whosTyping = getGroupMember(iter.next()).getFullName() + " & " + getGroupMember(iter.next()).getFullName()
+                    + " [...]";
+        } else {
+            whosTyping = mWhosTpyingIds.size() + " [...]";
+        }
+        mWhosTpying.setText(whosTyping);
+    }
+
     @Override
     public void onNewIntent(Intent i) {
         Log.d(LOGTAG, "Swag");
@@ -418,7 +481,7 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
             convosActions.setVisible(true);
             convosActions.setTitle(String.format(Locale.getDefault(), "%d Convo%s",
                     mConvoPagerAdapter.getCount(), mConvoPagerAdapter.getCount() == 1 ? "" : "s"));
-//            menu.findItem(R.id.action_fetch_more_messages).setVisible(mConvoPagerAdapter.getCurrentConvo()
+//            menu.findItem(R.mId.action_fetch_more_messages).setVisible(mConvoPagerAdapter.getCurrentConvo()
 //                    .isCanFetchMoreMessagesSet());
         }
         return true;
@@ -506,6 +569,9 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
                 mLatestPath == null) {
             setActivityImageState(ActivityImageState.NONE);
         }
+
+        NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        notificationManager.cancelAll();
     }
 
     @Override
@@ -517,6 +583,12 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
     protected void onPause() {
         super.onPause();
         Application.get().activityPaused();
+
+        if (getAccountUserId() != null) {
+            resetTimer();
+            resetSendIsTypingTask();
+            resetIsTypingField();
+        }
 
         if (!GeneralHelper.getKachisCachePref()) {
             ImageManager.getInstance(getSupportFragmentManager()).pause();
@@ -815,6 +887,8 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
             return;
         }
 
+        resetTimer();
+
         mSend.setVisibility(View.VISIBLE);
         mAttach.setVisibility(View.VISIBLE);
         mPendingMessage.setVisibility(View.VISIBLE);
@@ -844,6 +918,33 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
     protected void toggleConvo(long convoId) {
         mConvoPagerAdapter.setConvo(convoId);
         finalizeToggleConvo();
+    }
+
+    private void resetIsTypingField() {
+        mWhosTpying.setText(getResources().getString(R.string.is_typing_holder));
+    }
+
+    private void resetSendIsTypingTask() {
+
+        if (mSendIsTypingTask == null) {
+            mSendIsTypingTask = new AmITypingTask();
+            return;
+        }
+
+        mSendIsTypingTask.cancel();
+        mSendIsTypingTask = new AmITypingTask();
+
+    }
+
+    private void resetTimer() {
+
+        if (mTimer == null) {
+            mTimer = new Timer();
+            return;
+        }
+
+        mTimer.cancel();
+        mTimer = new Timer();
     }
 
     private boolean handleChatClicked(CharSequence title, long groupId) {
@@ -947,6 +1048,11 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
     }
 
     private void initMessageViews() {
+        mWhosTpying = (TextView) findViewById(R.id.whosTyping);
+        mWhosTpyingIds = Maps.newHashMap();
+        resetTimer();
+        resetIsTypingField();
+        resetSendIsTypingTask();
         mPendingMessage = (EditText) findViewById(R.id.pendingMessage);
         mPendingMessage.setVisibility(View.GONE);
         mSend = (ImageView) findViewById(R.id.send);
@@ -992,7 +1098,6 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
         });
         mPendingMessage.addTextChangedListener(new TextWatcher() {
             public void afterTextChanged(Editable s) {
-                setSendButtonEnable(s.length() != 0);
             }
 
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
@@ -1001,6 +1106,18 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
 
             public void onTextChanged(CharSequence s, int start, int before, int count) {
                 adjustViewPagerHeight();
+                final boolean hasText = s.length() != 0;
+                final boolean isTyping = hasText;
+                setSendButtonEnable(isTyping);
+                if (isTyping) {
+                    if (!mSendIsTypingTask.hasStarted()) {
+                        mTimer.schedule(mSendIsTypingTask, 0l, IS_TYPING_INTERVAL_FOR_ME);
+                    } else {
+                        mSendIsTypingTask.keepGoing();
+                    }
+                } else {
+                    resetSendIsTypingTask();
+                }
             }
         });
     }
@@ -1062,10 +1179,6 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
 
     private void setActivityImageState(ActivityImageState state) {
         setActivityImageState(state, true, true);
-    }
-
-    private void setActivityImageState(ActivityImageState state, boolean doEnable) {
-        setActivityImageState(state, doEnable, true);
     }
 
     private void setActivityImageState(ActivityImageState state, boolean doEnable, boolean doImageToggle) {
@@ -1224,6 +1337,8 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
             e.printStackTrace();
         }
 
+        resetTimer();
+        resetIsTypingField();
         Application.get().getDatabaseManager().clear();
         Application.get().getPreferences().edit().clear().commit();
         Application.get().setCurrentChat(null);
@@ -1484,6 +1599,66 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
             mConvoDrawerFragment.removeFrag(convoId);
             mConvoPagerAdapter.notifyDataSetChanged();
             invalidateOptionsMenu();
+        }
+    }
+
+    private class AmITypingTask extends TimerTask {
+
+        private AtomicBoolean mHasStarted = new AtomicBoolean(false);
+        private AtomicBoolean mKeepGoing = new AtomicBoolean(true);
+
+        @Override
+        public void run() {
+            mHasStarted.set(true);
+            if (mKeepGoing.getAndSet(false)) {
+                sendIsTyping(true);
+            } else {
+                resetSendIsTypingTask();
+            }
+        }
+
+        @Override
+        public boolean cancel() {
+            sendIsTyping(false);
+            return super.cancel();
+        }
+
+        public void keepGoing() {
+            mKeepGoing.set(true);
+        }
+
+        public boolean hasStarted() {
+            return mHasStarted.get();
+        }
+
+        private void sendIsTyping(boolean isTyping) {
+            final Intent i = new Intent(MainActivity.this, ChassipService.class);
+            i.putExtra(INTENT_TYPE, IS_TYPING_REQUEST)
+                    .putExtra(USER_ID, getAccountUserId())
+                    .putExtra(GROUP_ID, Application.get().getCurrentChat().getGlobalId())
+                    .putExtra(IS_TYPING, isTyping);
+            sendServerRequest(i);
+        }
+    }
+
+    private class IsSomeoneElseTypingTask extends TimerTask {
+
+        private final long mId;
+        private final long mGroupId;
+
+        public IsSomeoneElseTypingTask(long id, long groupId) {
+            mId = id;
+            mGroupId = groupId;
+        }
+
+        @Override
+        public void run() {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    updateIsTpying(mId, mGroupId, false);
+                }
+            });
         }
     }
 }

@@ -51,4 +51,8 @@ public class GetGroupMembersTask extends MiluHTTPTask {
         return "api/getGroupMembers";
     }
 
+    @Override
+    public boolean showProgress() {
+        return true;
+    }
 }

@@ -28,10 +28,12 @@ public class Pool {
         }
     }
 
-    public Object getItem(Context ctx) throws InterruptedException {
-        Intent i = new Intent(CHASSIP_ACTION);
-        i.putExtra(INTENT_TYPE, START_PROGRESS);
-        LocalBroadcastManager.getInstance(ctx).sendBroadcast(i);
+    public Object getItem(Context ctx, boolean showProgress) throws InterruptedException {
+        if (showProgress) {
+            final Intent i = new Intent(CHASSIP_ACTION);
+            i.putExtra(INTENT_TYPE, START_PROGRESS);
+            LocalBroadcastManager.getInstance(ctx).sendBroadcast(i);
+        }
         available.acquire();
         Log.d(LOGTAG, String.format("%s is acquiring semaphore. Permits remaining=%d",
                 GeneralHelper.getMethodName(1), available.availablePermits()));
