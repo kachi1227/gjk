@@ -38,6 +38,10 @@ public final class DatabaseHelper {
         Cursor cursor = sDm.getReadableDatabase().query(User.TABLE_NAME, new String[]{User.F_GLOBAL_ID}, null, null,
                 null, null, null);
         cursor.moveToFirst();
+        if (cursor.isAfterLast()) {
+            cursor.close();
+            return null;
+        }
         Long id = cursor.getLong(0);
         cursor.close();
         return id;

@@ -63,6 +63,10 @@ public abstract class MiluHTTPTask extends HTTPTask {
 
     public abstract String getUri();
 
+    public boolean showProgress() {
+        return false;
+    }
+
     public void addFileToUpload(DBHttpUploadFile file) {
         if (mFiles == null)
             mFiles = new ArrayList<DBHttpUploadFile>();
@@ -71,7 +75,7 @@ public abstract class MiluHTTPTask extends HTTPTask {
 
     public void execute() {
         try {
-            mPermit = Application.get().getPool().getItem(mCtx);
+            mPermit = Application.get().getPool().getItem(mCtx, showProgress());
             if (Application.get().isNetworkAvailableWithMessage())
                 executeWithJson(getUri(), getPayload());
             //	else if(mListener != null)

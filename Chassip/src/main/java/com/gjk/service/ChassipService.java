@@ -43,6 +43,7 @@ import com.gjk.net.GetWhisperMembersTask;
 import com.gjk.net.HTTPTask;
 import com.gjk.net.LoginTask;
 import com.gjk.net.NotifyGroupInviteesTask;
+import com.gjk.net.NotifyGroupMembersOfUserTypingChangeTask;
 import com.gjk.net.NotifyGroupOfMessageTask;
 import com.gjk.net.NotifyMembersOfGroupDeletionTask;
 import com.gjk.net.NotifyMembersOfGroupMemberRemovalTask;
@@ -104,6 +105,7 @@ import static com.gjk.Constants.FIRST_NAME;
 import static com.gjk.Constants.GCM_GROUP_DELETE;
 import static com.gjk.Constants.GCM_GROUP_INVITE;
 import static com.gjk.Constants.GCM_GROUP_REMOVE_MEMBERS;
+import static com.gjk.Constants.GCM_IS_TYPING;
 import static com.gjk.Constants.GCM_MESSAGE;
 import static com.gjk.Constants.GCM_MESSAGE_RESPONSE;
 import static com.gjk.Constants.GCM_SIDECONVO_DELETE;
@@ -117,6 +119,8 @@ import static com.gjk.Constants.GROUP_UPDATE_RESPONSE;
 import static com.gjk.Constants.IMAGE_PATH;
 import static com.gjk.Constants.IMAGE_URL;
 import static com.gjk.Constants.INTENT_TYPE;
+import static com.gjk.Constants.IS_TYPING;
+import static com.gjk.Constants.IS_TYPING_REQUEST;
 import static com.gjk.Constants.LAST_NAME;
 import static com.gjk.Constants.LOGIN_JSON;
 import static com.gjk.Constants.LOGIN_REQUEST;
@@ -186,7 +190,11 @@ public class ChassipService extends IntentService {
             if (extras != null) {
                 String type = extras.getString(INTENT_TYPE);
                 if (type != null) {
-                    if (type.equals(SEND_MESSAGE_REQUEST)) {
+                    if (type.equals(GCM_IS_TYPING)) {
+                        gcmIsTyping(extras);
+                    } else if (type.equals(IS_TYPING_REQUEST)) {
+                        isTyping(extras);
+                    } else if (type.equals(SEND_MESSAGE_REQUEST)) {
                         sendMessage(extras);
                     } else if (type.endsWith(GCM_MESSAGE)) {
                         fetchGroupMessagesAfterGcm(new JSONObject(extras.getString("msg_content")).getLong("group_id"));
@@ -893,11 +901,44 @@ public class ChassipService extends IntentService {
         return memberIds;
     }
 
+    private void isTyping(Bundle extras) {
+        final long id = extras.getLong(USER_ID);
+        final long groupId = extras.getLong(GROUP_ID);
+        final boolean isTyping = extras.getBoolean(IS_TYPING);
+        new NotifyGroupMembersOfUserTypingChangeTask(getApplicationContext(), new HTTPTask.HTTPTaskListener() {
+            @Override
+            public void onTaskComplete(TaskResult result) {
+                if (result.getResponseCode() == 1) {
+                    Log.i(LOGTAG, isTyping ? "I'm typing!" : "I'm not typing!");
+                } else {
+                    reportUnsuccess(result.getMessage(), false);
+                }
+            }
+        }, id, groupId, isTyping);
+    }
+
+    private void gcmIsTyping(Bundle extras) {
+        try {
+            final JSONObject content = new JSONObject(extras.getString("msg_content"));
+            final long id = content.getLong("id");
+            final long groupId = content.getLong("group_id");
+            final boolean isTyping = content.getBoolean("is_typing");
+            Intent i = new Intent(CHASSIP_ACTION);
+            i.putExtra(INTENT_TYPE, GCM_IS_TYPING)
+                    .putExtra(USER_ID, id)
+                    .putExtra(GROUP_ID, groupId)
+                    .putExtra(IS_TYPING, isTyping);
+            LocalBroadcastManager.getInstance(ChassipService.this).sendBroadcast(i);
+        } catch (Exception e) {
+            reportError(e.getMessage(), false);
+        }
+    }
+
     private void sendMessage(Bundle extras) {
         final long groupId = extras.getLong(GROUP_ID);
-        int convoType = extras.getInt(CONVO_TYPE);
-        long convoId = extras.getLong(CONVO_ID);
-        String message = extras.getString(MESSAGE);
+        final int convoType = extras.getInt(CONVO_TYPE);
+        final long convoId = extras.getLong(CONVO_ID);
+        final String message = extras.getString(MESSAGE);
         if (extras.containsKey(IMAGE_PATH)) {
             HashMap<String, Object> fieldMapping = Maps.newHashMap();
             File f = new File(extras.getString(IMAGE_PATH));
@@ -1127,7 +1168,7 @@ public class ChassipService extends IntentService {
         Intent i = new Intent(CHASSIP_ACTION);
         i.putExtra(INTENT_TYPE, ERROR)
                 .putExtra(MESSAGE, message)
-                .putExtra(SHOW_TOAST, showToast);
+                .putExtra(SHOW_TOAST, true);
         LocalBroadcastManager.getInstance(this).sendBroadcast(i);
     }
 

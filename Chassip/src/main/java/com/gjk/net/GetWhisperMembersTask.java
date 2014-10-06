@@ -49,4 +49,8 @@ public class GetWhisperMembersTask extends MiluHTTPTask {
         return "api/getWhisperMembers";
     }
 
+    @Override
+    public boolean showProgress() {
+        return true;
+    }
 }

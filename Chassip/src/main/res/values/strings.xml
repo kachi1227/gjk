@@ -10,6 +10,7 @@
     <string name="action_convos">Convos</string>
     <string name="error_no_connection">No data connection</string>
     <string name="error_no_message">error no message</string>
+    <string name="is_typing_holder"> </string>
     <string name="first_name_hint">First Name</string>
     <string name="last_name_hint">Last Name</string>
     <string name="email_hint">Email</string>
