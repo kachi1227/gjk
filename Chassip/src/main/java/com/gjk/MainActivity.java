@@ -1186,7 +1186,7 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
 
         if (doImageToggle) {
             if (mState == ActivityImageState.MESSAGE_ATTACHING) {
-                mAttach.setImageResource(R.drawable.ic_action_attachment_attached);
+                mAttach.setImageResource(R.drawable.ic_action_attachment);
                 setSendButtonEnable(true);
             } else {
                 mAttach.setImageResource(R.drawable.ic_action_attachment);
@@ -1207,7 +1207,7 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
 
     private void setSendButtonEnable(boolean enabled) {
         mSend.setEnabled(enabled);
-        mSend.setImageResource(enabled ? R.drawable.ic_action_send_now : R.drawable.ic_action_send_now_disabled);
+        mSend.setImageResource(enabled ? R.drawable.ic_action_send_now : R.drawable.ic_action_send_now);
     }
 
     private void displayImageChooser(ActivityImageState state) {
