@@ -73,6 +73,16 @@
             android:name="com.facebook.sdk.ApplicationId"
             android:value="@string/app_id"/>
 
+        <!--<fragment
+            android:name=".ImageViewerFragment">
+            android:theme="@style/AppTheme"
+            android:excludeFromRecents="true"
+            android:hardwareAccelerated="true"
+            android:label="Photos"
+            android:noHistory="true"
+            android:stateNotNeeded="true">
+        </fragment>-->
+
     </application>
 
 </manifest>

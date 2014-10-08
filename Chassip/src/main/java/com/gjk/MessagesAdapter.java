@@ -2,15 +2,20 @@ package com.gjk;
 
 import android.content.Context;
 import android.database.Cursor;
+import android.os.Bundle;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.FragmentManager;
+import android.support.v4.app.FragmentTransaction;
 import android.text.TextUtils;
 import android.text.format.DateFormat;
 import android.text.util.Linkify;
+import android.util.Log;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.CursorAdapter;
+import android.widget.FrameLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -18,8 +23,10 @@ import android.widget.Toast;
 import com.gjk.database.objects.Message;
 import com.gjk.helper.DatabaseHelper;
 import com.gjk.helper.GeneralHelper;
+import com.gjk.helper.ViewHelper;
 import com.gjk.utils.media2.ImageManager;
 import com.gjk.views.CacheImageView;
+import com.gjk.views.DrawerLayout;
 import com.gjk.views.RecyclingImageView;
 
 import java.util.Locale;
@@ -136,11 +143,26 @@ public class MessagesAdapter extends CursorAdapter {
         CacheImageView attachment = (CacheImageView) view.findViewById(R.id.attachment);
         RecyclingImageView attachment2 = (RecyclingImageView) view.findViewById(R.id.attachment2);
 
-        String senderImageUrl = cursor.getString(cursor.getColumnIndex(Message.F_SENDER_IMAGE_URL));
-        String attachmentUrl = cursor.getString(cursor.getColumnIndex(Message.F_ATTACHMENT));
+        final String senderImageUrl = cursor.getString(cursor.getColumnIndex(Message.F_SENDER_IMAGE_URL));
+        final String attachmentUrl = cursor.getString(cursor.getColumnIndex(Message.F_ATTACHMENT));
         if (GeneralHelper.getKachisCachePref()) {
             avi2.setVisibility(View.INVISIBLE);
             avi.setVisibility(View.VISIBLE);
+            avi.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    //Toast.makeText(mA, "IMAGETOVIEW", Toast.LENGTH_LONG).show();
+                    Log.d(LOGTAG, "IMAGETOVIEW");
+                    Bundle args = new Bundle();
+                    args.putString("imgUrl", senderImageUrl);
+                    ImageViewerFragment imgFrag = new ImageViewerFragment();
+                    imgFrag.setArguments(args);
+                    FragmentTransaction transaction = mFm.beginTransaction();
+                    transaction.add(R.id.drawer_layout,imgFrag, "imgFrag");
+                    transaction.addToBackStack("imgFrag");
+                    transaction.commit();
+                }
+            });
             attachment2.setVisibility(View.GONE);
             if (GeneralHelper.getCirclizeMemberAvisPref()) {
                 avi.configure(Constants.BASE_URL + senderImageUrl, 0, true);
@@ -153,13 +175,39 @@ public class MessagesAdapter extends CursorAdapter {
                 attachment.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        Toast.makeText(mA, "Put your callback here Jeff", Toast.LENGTH_LONG).show();
-                    }
-                });
+                        //Toast.makeText(mA, "IMAGETOVIEW", Toast.LENGTH_LONG).show();
+                        Log.d(LOGTAG, "IMAGETOVIEW");
+                        Bundle args = new Bundle();
+                        args.putString("imgUrl",attachmentUrl);
+                        ImageViewerFragment imgFrag = new ImageViewerFragment();
+                        imgFrag.setArguments(args);
+                        FragmentTransaction transaction = mFm.beginTransaction();
+                        transaction.add(R.id.drawer_layout,imgFrag, "imgFrag");
+                        transaction.addToBackStack("imgFrag");
+                        transaction.commit();
+                     }
+                 });
+
+
             }
         } else {
             avi.setVisibility(View.INVISIBLE);
             avi2.setVisibility(View.VISIBLE);
+            avi2.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    //Toast.makeText(mA, "IMAGETOVIEW", Toast.LENGTH_LONG).show();
+                    Log.d(LOGTAG, "IMAGETOVIEW");
+                    Bundle args = new Bundle();
+                    args.putString("imgUrl", senderImageUrl);
+                    ImageViewerFragment imgFrag = new ImageViewerFragment();
+                    imgFrag.setArguments(args);
+                    FragmentTransaction transaction = mFm.beginTransaction();
+                    transaction.add(R.id.drawer_layout,imgFrag, "imgFrag");
+                    transaction.addToBackStack("imgFrag");
+                    transaction.commit();
+                }
+            });
             attachment.setVisibility(View.GONE);
             if (GeneralHelper.getCirclizeMemberAvisPref()) {
                 ImageManager.getInstance(mFm).loadCirclizedImage(senderImageUrl, avi2);
@@ -172,7 +220,16 @@ public class MessagesAdapter extends CursorAdapter {
                 attachment2.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        Toast.makeText(mA, "Put your callback here Jeff", Toast.LENGTH_LONG).show();
+                        //Toast.makeText(mA, "IMAGETOVIEW", Toast.LENGTH_LONG).show();
+                        Log.d(LOGTAG, "IMAGETOVIEW");
+                        Bundle args = new Bundle();
+                        args.putString("imgUrl",attachmentUrl);
+                        ImageViewerFragment imgFrag = new ImageViewerFragment();
+                        imgFrag.setArguments(args);
+                        FragmentTransaction transaction = mFm.beginTransaction();
+                        transaction.add(R.id.drawer_layout,imgFrag, "imgFrag");
+                        transaction.addToBackStack("imgFrag");
+                        transaction.commit();
                     }
                 });
             }
