@@ -36,7 +36,7 @@ public final class GeneralHelper {
 
     public static void reportMessage(Context ctx, String tag, String message, boolean showToast) {
         if (message != null) {
-            Log.i(tag, String.format("%s: %s", getMethodName(1), message));
+            Log.e(tag, String.format("%s: %s", getMethodName(1), message));
             if (ctx != null && showToast) {
                 showLongToast(ctx, message);
             }

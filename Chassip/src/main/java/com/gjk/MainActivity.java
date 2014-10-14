@@ -781,7 +781,7 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
                     GeneralHelper.logoutOfFacebook(MainActivity.this);
                     sendServerRequest(i);
                 } catch (JSONException e) {
-                    e.printStackTrace();
+                    GeneralHelper.reportMessage(MainActivity.this, LOGTAG, e.getMessage());
                 }
             }
         }
@@ -1313,7 +1313,7 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
                 photoFile = ImageUtil.createTimestampedImageFile(this);
                 mLatestPath = photoFile.getAbsolutePath();
             } catch (IOException e) {
-                e.printStackTrace();
+                GeneralHelper.reportMessage(MainActivity.this, LOGTAG, e.getMessage());
             }
             // Save a file: path for use with ACTION_VIEW intents
             // Continue only if the File was successfully created
@@ -1334,7 +1334,7 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
         try {
             GoogleCloudMessaging.getInstance(this).unregister();
         } catch (IOException e) {
-            e.printStackTrace();
+            GeneralHelper.reportMessage(MainActivity.this, LOGTAG, e.getMessage());
         }
 
         resetTimer();

@@ -53,6 +53,7 @@ import com.gjk.net.NotifySideChatMembersOfMemberRemovalTask;
 import com.gjk.net.NotifyWhisperInviteesTask;
 import com.gjk.net.NotifyWhisperMembersOfDeletionTask;
 import com.gjk.net.NotifyWhisperMembersOfMemberRemovalTask;
+import com.gjk.net.Pool;
 import com.gjk.net.RegisterTask;
 import com.gjk.net.RemoveGroupTask;
 import com.gjk.net.RemoveMembersTask;
@@ -77,6 +78,8 @@ import java.net.URL;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import static com.gjk.Constants.ADD_CHAT_MEMBERS_REQUEST;
 import static com.gjk.Constants.ADD_CHAT_MEMBERS_RESPONSE;
@@ -119,6 +122,7 @@ import static com.gjk.Constants.GROUP_UPDATE_RESPONSE;
 import static com.gjk.Constants.IMAGE_PATH;
 import static com.gjk.Constants.IMAGE_URL;
 import static com.gjk.Constants.INTENT_TYPE;
+import static com.gjk.Constants.IS_FROM_GCM;
 import static com.gjk.Constants.IS_TYPING;
 import static com.gjk.Constants.IS_TYPING_REQUEST;
 import static com.gjk.Constants.LAST_NAME;
@@ -178,6 +182,8 @@ public class ChassipService extends IntentService {
 
     private static final String LOGTAG = "ChassipService";
 
+    private static BackgroundTaskListener backgroundTaskListener;
+
     public ChassipService() {
         super("ChassipService");
     }
@@ -185,10 +191,25 @@ public class ChassipService extends IntentService {
     @Override
     protected void onHandleIntent(Intent intent) {
         try {
-            Bundle extras = intent.getExtras();
+
+            final Bundle extras = intent.getExtras();
 
             if (extras != null) {
-                String type = extras.getString(INTENT_TYPE);
+
+                final String type = extras.getString(INTENT_TYPE);
+                if (extras.containsKey(IS_FROM_GCM) && extras.getBoolean(IS_FROM_GCM)) {
+
+                    Pool.resetListener();
+
+                    if (backgroundTaskListener == null) {
+                        backgroundTaskListener = new BackgroundTaskListener(intent);
+                    } else {
+                        backgroundTaskListener.cancel();
+                    }
+                    Pool.setListener(backgroundTaskListener);
+                    backgroundTaskListener.set();
+                }
+
                 if (type != null) {
                     if (type.equals(GCM_IS_TYPING)) {
                         gcmIsTyping(extras);
@@ -197,7 +218,7 @@ public class ChassipService extends IntentService {
                     } else if (type.equals(SEND_MESSAGE_REQUEST)) {
                         sendMessage(extras);
                     } else if (type.endsWith(GCM_MESSAGE)) {
-                        fetchGroupMessagesAfterGcm(new JSONObject(extras.getString("msg_content")).getLong("group_id"));
+                        fetchGroupMessagesAfterGcm(extras);
                     } else if (type.equals(GCM_GROUP_INVITE)) {
                         handleGroupInvite(extras);
                     } else if (type.equals(GCM_GROUP_REMOVE_MEMBERS)) {
@@ -217,12 +238,7 @@ public class ChassipService extends IntentService {
                     } else if (type.equals(GCM_WHISPER_DELETE)) {
                         handleWhisperDeletion(extras);
                     } else if (type.equals(FETCH_CONVO_MEMBERS_REQUEST)) {
-                        fetchConvoMembers(extras, new FetchConvoMemberAction() {
-                            @Override
-                            public void doThis(long convoId, ConvoType convoType, long[] memberIds,
-                                               long[] allMemberIds) {
-                            }
-                        });
+                        fetchConvoMembersRequest(extras);
                     } else if (type.equals(CREATE_CHAT_REQUEST)) {
                         createChat(extras);
                     } else if (type.equals(DELETE_CHAT_REQUEST)) {
@@ -259,9 +275,6 @@ public class ChassipService extends IntentService {
         } catch (Exception e) {
             reportError(e.getMessage(), false);
         }
-
-        // Release the wake lock provided by the WakefulBroadcastReceiver.
-        GcmBroadcastReceiver.completeWakefulIntent(intent);
     }
 
     private void register(Bundle extras) {
@@ -309,7 +322,6 @@ public class ChassipService extends IntentService {
                 reportError("GCM registration unsuccessful", true);
             }
         } catch (Exception e) {
-            e.printStackTrace();
             reportError(String.format("GCM registration unsuccessful: %s", e), true);
         }
     }
@@ -829,6 +841,15 @@ public class ChassipService extends IntentService {
         }
     }
 
+    private void fetchConvoMembersRequest(Bundle extras) {
+        fetchConvoMembers(extras, new FetchConvoMemberAction() {
+            @Override
+            public void doThis(long convoId, ConvoType convoType, long[] memberIds,
+                               long[] allMemberIds) {
+            }
+        });
+    }
+
     private void fetchConvoMembers(Bundle extras, final FetchConvoMemberAction action) {
         final long groupId = extras.getLong(GROUP_ID);
         final ConvoType convoType = ConvoType.getFromValue(extras.getInt(CONVO_TYPE));
@@ -982,7 +1003,14 @@ public class ChassipService extends IntentService {
         }
     }
 
-    private void fetchGroupMessagesAfterGcm(final long groupId) {
+    private void fetchGroupMessagesAfterGcm(Bundle extras) {
+        final long groupId;
+        try {
+            groupId = new JSONObject(extras.getString("msg_content")).getLong("group_id");
+        } catch (JSONException e) {
+            reportError(e.getMessage(), false);
+            return;
+        }
         fetchMostRecentGroupMessages(groupId, new FetchGroupMessagesAction() {
             @Override
             public void doThis(List<Message> messages) {
@@ -1008,7 +1036,8 @@ public class ChassipService extends IntentService {
         try {
             jsonArray.put(0, id).put(1, -1);
         } catch (JSONException e) {
-            e.printStackTrace();
+            reportError(e.getMessage(), false);
+            return;
         }
         new GetMessagesTask(getApplicationContext(), new HTTPTask.HTTPTaskListener() {
             @Override
@@ -1038,7 +1067,8 @@ public class ChassipService extends IntentService {
         try {
             jsonArray.put(0, -1).put(1, id);
         } catch (JSONException e) {
-            e.printStackTrace();
+            reportError(e.getMessage(), false);
+            return;
         }
         new GetMessagesTask(this, new HTTPTask.HTTPTaskListener() {
             @Override
@@ -1655,6 +1685,46 @@ public class ChassipService extends IntentService {
             names = names + ", " + gms[i].getFullName();
         }
         return names;
+    }
+
+    private void releaseWakeLockFromGcmProcessing(Intent i) {
+        Pool.resetListener();
+        backgroundTaskListener = null;
+        GcmBroadcastReceiver.completeWakefulIntent(i);
+    }
+
+    private class BackgroundTaskListener implements Pool.PoolListener {
+
+        private final Timer mTimer = new Timer();
+
+        private final Intent mI;
+
+        private TimerTask backgroundTaskListenerTimerTask;
+
+        BackgroundTaskListener(Intent i) {
+            mI = i;
+        }
+
+        @Override
+        public void cancel() {
+            if (backgroundTaskListenerTimerTask != null) {
+                backgroundTaskListenerTimerTask.cancel();
+                backgroundTaskListenerTimerTask = null;
+            }
+        }
+
+        @Override
+        public void set() {
+            if (backgroundTaskListenerTimerTask == null) {
+                backgroundTaskListenerTimerTask = new TimerTask() {
+                    @Override
+                    public void run() {
+                        releaseWakeLockFromGcmProcessing(mI);
+                    }
+                };
+            }
+            mTimer.schedule(backgroundTaskListenerTimerTask, 5000l);
+        }
     }
 
     private interface FetchGroupMessagesAction {

@@ -19,7 +19,14 @@ public class Pool {
 
     private final static String LOGTAG = "Pool";
 
-    private final Semaphore available = new Semaphore(MAX_SEMAPHORE_COUNT, true);
+    private final Semaphore mAvailable = new Semaphore(MAX_SEMAPHORE_COUNT, true);
+
+    private static PoolListener sPoolListener;
+
+    public interface PoolListener {
+        void cancel();
+        void set();
+    }
 
     public Pool() {
         for (int i = 0; i < MAX_SEMAPHORE_COUNT; ++i) {
@@ -34,23 +41,37 @@ public class Pool {
             i.putExtra(INTENT_TYPE, START_PROGRESS);
             LocalBroadcastManager.getInstance(ctx).sendBroadcast(i);
         }
-        available.acquire();
+        mAvailable.acquire();
+        if (sPoolListener != null) {
+            sPoolListener.cancel();
+        }
         Log.d(LOGTAG, String.format("%s is acquiring semaphore. Permits remaining=%d",
-                GeneralHelper.getMethodName(1), available.availablePermits()));
+                GeneralHelper.getMethodName(1), mAvailable.availablePermits()));
         return getNextAvailableItem();
     }
 
     public void putItem(Context ctx, Object x) {
         if (markAsUnused(x)) {
-            available.release();
-            if (available.availablePermits() == MAX_SEMAPHORE_COUNT) {
+            mAvailable.release();
+            if (mAvailable.availablePermits() == MAX_SEMAPHORE_COUNT) {
+                if (sPoolListener != null) {
+                    sPoolListener.set();
+                }
                 Intent i = new Intent(CHASSIP_ACTION);
                 i.putExtra(INTENT_TYPE, STOP_PROGRESS);
                 LocalBroadcastManager.getInstance(ctx).sendBroadcast(i);
             }
             Log.d(LOGTAG, String.format("%s is releasing semaphore. Permits remaining=%d",
-                    GeneralHelper.getMethodName(1), available.availablePermits()));
+                    GeneralHelper.getMethodName(1), mAvailable.availablePermits()));
         }
+    }
+
+    public static void setListener(PoolListener poolListener) {
+        sPoolListener = poolListener;
+    }
+
+    public static void resetListener() {
+        sPoolListener = null;
     }
 
     // Not a particularly efficient data structure; just for demo

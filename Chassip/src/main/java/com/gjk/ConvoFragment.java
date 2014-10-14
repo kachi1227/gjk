@@ -248,7 +248,7 @@ public class ConvoFragment extends ListFragment {
                             getListView().setSelection(getListView().getCount() - 1);
                         }
                     } catch (Exception e) {
-                        Log.e("ConvoFragment", "Whoa hoe..");
+                        Log.e("ConvoFragment", "Whoa hoe..", e);
                         e.printStackTrace();
                     }
                 }
