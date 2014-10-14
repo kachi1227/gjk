@@ -16,7 +16,7 @@
         android:id="@+id/displayedImage"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="@android:color/black"
+        android:background="@android:color/transparent"
         android:scaleType="fitCenter"
         android:clickable="true"/>
 
