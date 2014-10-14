@@ -6,17 +6,13 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:layout_marginTop="15dp"
-    android:layout_marginBottom="15dp"
-    android:layout_marginLeft="10dp"
-    android:layout_marginRight="10dp"
     android:background="@android:color/transparent">
 
     <com.gjk.views.CacheImageView
         android:id="@+id/displayedImage"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="@android:color/black"
+        android:background="#90000000"
         android:scaleType="fitCenter"
         android:clickable="true"/>
 

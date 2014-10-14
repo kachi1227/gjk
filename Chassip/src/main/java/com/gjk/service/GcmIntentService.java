@@ -5,7 +5,6 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 
-import com.gjk.Constants;
 import com.google.android.gms.gcm.GoogleCloudMessaging;
 
 import static com.gjk.Constants.GCM_GROUP_DELETE;
@@ -19,6 +18,8 @@ import static com.gjk.Constants.GCM_SIDECONVO_REMOVE_MEMBERS;
 import static com.gjk.Constants.GCM_WHISPER_DELETE;
 import static com.gjk.Constants.GCM_WHISPER_INVITE;
 import static com.gjk.Constants.GCM_WHISPER_REMOVE_MEMBERS;
+import static com.gjk.Constants.INTENT_TYPE;
+import static com.gjk.Constants.IS_FROM_GCM;
 import static com.gjk.helper.DatabaseHelper.getAccountUserId;
 
 public class GcmIntentService extends IntentService {
@@ -58,36 +59,36 @@ public class GcmIntentService extends IntentService {
 
                 final String msgType = extras.getString("msg_type");
                 if (msgType.equals("typing_change")) {
-                    sendServerRequest(GCM_IS_TYPING, extras);
+                    sendServiceRequest(GCM_IS_TYPING, extras);
                 } else if (msgType.equals("chat_message")) {
-                    sendServerRequest(GCM_MESSAGE, extras);
+                    sendServiceRequest(GCM_MESSAGE, extras);
                 } else if (msgType.equals("group_invite")) {
-                    sendServerRequest(GCM_GROUP_INVITE, extras);
+                    sendServiceRequest(GCM_GROUP_INVITE, extras);
                 } else if (msgType.equals("group_member_removal")) {
-                    sendServerRequest(GCM_GROUP_REMOVE_MEMBERS, extras);
+                    sendServiceRequest(GCM_GROUP_REMOVE_MEMBERS, extras);
                 } else if (msgType.equals("group_delete")) {
-                    sendServerRequest(GCM_GROUP_DELETE, extras);
+                    sendServiceRequest(GCM_GROUP_DELETE, extras);
                 } else if (msgType.equals("side_chat_invite")) {
-                    sendServerRequest(GCM_SIDECONVO_INVITE, extras);
+                    sendServiceRequest(GCM_SIDECONVO_INVITE, extras);
                 } else if (msgType.equals("side_chat_member_removal")) {
-                    sendServerRequest(GCM_SIDECONVO_REMOVE_MEMBERS, extras);
+                    sendServiceRequest(GCM_SIDECONVO_REMOVE_MEMBERS, extras);
                 } else if (msgType.equals("side_chat_collapse")) {
-                    sendServerRequest(GCM_SIDECONVO_DELETE, extras);
+                    sendServiceRequest(GCM_SIDECONVO_DELETE, extras);
                 } else if (msgType.equals("whisper_invite")) {
-                    sendServerRequest(GCM_WHISPER_INVITE, extras);
+                    sendServiceRequest(GCM_WHISPER_INVITE, extras);
                 } else if (msgType.equals("whisper_member_removal")) {
-                    sendServerRequest(GCM_WHISPER_REMOVE_MEMBERS, extras);
+                    sendServiceRequest(GCM_WHISPER_REMOVE_MEMBERS, extras);
                 } else if (msgType.equals("whisper_delete")) {
-                    sendServerRequest(GCM_WHISPER_DELETE, extras);
+                    sendServiceRequest(GCM_WHISPER_DELETE, extras);
                 }
             }
         }
     }
 
-    private void sendServerRequest(String intentType, Bundle extras) {
+    private void sendServiceRequest(String intentType, Bundle extras) {
         Intent i = new Intent(this, ChassipService.class);
-        i.putExtra(Constants.INTENT_TYPE, intentType).putExtras(extras);
-        Log.d(LOGTAG, String.format("Sending %s to server: %s", i.getExtras().getString(Constants.INTENT_TYPE), i));
+        i.putExtra(INTENT_TYPE, intentType).putExtras(extras).putExtra(IS_FROM_GCM, !intentType.equals(GCM_IS_TYPING));
+        Log.d(LOGTAG, String.format("Got %s from GCM: %s", i.getExtras().getString(INTENT_TYPE), i));
         startService(i);
     }
 }
