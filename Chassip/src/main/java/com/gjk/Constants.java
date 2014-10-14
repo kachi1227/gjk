@@ -31,6 +31,7 @@ public interface Constants {
     public static final String SENDER_ID = "353373511052";
     public static final String PREF_FILE_NAME = "gjk_pref";
     public static final String INTENT_TYPE = "intentType";
+    public static final String IS_FROM_GCM = "isfromGcm";
     public static final String ERROR = "error";
     public static final String UNSUCCESSFUL = "unsuccessful";
     public static final String VERBOSE = "verbose";
@@ -55,8 +56,8 @@ public interface Constants {
     public static final String NUM_MESSAGES = "numMessages";
     public static final String SHOW_TOAST = "showToast";
     public static final String SEND_MESSAGE_RESPONSE = "sendMessageResponse";
-    public static final String GCM_MESSAGE_RESPONSE = "gcmMessageResponse";
     public static final String GET_ALL_GROUPS_RESPONSE = "getAllGroupsResponse";
+    public static final String GCM_MESSAGE_RESPONSE = "gcmMessageResponse";
     public static final String GCM_IS_TYPING = "gcmIsTyping";
     public static final String GCM_MESSAGE = "gcmMessage";
     public static final String GCM_GROUP_INVITE = "gcmGroupInvite";
