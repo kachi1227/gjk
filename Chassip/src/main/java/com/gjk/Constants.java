@@ -7,6 +7,7 @@ public interface Constants {
     public static final String LOGIN_JSON = "json";
     public static final long IS_TYPING_INTERVAL_FOR_ME = 4000l;
     public static final long IS_TYPING_INTERVAL_FOR_SOMEONE_ELSE = 5000l;
+    public static final long GCM_COMPLETE_WAKEFUL_DELAY = 5000l;
     public static final String GCM_ID = "GCM_ID";
     public static final String START_PROGRESS = "startProgress";
     public static final String STOP_PROGRESS = "stopProgress";

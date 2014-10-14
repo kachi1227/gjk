@@ -105,6 +105,7 @@ import static com.gjk.Constants.FETCH_CONVO_MEMBERS_RESPONSE;
 import static com.gjk.Constants.FETCH_MORE_MESSAGES_REQUEST;
 import static com.gjk.Constants.FETCH_MORE_MESSAGES_RESPONSE;
 import static com.gjk.Constants.FIRST_NAME;
+import static com.gjk.Constants.GCM_COMPLETE_WAKEFUL_DELAY;
 import static com.gjk.Constants.GCM_GROUP_DELETE;
 import static com.gjk.Constants.GCM_GROUP_INVITE;
 import static com.gjk.Constants.GCM_GROUP_REMOVE_MEMBERS;
@@ -1723,7 +1724,7 @@ public class ChassipService extends IntentService {
                     }
                 };
             }
-            mTimer.schedule(backgroundTaskListenerTimerTask, 5000l);
+            mTimer.schedule(backgroundTaskListenerTimerTask, GCM_COMPLETE_WAKEFUL_DELAY);
         }
     }
 
