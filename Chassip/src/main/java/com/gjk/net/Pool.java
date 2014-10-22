@@ -9,7 +9,7 @@ import com.gjk.helper.GeneralHelper;
 
 import java.util.concurrent.Semaphore;
 
-import static com.gjk.Constants.CHASSIP_ACTION;
+import static com.gjk.Constants.UI_ACTION;
 import static com.gjk.Constants.INTENT_TYPE;
 import static com.gjk.Constants.MAX_SEMAPHORE_COUNT;
 import static com.gjk.Constants.START_PROGRESS;
@@ -37,7 +37,7 @@ public class Pool {
 
     public Object getItem(Context ctx, boolean showProgress) throws InterruptedException {
         if (showProgress) {
-            final Intent i = new Intent(CHASSIP_ACTION);
+            final Intent i = new Intent(UI_ACTION);
             i.putExtra(INTENT_TYPE, START_PROGRESS);
             LocalBroadcastManager.getInstance(ctx).sendBroadcast(i);
         }
@@ -57,7 +57,7 @@ public class Pool {
                 if (sPoolListener != null) {
                     sPoolListener.set();
                 }
-                Intent i = new Intent(CHASSIP_ACTION);
+                Intent i = new Intent(UI_ACTION);
                 i.putExtra(INTENT_TYPE, STOP_PROGRESS);
                 LocalBroadcastManager.getInstance(ctx).sendBroadcast(i);
             }

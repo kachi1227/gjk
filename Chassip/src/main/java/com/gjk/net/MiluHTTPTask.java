@@ -34,6 +34,7 @@ public abstract class MiluHTTPTask extends HTTPTask {
 
     protected void executeWithJson(String uri, JSONObject json) {
         String url = Constants.BASE_URL + uri;
+        Application.get().log(String.format("%s: url=%s, json=%s", this.getClass().getSimpleName(), url, json.toString()));
         try {
 //			long currTime = System.currentTimeMillis();
             MiluHttpRequest req = null;

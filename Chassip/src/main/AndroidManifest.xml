@@ -54,12 +54,13 @@
             </intent-filter>
         </receiver>
 
-        <service android:name=".service.GcmIntentService"/>
-        <service android:name=".service.ChassipService">
-            <intent-filter>
-                <action android:name="com.gjk.service.ChassipService.CHASSIP_ACTION"/>
-            </intent-filter>
-        </service>
+        <!--<service android:name=".service.GcmIntentService"/>-->
+        <service android:name=".service.ChassipService"/>
+            <!--<intent-filter>-->
+        <!--<action android:name="com.gjk.service.ChassipService.UI_ACTION"/>-->
+
+        <!--</intent-filter>-->
+        <!--</service>-->
 
         <meta-data
             android:name="com.crashlytics.ApiKey"

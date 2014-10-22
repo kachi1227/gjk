@@ -60,7 +60,7 @@ public class ImageUtil {
         return photoFile;
     }
 
-    private static File getFile(Context ctx, String imageFileName) throws IOException {
+    public static File getFile(Context ctx, String imageFileName) throws IOException {
         final File storageDir = new File(Environment.getExternalStorageDirectory(), ctx.getResources().getString(
                 R.string.app_name));
         storageDir.mkdirs();

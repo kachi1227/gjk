@@ -42,6 +42,7 @@ public interface Constants {
     public static final String FIRST_NAME = "firstName";
     public static final String LAST_NAME = "lastName";
     public static final String PASSWORD = "password";
+    public static final String MANUAL = "manual";
     public static final String USER_ID = "userId";
     public static final String USER_NAME = "userName";
     public static final String MESSAGE = "message";
@@ -98,6 +99,8 @@ public interface Constants {
     public static final String REGISTER_REQUEST = "registerRequest";
     public static final String REGISTER_FACEBOOK_REQUEST = "registerFacebookRequest";
     public static final String REGISTER_RESPONSE = "registerResponse";
+    public static final String MANUAL_UPDATE_REQUEST = "manualUpdateRequest";
+    public static final String LAST_UPDATED = "lastUpdated";
     public static final String CHAT_DRAWER_ADD_CHAT_MEMBERS = "Add New Chat Members";
     public static final String CHAT_DRAWER_REMOVE_CHAT_MEMBERS = "Remove Chat Members";
     public static final String CHAT_DRAWER_DELETE_CHAT = "Delete Chat";
@@ -112,11 +115,12 @@ public interface Constants {
     public static final String CONVO_DRAWER_DELETE_WHISPER = "Delete Whisper";
     public static final int CHAT_CONTEXT_MENU_ID = 0;
     public static final int CONVO_CONTEXT_MENU_ID = 1;
-    public static final String CHASSIP_ACTION = "com.gjk.chassip.ACTION";
     public static final int NEW_MESSAGE_NOTIFACATION = 1;
     public static final int NEW_GROUP_INVITE_NOTIFACATION = 2;
     public static final int NEW_SIDECONVO_INVITE_NOTIFACATION = 3;
     public static final int NEW_WHISPER_INVITE_NOTIFACATION = 4;
     public static final int NEW_GROUP_MEMBER_INVITE_NOTIFACATION = 5;
     public static final int MAX_SEMAPHORE_COUNT = 5;
+    public static final String BACKGROUND_ACTION = "com.gjk.chassip.ACTION";
+    public static final String UI_ACTION = "com.gjk.chassip.ACTION";
 }

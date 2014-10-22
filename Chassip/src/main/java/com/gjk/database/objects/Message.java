@@ -9,18 +9,21 @@ import org.json.JSONObject;
 
 public class Message extends BaseMessage {
     public static final int ROW_LIMIT = 500;
-    public static final String TYPE_INTERACTION = "INTERACTION";
-    public static final String TYPE_LIVE_STREAM = "LIVE_STREAM";
-
 
     public static Message insertOrUpdate(SQLiteOpenHelper dbm, JSONObject json, boolean isLast) throws Exception {
-        long id = json.getLong("id");
-        Message message = findOneByGlobalId(dbm, id);
+
+        Message message;
+        if (json.has("successful")) {
+            message = findOneBySuccessful(dbm, json.getLong("successful"));
+        } else {
+            message = findOneByGlobalId(dbm, json.getLong("id"));
+        }
         if (message == null) {
             message = new Message(dbm);
         }
 
-        message.setGlobalId(id);
+        if (!json.isNull("id"))
+            message.setGlobalId(json.getLong("id"));
         if (!json.isNull("group_id"))
             message.setGroupId(json.getLong("group_id"));
         if (!json.isNull("sender_id"))
@@ -51,7 +54,8 @@ public class Message extends BaseMessage {
             message.setTableId(json.getLong("table_id"));
         if (!json.isNull("date"))
             message.setDate(json.getLong("date"));
-
+        if (!json.isNull("successful"))
+            message.setSuccessful(json.getLong("successful"));
         message.save(isLast);
         return message;
     }

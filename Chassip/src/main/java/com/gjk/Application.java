@@ -17,6 +17,7 @@ import android.widget.Toast;
 import com.crashlytics.android.Crashlytics;
 import com.gjk.database.DatabaseManager;
 import com.gjk.database.objects.Group;
+import com.gjk.logger.Logger;
 import com.gjk.net.Pool;
 import com.gjk.utils.media.BitmapLoader;
 import com.gjk.utils.media.CacheManager;
@@ -24,6 +25,10 @@ import com.gjk.utils.media.SampledBitmap;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesUtil;
 
+import java.io.File;
+import java.io.IOException;
+
+import static com.gjk.Constants.LAST_UPDATED;
 import static com.gjk.Constants.LOGIN_JSON;
 import static com.gjk.Constants.PROPERTY_REG_ID;
 
@@ -41,6 +46,7 @@ public class Application extends android.app.Application {
     private boolean mActivityIsInForeground;
     private Pool mSemaphores;
     private Group mCurrentChat;
+    private Logger logger;
 
     public void onCreate() {
 
@@ -53,6 +59,8 @@ public class Application extends android.app.Application {
         mConnManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         initCacheManager();
         initBitmapCache();
+
+        log("Application onCreate");
     }
 
     public WifiManager getWifiManager() {
@@ -130,6 +138,14 @@ public class Application extends android.app.Application {
         return context.getSharedPreferences(Constants.PREF_FILE_NAME, Context.MODE_PRIVATE);
     }
 
+    public void updateLastUpdate() {
+        getPreferences().edit().putLong(LAST_UPDATED, System.currentTimeMillis()).commit();
+    }
+
+    public long getLastUpdate() {
+        return getPreferences().getLong(LAST_UPDATED, 0);
+    }
+
     public SharedPreferences getPreferences() {
         if (mPrefs == null) {
             synchronized (this) {
@@ -144,6 +160,24 @@ public class Application extends android.app.Application {
     public static int getAppVersion(Context context) throws NameNotFoundException {
         PackageInfo packageInfo = context.getPackageManager().getPackageInfo(context.getPackageName(), 0);
         return packageInfo.versionCode;
+    }
+
+    public String getAppVersionName() {
+        try {
+            final PackageInfo packageInfo = getPackageManager().getPackageInfo(getPackageName(), 0);
+            return packageInfo.versionName;
+        } catch (NameNotFoundException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public boolean appIsUpdated() {
+        return !getAppVersionName().equals(getPreferences().getString("appVersionName", ""));
+    }
+
+    public void updateAppVersionName() {
+        getPreferences().edit().putString("appVersionName", getAppVersionName()).commit();
     }
 
     public int getAppVersion() {
@@ -251,5 +285,34 @@ public class Application extends android.app.Application {
             return false;
         }
         return true;
+    }
+
+    public void log(String msg) {
+        setLog();
+        try {
+            logger.log(msg);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public File getLogFile() {
+        setLog();
+        return logger.getLogFile();
+    }
+
+    public void clearLog() {
+        setLog();
+        logger.clear();
+    }
+
+    private void setLog() {
+        if (logger == null) {
+            try {
+                logger = new Logger(this);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
     }
 }
