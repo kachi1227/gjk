@@ -60,6 +60,8 @@
     <string name="settings_use_kachis_cache_label">Use Kachi\'s cache implementation</string>
     <string name="settings_show_debug_toasts_label">Show debug toast messages</string>
     <string name="settings_circlize_member_avis">Circlize group member avis</string>
+    <string name="settings_show_log">Show Log</string>
+    <string name="settings_clear_log">Clear Log</string>
     <string name="save">Save</string>
     <string name="logout">Are you sure you want to logout?</string>
     <string name="logout_title">Logging Out</string>

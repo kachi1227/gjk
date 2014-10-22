@@ -10,23 +10,18 @@ import android.text.TextUtils;
 import android.text.format.DateFormat;
 import android.text.util.Linkify;
 import android.util.Log;
-import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.CursorAdapter;
-import android.widget.FrameLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.gjk.database.objects.Message;
 import com.gjk.helper.DatabaseHelper;
 import com.gjk.helper.GeneralHelper;
-import com.gjk.helper.ViewHelper;
 import com.gjk.utils.media2.ImageManager;
 import com.gjk.views.CacheImageView;
-import com.gjk.views.DrawerLayout;
 import com.gjk.views.RecyclingImageView;
 
 import java.util.Locale;
@@ -63,14 +58,15 @@ public class MessagesAdapter extends CursorAdapter {
 
     private void buildView(View view, Cursor cursor) {
 
-        RelativeLayout row = (RelativeLayout) view.findViewById(R.id.messageLayout);
-        TextView userName = (TextView) view.findViewById(R.id.userName);
-        TextView message = (TextView) view.findViewById(R.id.message);
-        TextView time = (TextView) view.findViewById(R.id.time);
-        TextView headerDate = (TextView) view.findViewById(R.id.headerDate);
-        TextView footerDate = (TextView) view.findViewById(R.id.footerDate);
+        final RelativeLayout row = (RelativeLayout) view.findViewById(R.id.messageLayout);
+        final TextView userName = (TextView) view.findViewById(R.id.userName);
+        final TextView message = (TextView) view.findViewById(R.id.message);
+        final TextView time = (TextView) view.findViewById(R.id.time);
+        final TextView headerDate = (TextView) view.findViewById(R.id.headerDate);
+        final TextView footerDate = (TextView) view.findViewById(R.id.footerDate);
 
-        String thisD = String.valueOf(DateFormat.format("yyyyMMdd", cursor.getLong(cursor.getColumnIndex(Message.F_DATE))));
+        final String thisD = String.valueOf(DateFormat.format("yyyyMMdd", cursor.getLong(cursor.getColumnIndex
+                (Message.F_DATE))));
         if (cursor.isFirst()) { // first message
             headerDate.setVisibility(View.VISIBLE);
             headerDate.setText(convertDateToStr(cursor.getLong(cursor.getColumnIndex(Message.F_DATE)), true));
@@ -131,7 +127,8 @@ public class MessagesAdapter extends CursorAdapter {
         userName.setText(name);
         message.setText(cursor.getString(cursor.getColumnIndex(Message.F_CONTENT)));
         Linkify.addLinks(message, Linkify.ALL);
-        time.setText(convertTimeToStr(cursor.getLong(cursor.getColumnIndex(Message.F_DATE))));
+        time.setText(cursor.getLong(cursor.getColumnIndex(Message.F_SUCCESSFUL)) == 0 ? convertTimeToStr(cursor.getLong
+                (cursor.getColumnIndex(Message.F_DATE))) : "Sending...");
         int color = getColor(cursor.getInt(cursor.getColumnIndex(Message.F_MESSAGE_TYPE_ID)),
                 cursor.getLong(cursor.getColumnIndex(Message.F_TABLE_ID)));
         userName.setTextColor(mA.getResources().getColor(color));

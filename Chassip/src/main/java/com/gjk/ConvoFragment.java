@@ -1,7 +1,6 @@
 package com.gjk;
 
 import android.app.Activity;
-import android.content.Intent;
 import android.database.Cursor;
 import android.os.Bundle;
 import android.support.v4.app.ListFragment;
@@ -13,7 +12,6 @@ import android.widget.AbsListView;
 
 import com.gjk.database.objects.GroupMember;
 import com.gjk.helper.GeneralHelper;
-import com.gjk.service.ChassipService;
 import com.google.common.collect.Sets;
 
 import java.util.ArrayList;
@@ -23,7 +21,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static com.gjk.Constants.CHASSIP_ACTION;
 import static com.gjk.Constants.CONVO_ID;
 import static com.gjk.Constants.CONVO_TYPE;
 import static com.gjk.Constants.FETCH_CONVO_MEMBERS_REQUEST;
@@ -52,6 +49,8 @@ public class ConvoFragment extends ListFragment {
 
     private View mView;
 
+    private boolean mViewIsCreated = false;
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -78,29 +77,22 @@ public class ConvoFragment extends ListFragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         mView = inflater.inflate(R.layout.message_list, null);
+        mViewIsCreated = true;
         return mView;
     }
 
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
-        final Cursor cursor;
-        if (GeneralHelper.getInterleavingPref()) {
-            cursor = getMessagesCursor(getGroupId(), PROPERTY_SETTING_MESSAGE_LOAD_LIMIT_DEFAULT);
-        } else {
-            cursor = getMessagesCursor(getGroupId(), getConvoId(), PROPERTY_SETTING_MESSAGE_LOAD_LIMIT_DEFAULT);
-        }
-        mAdapter = new MessagesAdapter(getActivity(), cursor, getConvoId(), getConvoType());
-        setListAdapter(mAdapter);
+        setAdapter();
         scrollToBottom();
         if (getConvoType() != ConvoType.MAIN_CHAT) {
-            final Intent i = new Intent(getActivity(), ChassipService.class);
-            i.setAction(CHASSIP_ACTION);
-            i.putExtra(INTENT_TYPE, FETCH_CONVO_MEMBERS_REQUEST)
-                    .putExtra(GROUP_ID, getGroupId())
-                    .putExtra(CONVO_TYPE, getConvoType().getValue())
-                    .putExtra(CONVO_ID, getConvoId());
-            ((MainActivity) getActivity()).sendServerRequest(i);
+            final Bundle b = new Bundle();
+            b.putString(INTENT_TYPE, FETCH_CONVO_MEMBERS_REQUEST);
+            b.putLong(GROUP_ID, getGroupId());
+            b.putLong(CONVO_ID, getConvoId());
+            b.putInt(CONVO_TYPE, getConvoType().getValue());
+            ((MainActivity) getActivity()).sendBackgroundRequest(b);
         }
     }
 
@@ -108,22 +100,23 @@ public class ConvoFragment extends ListFragment {
     public void onViewCreated(View view, Bundle savedInstance) {
         super.onViewCreated(view, savedInstance);
         getListView().setOnScrollListener(new AbsListView.OnScrollListener() {
-              private AtomicInteger mItemCountAtOnScroll = new AtomicInteger(0);
 
-              @Override
-              public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
-                  if (mAdapter != null && totalItemCount != 0 && mItemCountAtOnScroll.get() != totalItemCount &&
-                          firstVisibleItem == 0 && visibleItemCount != 0 && visibleItemCount < totalItemCount) {
-                      mItemCountAtOnScroll.set(totalItemCount);
-                      loadAndFetchMessages(PROPERTY_SETTING_MESSAGE_LOAD_LIMIT_DEFAULT);
-                      getListView().setSelection(getListView().getCount() - totalItemCount);
-                  }
-              }
+                                              private AtomicInteger mItemCountAtOnScroll = new AtomicInteger(0);
 
-              @Override
-              public void onScrollStateChanged(AbsListView view, int scrollState) {
-              }
-          }
+                                              @Override
+                                              public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
+                                                  if (mAdapter != null && totalItemCount != 0 && mItemCountAtOnScroll.get() != totalItemCount &&
+                                                          firstVisibleItem == 0 && visibleItemCount != 0 && visibleItemCount < totalItemCount) {
+                                                      mItemCountAtOnScroll.set(totalItemCount);
+                                                      loadAndFetchMessages(PROPERTY_SETTING_MESSAGE_LOAD_LIMIT_DEFAULT);
+                                                      getListView().setSelection(getListView().getCount() - totalItemCount);
+                                                  }
+                                              }
+
+                                              @Override
+                                              public void onScrollStateChanged(AbsListView view, int scrollState) {
+                                              }
+                                          }
         );
     }
 
@@ -238,7 +231,7 @@ public class ConvoFragment extends ListFragment {
     }
 
     private void scrollToBottom() {
-        if (mCtx != null) {
+        if (mViewIsCreated) {
             getListView().post(new Runnable() {
                 @Override
                 public void run() {
@@ -268,12 +261,11 @@ public class ConvoFragment extends ListFragment {
         }
         if (isCanFetchMoreMessagesSet()) {
             if (mAdapter.getCount() == oldCursor.getCount()) {
-                final Intent i = new Intent(getActivity(), ChassipService.class);
-                i.setAction(CHASSIP_ACTION);
-                i.putExtra(INTENT_TYPE, FETCH_MORE_MESSAGES_REQUEST)
-                        .putExtra(GROUP_ID, getGroupId())
-                        .putExtra(CONVO_ID, getConvoId());
-                ((MainActivity) getActivity()).sendServerRequest(i);
+                final Bundle b = new Bundle();
+                b.putString(INTENT_TYPE, FETCH_MORE_MESSAGES_REQUEST);
+                b.putLong(GROUP_ID, getGroupId());
+                b.putLong(CONVO_ID, getConvoId());
+                ((MainActivity) getActivity()).sendBackgroundRequest(b);
             }
         } else {
             GeneralHelper.showLongToast(getActivity(), "No more messages to fetch...");
@@ -285,16 +277,28 @@ public class ConvoFragment extends ListFragment {
     }
 
     private Cursor swapCursor(int numMessages) {
-        if (mAdapter != null) {
-            Log.i(mLogtag, "Trying to loading more messages");
-            final Cursor newCursor;
-            if (GeneralHelper.getInterleavingPref()) {
-                newCursor = getMessagesCursor(getGroupId(), mAdapter.getCount() + numMessages);
-            } else {
-                newCursor = getMessagesCursor(getGroupId(), getConvoId(), mAdapter.getCount() + numMessages);
-            }
-            return mAdapter.swapCursor(newCursor);
+        if (mAdapter == null) {
+            Log.w(mLogtag, "Tried to swap cursors on a null adapter. Will try to set it now...");
+            setAdapter();
         }
-        return null;
+        Log.i(mLogtag, "Trying to loading more messages");
+        final Cursor newCursor;
+        if (GeneralHelper.getInterleavingPref()) {
+            newCursor = getMessagesCursor(getGroupId(), mAdapter.getCount() + numMessages);
+        } else {
+            newCursor = getMessagesCursor(getGroupId(), getConvoId(), mAdapter.getCount() + numMessages);
+        }
+        return mAdapter.swapCursor(newCursor);
+    }
+
+    private void setAdapter() {
+        final Cursor cursor;
+        if (GeneralHelper.getInterleavingPref()) {
+            cursor = getMessagesCursor(getGroupId(), PROPERTY_SETTING_MESSAGE_LOAD_LIMIT_DEFAULT);
+        } else {
+            cursor = getMessagesCursor(getGroupId(), getConvoId(), PROPERTY_SETTING_MESSAGE_LOAD_LIMIT_DEFAULT);
+        }
+        mAdapter = new MessagesAdapter(getActivity(), cursor, getConvoId(), getConvoType());
+        setListAdapter(mAdapter);
     }
 }

@@ -3,6 +3,7 @@ package com.gjk.net;
 import android.content.Context;
 import android.util.Log;
 
+import com.gjk.Application;
 import com.gjk.net.MiluHttpRequest.DBHttpRequestCompleteListener;
 import com.gjk.net.MiluHttpRequest.DBHttpResponse;
 
@@ -12,7 +13,7 @@ import org.json.JSONObject;
 
 abstract public class HTTPTask implements DBHttpRequestCompleteListener, Task {
 
-    public static final int MAX_FAILURES = 3;
+    public static final int MAX_FAILURES = 1;
 
     private static final String TAG = "ApiTask";
 
@@ -59,6 +60,8 @@ abstract public class HTTPTask implements DBHttpRequestCompleteListener, Task {
         if (mListener != null) {
             if (mResult == null)
                 mResult = new TaskResult(this, TaskResult.RC_SUCCESS, response.getResponseText(), response);
+            Application.get().log(String.format("%s: success, message=%s", this.getClass().getSimpleName(),
+                    mResult.getMessage()));
             mListener.onTaskComplete(mResult);
             //notifyUpdateListener(response);
         }
@@ -77,6 +80,8 @@ abstract public class HTTPTask implements DBHttpRequestCompleteListener, Task {
                         //message = mApp.getString(R.string.unknown_error);
                         if (mResult == null)
                             mResult = createTaskResultFailed(message, null);
+                    Application.get().log(String.format("%s: failed, message=%s", this.getClass().getSimpleName(),
+                            mResult.getMessage()));
                     mListener.onTaskComplete(mResult);
                 } catch (Throwable t) {
                     t.printStackTrace();

@@ -12,11 +12,13 @@ import android.graphics.Color;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
 import com.gjk.Application;
+import com.gjk.Constants;
 import com.gjk.ConvoType;
 import com.gjk.MainActivity;
 import com.gjk.R;
@@ -75,6 +77,7 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URL;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -87,7 +90,7 @@ import static com.gjk.Constants.ADD_CONVO_MEMBERS_REQUEST;
 import static com.gjk.Constants.ADD_CONVO_MEMBERS_RESPONSE;
 import static com.gjk.Constants.ALL_MEMBER_IDS;
 import static com.gjk.Constants.CAN_FETCH_MORE_MESSAGES;
-import static com.gjk.Constants.CHASSIP_ACTION;
+import static com.gjk.Constants.UI_ACTION;
 import static com.gjk.Constants.CONVO_ID;
 import static com.gjk.Constants.CONVO_NAME;
 import static com.gjk.Constants.CONVO_TYPE;
@@ -106,24 +109,13 @@ import static com.gjk.Constants.FETCH_MORE_MESSAGES_REQUEST;
 import static com.gjk.Constants.FETCH_MORE_MESSAGES_RESPONSE;
 import static com.gjk.Constants.FIRST_NAME;
 import static com.gjk.Constants.GCM_COMPLETE_WAKEFUL_DELAY;
-import static com.gjk.Constants.GCM_GROUP_DELETE;
-import static com.gjk.Constants.GCM_GROUP_INVITE;
-import static com.gjk.Constants.GCM_GROUP_REMOVE_MEMBERS;
 import static com.gjk.Constants.GCM_IS_TYPING;
-import static com.gjk.Constants.GCM_MESSAGE;
 import static com.gjk.Constants.GCM_MESSAGE_RESPONSE;
-import static com.gjk.Constants.GCM_SIDECONVO_DELETE;
-import static com.gjk.Constants.GCM_SIDECONVO_INVITE;
-import static com.gjk.Constants.GCM_SIDECONVO_REMOVE_MEMBERS;
-import static com.gjk.Constants.GCM_WHISPER_DELETE;
-import static com.gjk.Constants.GCM_WHISPER_INVITE;
-import static com.gjk.Constants.GCM_WHISPER_REMOVE_MEMBERS;
 import static com.gjk.Constants.GROUP_ID;
 import static com.gjk.Constants.GROUP_UPDATE_RESPONSE;
 import static com.gjk.Constants.IMAGE_PATH;
 import static com.gjk.Constants.IMAGE_URL;
 import static com.gjk.Constants.INTENT_TYPE;
-import static com.gjk.Constants.IS_FROM_GCM;
 import static com.gjk.Constants.IS_TYPING;
 import static com.gjk.Constants.IS_TYPING_REQUEST;
 import static com.gjk.Constants.LAST_NAME;
@@ -131,6 +123,7 @@ import static com.gjk.Constants.LOGIN_JSON;
 import static com.gjk.Constants.LOGIN_REQUEST;
 import static com.gjk.Constants.LOGIN_RESPONSE;
 import static com.gjk.Constants.LOGOUT_REQUEST;
+import static com.gjk.Constants.MANUAL_UPDATE_REQUEST;
 import static com.gjk.Constants.MEMBER_IDS;
 import static com.gjk.Constants.MESSAGE;
 import static com.gjk.Constants.MESSAGE_RESPONSE_LIMIT_DEFAULT;
@@ -160,8 +153,10 @@ import static com.gjk.Constants.USER_NAME;
 import static com.gjk.Constants.VERBOSE;
 import static com.gjk.helper.DatabaseHelper.addGroup;
 import static com.gjk.helper.DatabaseHelper.addGroupMembers;
+import static com.gjk.helper.DatabaseHelper.addGroupMessage;
 import static com.gjk.helper.DatabaseHelper.addGroupMessages;
 import static com.gjk.helper.DatabaseHelper.addGroups;
+import static com.gjk.helper.DatabaseHelper.getAccountUser;
 import static com.gjk.helper.DatabaseHelper.getAccountUserId;
 import static com.gjk.helper.DatabaseHelper.getGroup;
 import static com.gjk.helper.DatabaseHelper.getGroupIdFromSideConvoId;
@@ -174,6 +169,7 @@ import static com.gjk.helper.DatabaseHelper.getOtherGroupMemberIds;
 import static com.gjk.helper.DatabaseHelper.groupExists;
 import static com.gjk.helper.DatabaseHelper.removeGroup;
 import static com.gjk.helper.DatabaseHelper.removeGroupMember;
+import static com.gjk.helper.DatabaseHelper.removeGroupMessage;
 import static com.gjk.helper.DatabaseHelper.setAccountUser;
 
 /**
@@ -191,91 +187,179 @@ public class ChassipService extends IntentService {
 
     @Override
     protected void onHandleIntent(Intent intent) {
+
         try {
 
             final Bundle extras = intent.getExtras();
 
-            if (extras != null) {
+            if (extras == null) {
+                reportError("Received null extras", false);
+                return;
+            }
+
+            if (extras.isEmpty()) { // has effect of unparcelling Bundle
+                reportError("Received empty extras", false);
+                return;
+            }
+
+            Application.get().updateLastUpdate();
+
+//            Log.i(LOGTAG, extras.toString());
+
+            GoogleCloudMessaging gcm = GoogleCloudMessaging.getInstance(this);
+            // The getMessageType() intent parameter must be the intent you received
+            // in your BroadcastReceiver.
+            String messageType = gcm.getMessageType(intent);
+
+            /*
+             * Filter messages based on message type. Since it is likely that GCM will be extended in the future with
+             * new message types, just ignore any message types you're not interested in, or that you don't recognize.
+             */
+            if (GoogleCloudMessaging.MESSAGE_TYPE_SEND_ERROR.equals(messageType)) {
+                reportError("Got a type send error from GCM", false);
+            } else if (GoogleCloudMessaging.MESSAGE_TYPE_DELETED.equals(messageType)) {
+                // notifyNewMessage("Deleted messages on server: " + extras.toString());
+                // If it's a regular GCM message, do some work.
+            } else if (GoogleCloudMessaging.MESSAGE_TYPE_MESSAGE.equals(messageType)) {
+
+                if (getAccountUser() == null) {
+                    reportError("Nobody's home....", false);
+                    return;
+                }
+
+                Pool.resetListener();
+
+                if (backgroundTaskListener != null) {
+                    backgroundTaskListener.cancel();
+                }
+                backgroundTaskListener = new BackgroundTaskListener(intent);
+                Pool.setListener(backgroundTaskListener);
+                backgroundTaskListener.set();
+
+                new Handler(getMainLooper()).post(new Runnable() {
+                    @Override
+                    public void run() {
+
+                        final String msgType = extras.getString("msg_type");
+
+                        Application.get().log(String.format("GCM: %s, extras=%s", msgType, extras.toString()));
+
+                        switch (msgType) {
+                            case "typing_change":
+                                gcmIsTyping(extras);
+                                break;
+                            case "chat_message":
+                                fetchGroupMessagesAfterGcm(extras);
+                                break;
+                            case "group_invite":
+                                handleGroupInvite(extras);
+                                break;
+                            case "group_member_removal":
+                                handleGroupRemoveMembers(extras);
+                                break;
+                            case "group_delete":
+                                handleGroupDeletion(extras);
+                                break;
+                            case "side_chat_invite":
+                                handleSideConvoInvite(extras);
+                                break;
+                            case "side_chat_member_removal":
+                                handleSideConvoRemoveMembers(extras);
+                                break;
+                            case "side_chat_collapse":
+                                handleSideConvoDeletion(extras);
+                                break;
+                            case "whisper_invite":
+                                handleWhisperInvite(extras);
+                                break;
+                            case "whisper_member_removal":
+                                handleWhisperRemoveMembers(extras);
+                                break;
+                            case "whisper_delete":
+                                handleWhisperDeletion(extras);
+                                break;
+                        }
+                    }
+                });
+
+            } else {
+
+                if (intent.getAction().equals("com.google.android.c2dm.intent.REGISTRATION")) {
+                    Log.i(LOGTAG, "Got registration from GCM");
+                    return;
+                }
 
                 final String type = extras.getString(INTENT_TYPE);
-                if (extras.containsKey(IS_FROM_GCM) && extras.getBoolean(IS_FROM_GCM)) {
-
-                    Pool.resetListener();
-
-                    if (backgroundTaskListener == null) {
-                        backgroundTaskListener = new BackgroundTaskListener(intent);
-                    } else {
-                        backgroundTaskListener.cancel();
-                    }
-                    Pool.setListener(backgroundTaskListener);
-                    backgroundTaskListener.set();
-                }
-
-                if (type != null) {
-                    if (type.equals(GCM_IS_TYPING)) {
-                        gcmIsTyping(extras);
-                    } else if (type.equals(IS_TYPING_REQUEST)) {
-                        isTyping(extras);
-                    } else if (type.equals(SEND_MESSAGE_REQUEST)) {
-                        sendMessage(extras);
-                    } else if (type.endsWith(GCM_MESSAGE)) {
-                        fetchGroupMessagesAfterGcm(extras);
-                    } else if (type.equals(GCM_GROUP_INVITE)) {
-                        handleGroupInvite(extras);
-                    } else if (type.equals(GCM_GROUP_REMOVE_MEMBERS)) {
-                        handleGroupRemoveMembers(extras);
-                    } else if (type.equals(GCM_GROUP_DELETE)) {
-                        handleGroupDeletion(extras);
-                    } else if (type.equals(GCM_SIDECONVO_INVITE)) {
-                        handleSideConvoInvite(extras);
-                    } else if (type.equals(GCM_SIDECONVO_REMOVE_MEMBERS)) {
-                        handleSideConvoRemoveMembers(extras);
-                    } else if (type.equals(GCM_SIDECONVO_DELETE)) {
-                        handleSideConvoDeletion(extras);
-                    } else if (type.equals(GCM_WHISPER_INVITE)) {
-                        handleWhisperInvite(extras);
-                    } else if (type.equals(GCM_WHISPER_REMOVE_MEMBERS)) {
-                        handleWhisperRemoveMembers(extras);
-                    } else if (type.equals(GCM_WHISPER_DELETE)) {
-                        handleWhisperDeletion(extras);
-                    } else if (type.equals(FETCH_CONVO_MEMBERS_REQUEST)) {
-                        fetchConvoMembersRequest(extras);
-                    } else if (type.equals(CREATE_CHAT_REQUEST)) {
-                        createChat(extras);
-                    } else if (type.equals(DELETE_CHAT_REQUEST)) {
-                        deleteChat(extras);
-                    } else if (type.equals(CREATE_CONVO_REQUEST)) {
-                        createConvo(extras);
-                    } else if (type.equals(ADD_CHAT_MEMBERS_REQUEST)) {
-                        addChatMembers(extras);
-                    } else if (type.equals(REMOVE_CHAT_MEMBERS_REQUEST)) {
-                        removeChatMembers(extras);
-                    } else if (type.equals(ADD_CONVO_MEMBERS_REQUEST)) {
-                        addConvoMembers(extras);
-                    } else if (type.equals(REMOVE_CONVO_MEMBERS_REQUEST)) {
-                        removeConvoMembers(extras);
-                    } else if (type.equals(DELETE_CONVO_REQUEST)) {
-                        deleteConvo(extras);
-                    } else if (type.equals(FETCH_MORE_MESSAGES_REQUEST)) {
-                        fetchGroupMessageBeforeLeastRecent(extras);
-                    } else if (type.equals(LOGIN_REQUEST)) {
-                        login(extras);
-                    } else if (type.equals(REGISTER_REQUEST)) {
-                        register(extras);
-                    } else if (type.equals(REGISTER_FACEBOOK_REQUEST)) {
-                        registerFacebook(extras);
-                    } else if (type.equals(LOGOUT_REQUEST)) {
-                        logout(extras);
-                    }
-                } else {
+                if (type == null) {
                     reportError(String.format(Locale.getDefault(), "Received null intent type=%s", extras), false);
+                    return;
                 }
-            } else {
-                reportError("Received null extras", false);
+
+                Application.get().log(String.format("Pissach: %s, extras=%s", type, extras.toString()));
+
+                switch (type) {
+                    case IS_TYPING_REQUEST:
+                        isTyping(extras);
+                        break;
+                    case SEND_MESSAGE_REQUEST:
+                        sendMessage(extras);
+                        break;
+                    case FETCH_CONVO_MEMBERS_REQUEST:
+                        fetchConvoMembersRequest(extras);
+                        break;
+                    case CREATE_CHAT_REQUEST:
+                        createChat(extras);
+                        break;
+                    case DELETE_CHAT_REQUEST:
+                        deleteChat(extras);
+                        break;
+                    case CREATE_CONVO_REQUEST:
+                        createConvo(extras);
+                        break;
+                    case ADD_CHAT_MEMBERS_REQUEST:
+                        addChatMembers(extras);
+                        break;
+                    case REMOVE_CHAT_MEMBERS_REQUEST:
+                        removeChatMembers(extras);
+                        break;
+                    case ADD_CONVO_MEMBERS_REQUEST:
+                        addConvoMembers(extras);
+                        break;
+                    case REMOVE_CONVO_MEMBERS_REQUEST:
+                        removeConvoMembers(extras);
+                        break;
+                    case DELETE_CONVO_REQUEST:
+                        deleteConvo(extras);
+                        break;
+                    case FETCH_MORE_MESSAGES_REQUEST:
+                        fetchGroupMessageBeforeLeastRecent(extras);
+                        break;
+                    case LOGIN_REQUEST:
+                        login(extras);
+                        break;
+                    case REGISTER_REQUEST:
+                        register(extras);
+                        break;
+                    case REGISTER_FACEBOOK_REQUEST:
+                        registerFacebook(extras);
+                        break;
+                    case MANUAL_UPDATE_REQUEST:
+                        manualUpdate(extras);
+                        break;
+                    case LOGOUT_REQUEST:
+                        logout(extras);
+                        break;
+                }
             }
         } catch (Exception e) {
+            e.printStackTrace();
             reportError(e.getMessage(), false);
         }
+
+    }
+
+    private void manualUpdate(Bundle extras) {
+        fetchAllGroups(extras);
     }
 
     private void register(Bundle extras) {
@@ -305,7 +389,7 @@ public class ChassipService extends IntentService {
                                         Application.get().getPreferences().getString(PROPERTY_REG_ID, "abc"), new AuthenticatedAction() {
                                             @Override
                                             public void doThis() {
-                                                Intent i = new Intent(CHASSIP_ACTION);
+                                                Intent i = new Intent(UI_ACTION);
                                                 i.putExtra(INTENT_TYPE, LOGIN_RESPONSE);
                                                 LocalBroadcastManager.getInstance(ChassipService.this).sendBroadcast(i);
                                             }
@@ -353,7 +437,7 @@ public class ChassipService extends IntentService {
                                         Application.get().getPreferences().getString(PROPERTY_REG_ID, "abc"), new AuthenticatedAction() {
                                             @Override
                                             public void doThis() {
-                                                Intent i = new Intent(CHASSIP_ACTION);
+                                                Intent i = new Intent(UI_ACTION);
                                                 i.putExtra(INTENT_TYPE, REGISTER_RESPONSE);
                                                 LocalBroadcastManager.getInstance(ChassipService.this).sendBroadcast(i);
                                             }
@@ -914,7 +998,7 @@ public class ChassipService extends IntentService {
     }
 
     private long[] notifyUiOfConvoMembers(long[] memberIds, long groupId, long convoId) throws JSONException {
-        Intent i = new Intent(CHASSIP_ACTION);
+        Intent i = new Intent(UI_ACTION);
         i.putExtra(INTENT_TYPE, FETCH_CONVO_MEMBERS_RESPONSE)
                 .putExtra(GROUP_ID, groupId)
                 .putExtra(CONVO_ID, convoId)
@@ -945,7 +1029,7 @@ public class ChassipService extends IntentService {
             final long id = content.getLong("id");
             final long groupId = content.getLong("group_id");
             final boolean isTyping = content.getBoolean("is_typing");
-            Intent i = new Intent(CHASSIP_ACTION);
+            Intent i = new Intent(UI_ACTION);
             i.putExtra(INTENT_TYPE, GCM_IS_TYPING)
                     .putExtra(USER_ID, id)
                     .putExtra(GROUP_ID, groupId)
@@ -961,6 +1045,25 @@ public class ChassipService extends IntentService {
         final int convoType = extras.getInt(CONVO_TYPE);
         final long convoId = extras.getLong(CONVO_ID);
         final String message = extras.getString(MESSAGE);
+        final long nanoTime = System.nanoTime();
+        JSONObject json = new JSONObject();
+        try {
+            json.put("global_id", -1);
+            json.put("group_id", groupId);
+            json.put("sender_id", getAccountUser().getGlobalId());
+            json.put("sender_first_name", getAccountUser().getFirstName());
+            json.put("sender_last_name", getAccountUser().getLastName());
+            json.put("sender_image", getAccountUser().getImageUrl());
+            json.put("message_type_id", convoType);
+            json.put("table_id", convoId);
+            json.put("content", message);
+            json.put("successful", nanoTime);
+            json.put("date", new Date().getTime());
+            addGroupMessage(json, false);
+            updateUiForMessages(groupId, 1);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         if (extras.containsKey(IMAGE_PATH)) {
             HashMap<String, Object> fieldMapping = Maps.newHashMap();
             File f = new File(extras.getString(IMAGE_PATH));
@@ -971,6 +1074,7 @@ public class ChassipService extends IntentService {
             new SendMessageTask(getApplicationContext(), new HTTPTask.HTTPTaskListener() {
                 @Override
                 public void onTaskComplete(TaskResult result) {
+                    removeGroupMessage(nanoTime);
                     if (result.getResponseCode() == 1) {
                         fetchMostRecentGroupMessages(groupId, new FetchGroupMessagesAction() {
                             @Override
@@ -988,6 +1092,7 @@ public class ChassipService extends IntentService {
             new SendMessageTask(getApplicationContext(), new HTTPTask.HTTPTaskListener() {
                 @Override
                 public void onTaskComplete(TaskResult result) {
+                    removeGroupMessage(nanoTime);
                     if (result.getResponseCode() == 1) {
                         fetchMostRecentGroupMessages(groupId, new FetchGroupMessagesAction() {
                             @Override
@@ -1022,7 +1127,7 @@ public class ChassipService extends IntentService {
                         }
                     }
                 }
-                Intent i = new Intent(CHASSIP_ACTION);
+                Intent i = new Intent(UI_ACTION);
                 i.putExtra(INTENT_TYPE, GCM_MESSAGE_RESPONSE)
                         .putExtra(GROUP_ID, groupId)
                         .putExtra(NUM_MESSAGES, messages.size());
@@ -1078,7 +1183,7 @@ public class ChassipService extends IntentService {
                     JSONArray messages = (JSONArray) result.getExtraInfo();
                     try {
                         addGroupMessages(messages, false);
-                        Intent i = new Intent(CHASSIP_ACTION);
+                        Intent i = new Intent(UI_ACTION);
                         i.putExtra(INTENT_TYPE, FETCH_MORE_MESSAGES_RESPONSE)
                                 .putExtra(GROUP_ID, groupId)
                                 .putExtra(CONVO_ID, convoId)
@@ -1142,6 +1247,12 @@ public class ChassipService extends IntentService {
     }
 
     private void fetchAllGroups() {
+        final Bundle extras = new Bundle();
+        extras.putBoolean(Constants.MANUAL, false);
+        fetchAllGroups(extras);
+    }
+
+    private void fetchAllGroups(final Bundle extras) {
         new GetGroupsTask(getApplicationContext(), new HTTPTask.HTTPTaskListener() {
             @Override
             public void onTaskComplete(TaskResult result) {
@@ -1152,7 +1263,7 @@ public class ChassipService extends IntentService {
                         for (Group g : groups) {
                             fetchMembersAndMessagesForGroup(g.getGlobalId());
                         }
-                        updateUiForGroupUpdate();
+                        updateUiForGroupUpdate(extras);
                     } catch (Exception e) {
                         reportError(e.getMessage(), false);
                     }
@@ -1196,7 +1307,7 @@ public class ChassipService extends IntentService {
     }
 
     private void reportError(String message, boolean showToast) {
-        Intent i = new Intent(CHASSIP_ACTION);
+        Intent i = new Intent(UI_ACTION);
         i.putExtra(INTENT_TYPE, ERROR)
                 .putExtra(MESSAGE, message)
                 .putExtra(SHOW_TOAST, true);
@@ -1204,7 +1315,7 @@ public class ChassipService extends IntentService {
     }
 
     private void reportUnsuccess(String message, boolean showToast) {
-        Intent i = new Intent(CHASSIP_ACTION);
+        Intent i = new Intent(UI_ACTION);
         i.putExtra(INTENT_TYPE, UNSUCCESSFUL)
                 .putExtra(MESSAGE, message)
                 .putExtra(SHOW_TOAST, showToast);
@@ -1212,7 +1323,7 @@ public class ChassipService extends IntentService {
     }
 
     private void reportVerbose(String message, boolean showToast) {
-        Intent i = new Intent(CHASSIP_ACTION);
+        Intent i = new Intent(UI_ACTION);
         i.putExtra(INTENT_TYPE, VERBOSE)
                 .putExtra(MESSAGE, message)
                 .putExtra(SHOW_TOAST, showToast);
@@ -1490,11 +1601,6 @@ public class ChassipService extends IntentService {
     }
 
     private void fetchMembersAndMessagesForConvo(final long groupId) {
-//        fetchGroupMembers(groupId, new FetchGroupMemberAction() {
-//            @Override
-//            public void doThis(long groupId) {
-//            }
-//        });
         fetchMostRecentGroupMessages(groupId, new FetchGroupMessagesAction() {
             @Override
             public void doThis(List<Message> messages) {
@@ -1504,7 +1610,7 @@ public class ChassipService extends IntentService {
     }
 
     private void updateUiForAddChatMembers(Bundle extras) {
-        Intent i = new Intent(CHASSIP_ACTION);
+        Intent i = new Intent(UI_ACTION);
         i.putExtra(INTENT_TYPE, ADD_CHAT_MEMBERS_RESPONSE)
                 .putExtra(GROUP_ID, extras.getLong(GROUP_ID))
                 .putExtra(MEMBER_IDS, extras.getLongArray(MEMBER_IDS));
@@ -1512,7 +1618,7 @@ public class ChassipService extends IntentService {
     }
 
     private void updateUiForAddConvo(long groupId, long convoId, String name, ConvoType type) {
-        Intent i = new Intent(CHASSIP_ACTION);
+        Intent i = new Intent(UI_ACTION);
         i.putExtra(INTENT_TYPE, CREATE_CONVO_RESPONSE)
                 .putExtra(GROUP_ID, groupId)
                 .putExtra(CONVO_ID, convoId)
@@ -1522,7 +1628,7 @@ public class ChassipService extends IntentService {
     }
 
     private void updateUiForRemoveConvo(long groupId, long convoId) {
-        Intent i = new Intent(CHASSIP_ACTION);
+        Intent i = new Intent(UI_ACTION);
         i.putExtra(INTENT_TYPE, DELETE_CONVO_RESPONSE)
                 .putExtra(GROUP_ID, groupId)
                 .putExtra(CONVO_ID, convoId);
@@ -1530,7 +1636,7 @@ public class ChassipService extends IntentService {
     }
 
     private void updateUiForAddConvoMembers(Bundle extras) {
-        Intent i = new Intent(CHASSIP_ACTION);
+        Intent i = new Intent(UI_ACTION);
         i.putExtra(INTENT_TYPE, ADD_CONVO_MEMBERS_RESPONSE)
                 .putExtra(GROUP_ID, extras.getLong(GROUP_ID))
                 .putExtra(CONVO_ID, extras.getLong(CONVO_ID))
@@ -1540,7 +1646,7 @@ public class ChassipService extends IntentService {
     }
 
     private void updateUiForRemoveConvoMembers(Bundle extras) {
-        Intent i = new Intent(CHASSIP_ACTION);
+        Intent i = new Intent(UI_ACTION);
         i.putExtra(INTENT_TYPE, REMOVE_CONVO_MEMBERS_RESPONSE)
                 .putExtra(GROUP_ID, extras.getLong(GROUP_ID))
                 .putExtra(CONVO_ID, extras.getLong(CONVO_ID))
@@ -1550,7 +1656,7 @@ public class ChassipService extends IntentService {
     }
 
     private void updateUiForRemoveChatMember(Bundle extras) {
-        Intent i = new Intent(CHASSIP_ACTION);
+        Intent i = new Intent(UI_ACTION);
         i.putExtra(INTENT_TYPE, REMOVE_CHAT_MEMBERS_RESPONSE)
                 .putExtra(GROUP_ID, extras.getLong(GROUP_ID))
                 .putExtra(MEMBER_IDS, extras.getLongArray(MEMBER_IDS));
@@ -1558,7 +1664,7 @@ public class ChassipService extends IntentService {
     }
 
     private void updateUiForMessages(long groupId, int numMessages) {
-        final Intent i = new Intent(CHASSIP_ACTION);
+        final Intent i = new Intent(UI_ACTION);
         i.putExtra(INTENT_TYPE, SEND_MESSAGE_RESPONSE)
                 .putExtra(GROUP_ID, groupId)
                 .putExtra(NUM_MESSAGES, numMessages);
@@ -1566,13 +1672,20 @@ public class ChassipService extends IntentService {
     }
 
     private void updateUiForGroupUpdate() {
-        Intent i = new Intent(CHASSIP_ACTION);
+        final Bundle extras = new Bundle();
+        extras.putBoolean(Constants.MANUAL, false);
+        updateUiForGroupUpdate(extras);
+    }
+
+    private void updateUiForGroupUpdate(Bundle extras) {
+        Intent i = new Intent(UI_ACTION);
+        i.putExtras(extras);
         i.putExtra(INTENT_TYPE, GROUP_UPDATE_RESPONSE);
         LocalBroadcastManager.getInstance(ChassipService.this).sendBroadcast(i);
     }
 
     private void updateUiForGroupDelete(long groupId) {
-        Intent i = new Intent(CHASSIP_ACTION);
+        Intent i = new Intent(UI_ACTION);
         i.putExtra(INTENT_TYPE, DELETE_CHAT_RESPONSE)
                 .putExtra(GROUP_ID, groupId);
         LocalBroadcastManager.getInstance(ChassipService.this).sendBroadcast(i);
@@ -1610,16 +1723,6 @@ public class ChassipService extends IntentService {
 
     private void notifyUserOfNewSideConvo(Group g, JSONObject sc, JSONArray members, JSONObject inviter) throws JSONException {
         if (inviter.getLong("id") != getAccountUserId()) {
-//            boolean isInSideConvo = false;
-//            for (int i = 0; i < members.length(); i++) {
-//                isInSideConvo |= getAccountUserId() == members.getJSONObject(i).getLong("id");
-//            }
-//            String content = isInSideConvo ? String.format(Locale.getDefault(),
-//                    "%s %s added you to %s's new side convo in %s called \"%s\"", inviter.get("first_name"),
-//                    inviter.get("last_name"), sc.getString("creator_name"), g.getName(), sc.getString("name")) : String
-//                    .format(Locale.getDefault(), "%s has started a new side convo in %s called \"%s\"",
-//                            sc.getString("creator_name"), g.getName(), sc.getString("name"));
-//            String title = isInSideConvo ? "New Side Convo Invite" : "New Side Convo";
             final String title = "Side Convo";
             final String content = String.format("The %s side convo has been updated", sc.getString("name"));
             notificationAlert(title, content, g.getGlobalId(), NEW_SIDECONVO_INVITE_NOTIFACATION);
@@ -1628,56 +1731,56 @@ public class ChassipService extends IntentService {
 
     private void notifyUserOfNewWhisper(Group g, JSONObject w, JSONArray members, JSONObject inviter) throws JSONException {
         if (inviter.getLong("id") != getAccountUserId()) {
-//            String content = String.format(Locale.getDefault(),
-//                    "%s %s added you to %s's new whisper in %s called \"%s\"", inviter.get("first_name"),
-//                    inviter.get("last_name"), w.getString("creator_name"), g.getName(), w.getString("name"));
-//            String title = "New Whisper Invite";
-//            notificationAlert(title, content, g.getGlobalId(), NEW_WHISPER_INVITE_NOTIFACATION);
             final String title = "Whsiper";
             final String content = String.format("The %s whsiper has been updated", w.getString("name"));
             notificationAlert(title, content, g.getGlobalId(), NEW_WHISPER_INVITE_NOTIFACATION);
         }
     }
 
-    private void notificationAlert(String title, String content, long groupId, int type) {
-        int icon;
-        switch (type) {
-            case NEW_MESSAGE_NOTIFACATION:
-                icon = R.drawable.speech_bubble;
-                break;
-            case NEW_GROUP_INVITE_NOTIFACATION:
-            case NEW_SIDECONVO_INVITE_NOTIFACATION:
-            case NEW_WHISPER_INVITE_NOTIFACATION:
-            case NEW_GROUP_MEMBER_INVITE_NOTIFACATION:
-            default:
-                icon = R.drawable.ic_action_add_group;
-                break;
-        }
-
-        NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(this).setSmallIcon(icon)
-                .setContentTitle(title).setContentText(content).setTicker(content).setVibrate(new long[]{200, 200, 200, 200, 200})
-                .setLights(Color.YELLOW, 500, 500).setSound(Uri.parse(ContentResolver.SCHEME_ANDROID_RESOURCE
-                        + "://" + getPackageName() + "/raw/these_hoes_aint_loyal"));
-        // Creates an explicit intent for an Activity in your app
-        Intent resultIntent = new Intent(getApplicationContext(), MainActivity.class);
-        resultIntent.setAction(Intent.ACTION_MAIN);
-        resultIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-        resultIntent.addCategory(Intent.CATEGORY_LAUNCHER);
-        resultIntent.putExtra("group_id", groupId);
-        // The stack builder object will contain an artificial back stack for the
-        // started Activity.
-        // This ensures that navigating backward from the Activity leads out of
-        // your application to the Home screen.
-        TaskStackBuilder stackBuilder = TaskStackBuilder.create(this);
-        // Adds the back stack for the Intent (but not the Intent itself)
-        stackBuilder.addParentStack(MainActivity.class);
-        // Adds the Intent that starts the Activity to the top of the stack
-        stackBuilder.addNextIntent(resultIntent);
-        PendingIntent resultPendingIntent = stackBuilder.getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT);
-        mBuilder.setContentIntent(resultPendingIntent).setAutoCancel(true);
-        NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        // mId allows you to update the notification later on.
-        mNotificationManager.notify(type, mBuilder.build());
+    private void notificationAlert(final String title, final String content, final long groupId, final int type) {
+        new Handler(getMainLooper()).post(new Runnable() {
+            @Override
+            public void run() {
+                int icon;
+                switch (type) {
+                    case NEW_MESSAGE_NOTIFACATION:
+                        icon = R.drawable.speech_bubble;
+                        break;
+                    case NEW_GROUP_INVITE_NOTIFACATION:
+                    case NEW_SIDECONVO_INVITE_NOTIFACATION:
+                    case NEW_WHISPER_INVITE_NOTIFACATION:
+                    case NEW_GROUP_MEMBER_INVITE_NOTIFACATION:
+                    default:
+                        icon = R.drawable.ic_action_add_group;
+                        break;
+                }
+                NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(ChassipService.this).setSmallIcon
+                        (icon)
+                        .setContentTitle(title).setContentText(content).setTicker(content).setVibrate(new long[]{200, 200, 200, 200, 200})
+                        .setLights(Color.YELLOW, 500, 500).setSound(Uri.parse(ContentResolver.SCHEME_ANDROID_RESOURCE
+                                + "://" + getPackageName() + "/raw/these_hoes_aint_loyal"));
+                // Creates an explicit intent for an Activity in your app
+                Intent resultIntent = new Intent(getApplicationContext(), MainActivity.class);
+                resultIntent.setAction(Intent.ACTION_MAIN);
+                resultIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                resultIntent.addCategory(Intent.CATEGORY_LAUNCHER);
+                resultIntent.putExtra("group_id", groupId);
+                // The stack builder object will contain an artificial back stack for the
+                // started Activity.
+                // This ensures that navigating backward from the Activity leads out of
+                // your application to the Home screen.
+                TaskStackBuilder stackBuilder = TaskStackBuilder.create(ChassipService.this);
+                // Adds the back stack for the Intent (but not the Intent itself)
+                stackBuilder.addParentStack(MainActivity.class);
+                // Adds the Intent that starts the Activity to the top of the stack
+                stackBuilder.addNextIntent(resultIntent);
+                PendingIntent resultPendingIntent = stackBuilder.getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT);
+                mBuilder.setContentIntent(resultPendingIntent).setAutoCancel(true);
+                NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+                // mId allows you to update the notification later on.
+                mNotificationManager.notify(type, mBuilder.build());
+            }
+        });
     }
 
     private String concatNames(GroupMember[] gms) {
@@ -1716,14 +1819,13 @@ public class ChassipService extends IntentService {
 
         @Override
         public void set() {
-            if (backgroundTaskListenerTimerTask == null) {
-                backgroundTaskListenerTimerTask = new TimerTask() {
-                    @Override
-                    public void run() {
-                        releaseWakeLockFromGcmProcessing(mI);
-                    }
-                };
-            }
+            cancel();
+            backgroundTaskListenerTimerTask = new TimerTask() {
+                @Override
+                public void run() {
+                    releaseWakeLockFromGcmProcessing(mI);
+                }
+            };
             mTimer.schedule(backgroundTaskListenerTimerTask, GCM_COMPLETE_WAKEFUL_DELAY);
         }
     }

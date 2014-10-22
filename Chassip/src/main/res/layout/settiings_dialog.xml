@@ -8,7 +8,7 @@
         android:layout_height="wrap_content"
         android:text="@string/settings_interleaving_label"
         android:id="@+id/settings_interleaving"
-        android:layout_alignParentTop="true"
+        android:layout_below="@+id/settings_version_text"
         android:layout_alignParentLeft="true"
         android:layout_alignParentStart="true"/>
 
@@ -38,4 +38,32 @@
         android:layout_below="@+id/settings_show_debug_toasts"
         android:layout_alignParentLeft="true"
         android:layout_alignParentStart="true"/>
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/settings_circlize_member_avis"
+        android:layout_centerHorizontal="true">
+
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/settings_show_log"
+            android:id="@+id/settings_show_log"/>
+
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/settings_clear_log"
+            android:id="@+id/settings_clear_log"/>
+    </LinearLayout>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceMedium"
+        android:id="@+id/settings_version_text"
+        android:layout_alignParentTop="true"
+        android:layout_centerHorizontal="true"/>
+
 </RelativeLayout>

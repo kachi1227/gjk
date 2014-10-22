@@ -34,6 +34,19 @@ public final class DatabaseHelper {
         return User.insertOrUpdate(sDm, json);
     }
 
+    public static User getAccountUser() {
+        Cursor cursor = sDm.getReadableDatabase().query(User.TABLE_NAME, User.ALL_COLUMN_NAMES, null, null,
+                null, null, null);
+        cursor.moveToFirst();
+        if (cursor.isAfterLast()) {
+            cursor.close();
+            return null;
+        }
+        User user = new User(sDm, cursor, false);
+        cursor.close();
+        return user;
+    }
+
     public static Long getAccountUserId() {
         Cursor cursor = sDm.getReadableDatabase().query(User.TABLE_NAME, new String[]{User.F_GLOBAL_ID}, null, null,
                 null, null, null);
@@ -244,6 +257,10 @@ public final class DatabaseHelper {
 
     public static Message addGroupMessage(JSONObject message, boolean isLast) throws Exception {
         return messageExists(message) ? null : Message.insertOrUpdate(sDm, message, isLast);
+    }
+
+    public static int removeGroupMessage(long successul) {
+        return Message.deleteWhere(sDm, Message.F_SUCCESSFUL + "=" + successul);
     }
 
     public static Cursor getMessagesCursor(long chatId, int limit) {
