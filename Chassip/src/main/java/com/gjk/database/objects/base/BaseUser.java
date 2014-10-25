@@ -7,11 +7,6 @@
  
 package com.gjk.database.objects.base;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import org.json.JSONObject;
-
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteOpenHelper;
@@ -19,6 +14,11 @@ import android.database.sqlite.SQLiteStatement;
 
 import com.gjk.database.PersistentObject;
 import com.gjk.database.objects.User;
+
+import org.json.JSONObject;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public abstract class BaseUser extends PersistentObject {
 	
@@ -30,6 +30,7 @@ public abstract class BaseUser extends PersistentObject {
 	private static final String ERROR_MSG_HYDRATE_NO_LAST_NAME = "Error fetching column 'last_name' from table 'user'";
 	private static final String ERROR_MSG_HYDRATE_NO_BIO = "Error fetching column 'bio' from table 'user'";
 	private static final String ERROR_MSG_HYDRATE_NO_IMAGE_URL = "Error fetching column 'image_url' from table 'user'";
+    private static final String ERROR_MSG_HYDRATE_NO_IS_ACTIVE = "Error fetching column 'is_active' from table 'user'";
 	
 	public static final String TABLE_NAME = "user";
 	
@@ -41,10 +42,11 @@ public abstract class BaseUser extends PersistentObject {
 	public static final String F_LAST_NAME = "last_name";
 	public static final String F_BIO = "bio";
 	public static final String F_IMAGE_URL = "image_url";
+    public static final String F_IS_ACTIVE = "is_active";
 	
-	public static final String[] ALL_COLUMN_NAMES = new String[] {F_ID, F_GLOBAL_ID, F_FIRST_NAME, F_LAST_NAME, F_BIO, F_IMAGE_URL};
+	public static final String[] ALL_COLUMN_NAMES = new String[] {F_ID, F_GLOBAL_ID, F_FIRST_NAME, F_LAST_NAME, F_BIO, F_IMAGE_URL, F_IS_ACTIVE};
 	
-	public static final String CREATE_TABLE_STATEMENT = "CREATE TABLE \"user\"(   \"_id\" INTEGER PRIMARY KEY NOT NULL,   \"global_id\" INTEGER NOT NULL,   \"first_name\" VARCHAR(256),	\"last_name\" VARCHAR(256),   \"bio\" TEXT,	\"image_url\" VARCHAR(2000))";
+	public static final String CREATE_TABLE_STATEMENT = "CREATE TABLE \"user\"(   \"_id\" INTEGER PRIMARY KEY NOT NULL,   \"global_id\" INTEGER NOT NULL,   \"first_name\" VARCHAR(256),	\"last_name\" VARCHAR(256),   \"bio\" TEXT,	\"image_url\" VARCHAR(2000),   \"is_active\" INTEGER)";
 	public static final String DROP_TABLE_STATEMENT = "DROP TABLE IF EXISTS 'user';";
 	
 	private static final String COUNT_STATEMENT = "SELECT COUNT(" + F_ID + ") FROM user";
@@ -57,6 +59,7 @@ public abstract class BaseUser extends PersistentObject {
 	private String mLastName;
 	private String mBio;
 	private String mImageUrl;
+    private int mIsActive;
 	
 	public BaseUser(SQLiteOpenHelper dbm, Cursor c, boolean skipOk) {
 		super(dbm, c, skipOk);
@@ -87,6 +90,7 @@ public abstract class BaseUser extends PersistentObject {
 		mLastName = "";
 		mBio = "";
 		mImageUrl = "";
+        mIsActive = 0;
 	}
 
 	@Override
@@ -177,7 +181,18 @@ public abstract class BaseUser extends PersistentObject {
 				setIsComplete(false);
 			}
 		}
-		
+        try {
+            setIsActive(c.getInt(c.getColumnIndexOrThrow(F_IS_ACTIVE)));
+        } catch (Exception e) {
+            if (!skipOk) {
+                e.printStackTrace();
+                throw new PersistentObjectHydrateException(ERROR_MSG_HYDRATE_NO_IS_ACTIVE, e);
+            } else {
+                setIsComplete(false);
+            }
+        }
+
+
 		setIsDirty(false);
 	}
 	
@@ -244,6 +259,18 @@ public abstract class BaseUser extends PersistentObject {
 				setIsComplete(false);
 			}
 		}
+
+        try {
+            mIsActive = obj.getInt(F_IS_ACTIVE);
+        } catch (Exception e) {
+            if (!skipOk) {
+                e.printStackTrace();
+                throw new PersistentObjectHydrateException(ERROR_MSG_HYDRATE_NO_IS_ACTIVE, e);
+            } else {
+                setIsComplete(false);
+            }
+        }
+
 		setIsDirty(true);
 		setIsNew(true);
 	}
@@ -259,6 +286,7 @@ public abstract class BaseUser extends PersistentObject {
 			obj.put(F_LAST_NAME, mLastName);
 			obj.put(F_BIO, mBio);
 			obj.put(F_IMAGE_URL, mImageUrl);
+            obj.put(F_IS_ACTIVE, mIsActive);
 			return obj;
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -275,6 +303,7 @@ public abstract class BaseUser extends PersistentObject {
 		cv.put(F_LAST_NAME, mLastName);
 		cv.put(F_BIO, mBio);
 		cv.put(F_IMAGE_URL, mImageUrl);
+        cv.put(F_IS_ACTIVE, mIsActive);
 		return cv;
 	}
 	
@@ -423,4 +452,14 @@ public abstract class BaseUser extends PersistentObject {
 		this.mImageUrl = val;
 		setIsDirty(true);
 	}
+
+    public int isActive() {
+        return mIsActive;
+    }
+
+    public void setIsActive(int val) {
+        this.mIsActive = val;
+        setIsDirty(true);
+    }
+
 }

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <CheckBox
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:paddingLeft="@dimen/small_list_padding"
+        android:paddingRight="@dimen/small_list_padding"
+        android:id="@+id/checkBox"/>
+
+    <com.gjk.views.CacheImageView
+        android:id="@+id/memberAvi"
+        android:layout_width="35dp"
+        android:layout_height="35dp"
+        android:paddingLeft="@dimen/small_list_padding"
+        android:paddingRight="@dimen/small_list_padding"
+        android:background="@android:color/transparent"
+        android:scaleType="centerCrop"/>
+
+    <TextView
+        android:id="@+id/userName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:paddingLeft="@dimen/list_padding"
+        android:textStyle="bold"
+        android:textSize="18sp"/>
+
+</LinearLayout>

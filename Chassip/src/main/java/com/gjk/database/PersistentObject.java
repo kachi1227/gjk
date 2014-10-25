@@ -11,6 +11,8 @@ import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteOpenHelper;
 
+import com.gjk.Application;
+
 import org.json.JSONObject;
 
 import java.text.DateFormat;
@@ -115,8 +117,10 @@ public abstract class PersistentObject {
         if (isDirty()) {
             ContentValues cv = getContentValues();
             if (isNew()) {
+                Application.get().log(String.format("Database insert: %s", cv.toString()));
                 setId(getDatabaseManager().getWritableDatabase().insert(getTableName(), null, cv));
             } else {
+                Application.get().log(String.format("Database update: %s", cv.toString()));
                 getDatabaseManager().getWritableDatabase().update(getTableName(), cv, getIdColumnName() + " = " + getId(), null);
             }
             setIsComplete(true);

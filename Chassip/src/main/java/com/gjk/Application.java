@@ -176,6 +176,11 @@ public class Application extends android.app.Application {
         return !getAppVersionName().equals(getPreferences().getString("appVersionName", ""));
     }
 
+    public boolean databaseIsUpdated() {
+        final String currentVersion = getPreferences().getString("appVersionName", "");
+        return currentVersion.isEmpty() || !getDatabaseVersion(currentVersion).equals(getDatabaseVersion(getAppVersionName()));
+    }
+
     public void updateAppVersionName() {
         getPreferences().edit().putString("appVersionName", getAppVersionName()).commit();
     }
@@ -314,5 +319,9 @@ public class Application extends android.app.Application {
                 e.printStackTrace();
             }
         }
+    }
+
+    private String getDatabaseVersion(String version) {
+        return version.split("\\.")[2];
     }
 }

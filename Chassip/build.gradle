@@ -29,7 +29,7 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.txt'
         }
         debug {
-            versionNameSuffix "-DEBUG"
+//            versionNameSuffix "-DEBUG"
             buildConfigField "boolean", "USE_KACHIS_CACHE", "false"
         }
     }
@@ -42,5 +42,6 @@ dependencies {
     compile 'commons-lang:commons-lang:2.6'
     compile 'org.apache.httpcomponents:httpmime:4.1.3'
     compile 'com.crashlytics.android:crashlytics:1.+'
+    compile 'com.googlecode.libphonenumber:libphonenumber:6.3.1'
     compile project(':facebook')
 }

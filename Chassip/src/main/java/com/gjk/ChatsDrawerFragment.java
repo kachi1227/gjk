@@ -64,6 +64,7 @@ public class ChatsDrawerFragment extends Fragment implements UpdatebaleListView.
     private Animation rotateAnimation;
     private Animation reverseRotateAnimation;
 
+    private CreateChatDialog mCreateChatDialog;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -78,7 +79,11 @@ public class ChatsDrawerFragment extends Fragment implements UpdatebaleListView.
         mCreateChat.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                new CreateChatDialog().show(getActivity().getSupportFragmentManager(), "CreateChatDialog");
+                if (mCreateChatDialog == null || !mCreateChatDialog.isAdded()) {
+                    mCreateChatDialog = new CreateChatDialog();
+                }
+                mCreateChatDialog.show(getActivity().getSupportFragmentManager(), "CreateChatDialog");
+                ((MainActivity)getActivity()).findElligibleChassipUsers();
             }
         });
         final View header = inflater.inflate(R.layout.chats_list_header, mChatsList, false);
@@ -117,6 +122,10 @@ public class ChatsDrawerFragment extends Fragment implements UpdatebaleListView.
         menu.add(CHAT_CONTEXT_MENU_ID, v.getId(), 0, CHAT_DRAWER_ADD_CHAT_MEMBERS);//groupId, itemId, order, title
         menu.add(CHAT_CONTEXT_MENU_ID, v.getId(), 1, CHAT_DRAWER_REMOVE_CHAT_MEMBERS);
         menu.add(CHAT_CONTEXT_MENU_ID, v.getId(), 2, CHAT_DRAWER_DELETE_CHAT);
+    }
+
+    public void resetUserCursor() {
+        mCreateChatDialog.resetCursor();
     }
 
     public void swapCursor(Cursor cursor) {

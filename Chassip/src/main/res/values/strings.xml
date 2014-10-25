@@ -47,9 +47,9 @@
     <string name="create_chat_title">Create New Chat</string>
     <string name="create_chat_hint">Enter chat name</string>
     <string name="add_members_to_chat">Add Chat Members</string>
-    <string name="add_members_to_chat_title">Select Members</string>
+    <string name="add_members_to_chat_title">Add Chat Members</string>
     <string name="add_members_to_convo">Add Convo Members</string>
-    <string name="add_members_to_convo_title">Select Members</string>
+    <string name="add_members_to_convo_title">Add Convo Members</string>
     <string name="remove_members_from_chat_title">Remove Members</string>
     <string name="remove_members_from_convo_title">Remove Members</string>
     <string name="pending_message_hint">Say something dope…</string>

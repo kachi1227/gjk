@@ -41,6 +41,7 @@ import com.gjk.net.GetGroupTask;
 import com.gjk.net.GetGroupsTask;
 import com.gjk.net.GetMessagesTask;
 import com.gjk.net.GetSideChatMembersTask;
+import com.gjk.net.GetUsersByPhoneNumbersTask;
 import com.gjk.net.GetWhisperMembersTask;
 import com.gjk.net.HTTPTask;
 import com.gjk.net.LoginTask;
@@ -90,7 +91,6 @@ import static com.gjk.Constants.ADD_CONVO_MEMBERS_REQUEST;
 import static com.gjk.Constants.ADD_CONVO_MEMBERS_RESPONSE;
 import static com.gjk.Constants.ALL_MEMBER_IDS;
 import static com.gjk.Constants.CAN_FETCH_MORE_MESSAGES;
-import static com.gjk.Constants.UI_ACTION;
 import static com.gjk.Constants.CONVO_ID;
 import static com.gjk.Constants.CONVO_NAME;
 import static com.gjk.Constants.CONVO_TYPE;
@@ -111,6 +111,8 @@ import static com.gjk.Constants.FIRST_NAME;
 import static com.gjk.Constants.GCM_COMPLETE_WAKEFUL_DELAY;
 import static com.gjk.Constants.GCM_IS_TYPING;
 import static com.gjk.Constants.GCM_MESSAGE_RESPONSE;
+import static com.gjk.Constants.GET_USERS_BY_PHONE_NUMBERS_REQUEST;
+import static com.gjk.Constants.GET_USERS_BY_PHONE_NUMBERS_RESPONSE;
 import static com.gjk.Constants.GROUP_ID;
 import static com.gjk.Constants.GROUP_UPDATE_RESPONSE;
 import static com.gjk.Constants.IMAGE_PATH;
@@ -134,6 +136,7 @@ import static com.gjk.Constants.NEW_SIDECONVO_INVITE_NOTIFACATION;
 import static com.gjk.Constants.NEW_WHISPER_INVITE_NOTIFACATION;
 import static com.gjk.Constants.NUM_MESSAGES;
 import static com.gjk.Constants.PASSWORD;
+import static com.gjk.Constants.PHONE_NUMBERS;
 import static com.gjk.Constants.PROPERTY_APP_VERSION;
 import static com.gjk.Constants.PROPERTY_REG_ID;
 import static com.gjk.Constants.REGISTER_FACEBOOK_REQUEST;
@@ -147,6 +150,7 @@ import static com.gjk.Constants.SENDER_ID;
 import static com.gjk.Constants.SEND_MESSAGE_REQUEST;
 import static com.gjk.Constants.SEND_MESSAGE_RESPONSE;
 import static com.gjk.Constants.SHOW_TOAST;
+import static com.gjk.Constants.UI_ACTION;
 import static com.gjk.Constants.UNSUCCESSFUL;
 import static com.gjk.Constants.USER_ID;
 import static com.gjk.Constants.USER_NAME;
@@ -156,6 +160,7 @@ import static com.gjk.helper.DatabaseHelper.addGroupMembers;
 import static com.gjk.helper.DatabaseHelper.addGroupMessage;
 import static com.gjk.helper.DatabaseHelper.addGroupMessages;
 import static com.gjk.helper.DatabaseHelper.addGroups;
+import static com.gjk.helper.DatabaseHelper.addUsers;
 import static com.gjk.helper.DatabaseHelper.getAccountUser;
 import static com.gjk.helper.DatabaseHelper.getAccountUserId;
 import static com.gjk.helper.DatabaseHelper.getGroup;
@@ -169,7 +174,6 @@ import static com.gjk.helper.DatabaseHelper.getOtherGroupMemberIds;
 import static com.gjk.helper.DatabaseHelper.groupExists;
 import static com.gjk.helper.DatabaseHelper.removeGroup;
 import static com.gjk.helper.DatabaseHelper.removeGroupMember;
-import static com.gjk.helper.DatabaseHelper.removeGroupMessage;
 import static com.gjk.helper.DatabaseHelper.setAccountUser;
 
 /**
@@ -306,6 +310,9 @@ public class ChassipService extends IntentService {
                         break;
                     case FETCH_CONVO_MEMBERS_REQUEST:
                         fetchConvoMembersRequest(extras);
+                        break;
+                    case GET_USERS_BY_PHONE_NUMBERS_REQUEST:
+                        getUsersByPhoneNumbersRequest(extras);
                         break;
                     case CREATE_CHAT_REQUEST:
                         createChat(extras);
@@ -865,6 +872,28 @@ public class ChassipService extends IntentService {
         }
     }
 
+    private void getUsersByPhoneNumbersRequest(Bundle extras) {
+        final String[] phoneNumbers = extras.getStringArray(PHONE_NUMBERS);
+        new GetUsersByPhoneNumbersTask(this, new HTTPTask.HTTPTaskListener() {
+            @Override
+            public void onTaskComplete(TaskResult result) {
+                if (result.getResponseCode() == 1) {
+                    JSONArray response = (JSONArray) result.getExtraInfo();
+                    try {
+                        addUsers(response);
+                        final Intent i = new Intent(UI_ACTION);
+                        i.putExtra(INTENT_TYPE, GET_USERS_BY_PHONE_NUMBERS_RESPONSE);
+                        LocalBroadcastManager.getInstance(ChassipService.this).sendBroadcast(i);
+                    } catch (Exception e) {
+                        reportUnsuccess(e.getMessage(), false);
+                    }
+                } else {
+                    reportUnsuccess(result.getMessage(), false);
+                }
+            }
+        }, phoneNumbers);
+    }
+
     private void createChat(Bundle extras) {
         String chatName = extras.getString(CONVO_NAME);
         final long[] memberIds = extras.getLongArray(MEMBER_IDS);
@@ -1046,9 +1075,10 @@ public class ChassipService extends IntentService {
         final long convoId = extras.getLong(CONVO_ID);
         final String message = extras.getString(MESSAGE);
         final long nanoTime = System.nanoTime();
-        JSONObject json = new JSONObject();
+        final JSONObject json = new JSONObject();
+        final Message m;
         try {
-            json.put("global_id", -1);
+            json.put("id", -nanoTime);
             json.put("group_id", groupId);
             json.put("sender_id", getAccountUser().getGlobalId());
             json.put("sender_first_name", getAccountUser().getFirstName());
@@ -1057,14 +1087,35 @@ public class ChassipService extends IntentService {
             json.put("message_type_id", convoType);
             json.put("table_id", convoId);
             json.put("content", message);
-            json.put("successful", nanoTime);
             json.put("date", new Date().getTime());
-            addGroupMessage(json, false);
+            m = addGroupMessage(json, false, false);
             updateUiForMessages(groupId, 1);
         } catch (Exception e) {
-            e.printStackTrace();
+            reportError(e.getMessage(), true);
+            return;
         }
-        if (extras.containsKey(IMAGE_PATH)) {
+        if (!extras.containsKey(IMAGE_PATH)) {
+            new SendMessageTask(getApplicationContext(), new HTTPTask.HTTPTaskListener() {
+                @Override
+                public void onTaskComplete(TaskResult result) {
+                    if (result.getResponseCode() == 1) {
+                        m.delete();
+                        fetchMostRecentGroupMessages(groupId, new FetchGroupMessagesAction() {
+                            @Override
+                            public void doThis(List<Message> messages) {
+                                updateUiForMessages(groupId, messages.size());
+                            }
+                        });
+                        notifyGroupOfMessage(groupId);
+                    } else {
+                        m.setWasSuccessful(0);
+                        m.save();
+                        updateUiForMessages(groupId, 0);
+                        reportUnsuccess(result.getMessage(), false);
+                    }
+                }
+            }, getAccountUserId(), groupId, convoType, convoId, message);
+        } else {
             HashMap<String, Object> fieldMapping = Maps.newHashMap();
             File f = new File(extras.getString(IMAGE_PATH));
             if (f.exists()) {
@@ -1074,8 +1125,8 @@ public class ChassipService extends IntentService {
             new SendMessageTask(getApplicationContext(), new HTTPTask.HTTPTaskListener() {
                 @Override
                 public void onTaskComplete(TaskResult result) {
-                    removeGroupMessage(nanoTime);
                     if (result.getResponseCode() == 1) {
+                        m.delete();
                         fetchMostRecentGroupMessages(groupId, new FetchGroupMessagesAction() {
                             @Override
                             public void doThis(List<Message> messages) {
@@ -1084,28 +1135,13 @@ public class ChassipService extends IntentService {
                         });
                         notifyGroupOfMessage(groupId);
                     } else {
+                        m.setWasSuccessful(0);
+                        m.save();
+                        updateUiForMessages(groupId, 0);
                         reportUnsuccess(result.getMessage(), false);
                     }
                 }
             }, getAccountUserId(), groupId, convoType, convoId, message, fieldMapping);
-        } else {
-            new SendMessageTask(getApplicationContext(), new HTTPTask.HTTPTaskListener() {
-                @Override
-                public void onTaskComplete(TaskResult result) {
-                    removeGroupMessage(nanoTime);
-                    if (result.getResponseCode() == 1) {
-                        fetchMostRecentGroupMessages(groupId, new FetchGroupMessagesAction() {
-                            @Override
-                            public void doThis(List<Message> messages) {
-                                updateUiForMessages(groupId, messages.size());
-                            }
-                        });
-                        notifyGroupOfMessage(groupId);
-                    } else {
-                        reportUnsuccess(result.getMessage(), false);
-                    }
-                }
-            }, getAccountUserId(), groupId, convoType, convoId, message);
         }
     }
 
@@ -1351,7 +1387,7 @@ public class ChassipService extends IntentService {
                 moreExtras.putLong(GROUP_ID, groupId);
                 moreExtras.putLongArray(MEMBER_IDS, memberIds);
                 updateUiForAddChatMembers(moreExtras);
-                final long[] newMembers = GeneralHelper.diff(previousMemberIds, memberIds);
+                final long[] newMembers = GeneralHelper.diff(memberIds, previousMemberIds);
                 notifyUserOfNewGroupMember(g, newMembers);
             }
         } catch (Exception e) {

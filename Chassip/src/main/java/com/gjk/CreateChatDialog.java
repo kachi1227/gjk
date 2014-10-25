@@ -9,23 +9,26 @@ import android.support.v4.app.DialogFragment;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
-import android.widget.CheckBox;
 import android.widget.EditText;
+import android.widget.ListView;
 
-import com.google.common.collect.Lists;
+import com.gjk.helper.GeneralHelper;
+import com.google.common.collect.Sets;
 
-import java.util.List;
+import java.util.Set;
+
+import static com.gjk.helper.DatabaseHelper.getUsersCursor;
+import static com.gjk.helper.ViewHelper.Checker;
+import static com.gjk.helper.ViewHelper.resetUserListView;
 
 public class CreateChatDialog extends DialogFragment {
 
     private static final String LOGTAG = "CreateChatDialog";
 
     private EditText mChatName;
-    private CheckBox mGreg;
-    private CheckBox mGreg2;
-    private CheckBox mGreg3;
-    private CheckBox mJeff;
-    private CheckBox mKach;
+    private ListView mUsers;
+
+    private Set<Long> mSelectedIds = Sets.newHashSet();
 
     /*
      * The activity that creates an instance of this dialog fragment must implement this interface in order to receive
@@ -83,11 +86,8 @@ public class CreateChatDialog extends DialogFragment {
         View view = inflater.inflate(R.layout.create_chat_dialog, null);
 
         mChatName = (EditText) view.findViewById(R.id.chatName);
-        mGreg = (CheckBox) view.findViewById(R.id.greg);
-        mGreg2 = (CheckBox) view.findViewById(R.id.greg2);
-        mGreg3 = (CheckBox) view.findViewById(R.id.greg3);
-        mJeff = (CheckBox) view.findViewById(R.id.jeff);
-        mKach = (CheckBox) view.findViewById(R.id.kach);
+        mUsers = (ListView) view.findViewById(R.id.createChatUsersListView);
+        resetCursor();
 
         // Inflate and set the layout for the dialog
         // Pass null as the parent view because its going in the dialog layout
@@ -120,35 +120,28 @@ public class CreateChatDialog extends DialogFragment {
     }
 
     public long[] getSelectedIds() {
-        List<Long> ids = Lists.newArrayList();
-        if (mGreg.isChecked()) {
-            ids.add(3l);
-        }
-        if (mGreg2.isChecked()) {
-            ids.add(9l);
-        }
-        if (mGreg3.isChecked()) {
-            ids.add(23l);
-        }
-        if (mJeff.isChecked()) {
-            ids.add(6l);
-        }
-        if (mKach.isChecked()) {
-            ids.add(8l);
-        }
-        long[] primitveIds = new long[ids.size()];
-        for (int i = 0; i < ids.size(); i++) {
-            primitveIds[i] = ids.get(i);
-        }
-        return primitveIds;
+        return GeneralHelper.convertLong(mSelectedIds.toArray(new Long[mSelectedIds.size()]));
     }
 
     public String getChatName() {
         return mChatName.getText().toString();
     }
 
-    private boolean isCreateChatReady() {
-        return (mGreg.isChecked() || mGreg2.isChecked() || mGreg3.isChecked() || mJeff.isChecked() || mKach.isChecked())
-                && !mChatName.getText().toString().isEmpty();
+    public void resetCursor() {
+        resetUserListView(getActivity(), getUsersCursor(), mUsers, new Checker() {
+            @Override
+            public void checkHasChanged(long id, boolean isChecked) {
+                if (isChecked) {
+                    mSelectedIds.add(id);
+                } else {
+                    mSelectedIds.remove(id);
+                }
+            }
+        });
     }
+
+    private boolean isCreateChatReady() {
+        return !mSelectedIds.isEmpty() || !mChatName.getText().toString().isEmpty();
+    }
+
 }

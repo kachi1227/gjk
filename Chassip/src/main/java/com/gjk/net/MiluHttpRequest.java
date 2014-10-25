@@ -37,6 +37,8 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
 
 public class MiluHttpRequest {
     public static final int REQUEST_TYPE_GET = 1;
@@ -45,7 +47,7 @@ public class MiluHttpRequest {
     public static final int REQUEST_TYPE_POST_STRING_ENTITY = 4;
     public static final int REQUEST_TYPE_HEAD = 5;
 
-    public static final int DEFAULT_TIMEOUT_SECONDS = 30;
+    public static final int DEFAULT_TIMEOUT_SECONDS = 10;
 
     public interface DBHttpRequestCompleteListener {
         public void onHttpRequestSuccessInBackground(DBHttpResponse response) throws Exception;
@@ -305,10 +307,10 @@ public class MiluHttpRequest {
         addHeader("Authorization", "Basic " + authStr);
     }
 
-    public void executeAsync(DBHttpRequestCompleteListener listener) {
+    public void executeAsync(DBHttpRequestCompleteListener listener) throws InterruptedException, ExecutionException, TimeoutException {
         setListener(listener);
         mAsyncTask = new DBHttpRequestTask(this);
-        mAsyncTask.execute((Void) null);
+        mAsyncTask.execute();
     }
 
     public void cancelExecuteAsync() {

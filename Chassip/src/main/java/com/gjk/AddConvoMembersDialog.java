@@ -6,14 +6,21 @@ import android.app.Dialog;
 import android.content.DialogInterface;
 import android.os.Bundle;
 import android.support.v4.app.DialogFragment;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ListView;
 
 import com.gjk.database.objects.GroupMember;
 import com.gjk.helper.GeneralHelper;
-import com.google.common.collect.Lists;
+import com.gjk.helper.ViewHelper;
+import com.google.common.collect.Sets;
 
-import java.util.List;
+import java.util.Set;
+
+import static com.gjk.helper.DatabaseHelper.getOtherGroupMembersCursor;
+import static com.gjk.helper.GeneralHelper.getIdsFromGroupMembers;
+import static com.gjk.helper.ViewHelper.resetUserListView;
 
 public class AddConvoMembersDialog extends DialogFragment {
 
@@ -21,9 +28,12 @@ public class AddConvoMembersDialog extends DialogFragment {
 
     private long mGroupId;
     private long mConvoId;
-    private GroupMember[] mGroupMembers;
+    private GroupMember[] mConvoMembers;
     private ConvoType mConvoType;
-    private List<Long> mSelectedMembers;
+
+    private ListView mUsers;
+
+    private Set<Long> mSelectedIds = Sets.newHashSet();
 
     /*
      * The activity that creates an instance of this dialog fragment must implement this interface in order to receive
@@ -62,7 +72,7 @@ public class AddConvoMembersDialog extends DialogFragment {
                 positiveButton.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        if (mSelectedMembers != null && mSelectedMembers.size() > 0) {
+                        if (mSelectedIds != null && mSelectedIds.size() > 0) {
                             mListener.onAddConvoMembersDialogPositiveClick(AddConvoMembersDialog.this);
                             AddConvoMembersDialog.this.dismiss();
                         }
@@ -76,30 +86,12 @@ public class AddConvoMembersDialog extends DialogFragment {
     public Dialog onCreateDialog(Bundle savedInstanceState) {
 
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+        LayoutInflater inflater = getActivity().getLayoutInflater();
+        View view = inflater.inflate(R.layout.add_convo_members_dialog, null);
+        mUsers = (ListView) view.findViewById(R.id.addConvoMembersListView);
+        resetCursor();
 
-        final String[] array = new String[mGroupMembers.length];
-        for (int i = 0; i < mGroupMembers.length; i++) {
-            array[i] = mGroupMembers[i].getFullName();
-        }
-        mSelectedMembers = Lists.newArrayList();
-        builder.setTitle(R.string.add_members_to_convo)
-                // Specify the list array, the items to be selected by default (null for none),
-                // and the listener through which to receive callbacks when items are selected
-                .setMultiChoiceItems(array, null,
-                        new DialogInterface.OnMultiChoiceClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialog, int which, boolean isChecked) {
-                                GroupMember gm = mGroupMembers[which];
-                                if (isChecked) {
-                                    // If the user checked the item, add it to the selected items
-                                    mSelectedMembers.add(gm.getGlobalId());
-                                } else if (mSelectedMembers.contains(gm.getGlobalId())) {
-                                    // Else, if the item is already in the array, remove it
-                                    mSelectedMembers.remove(gm.getGlobalId());
-                                }
-                            }
-                        })
-                        // Set the action buttons
+        builder.setView(view).setTitle(R.string.add_members_to_convo)
                 .setPositiveButton(R.string.ok, new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int id) {
@@ -153,12 +145,26 @@ public class AddConvoMembersDialog extends DialogFragment {
         return this;
     }
 
-    public AddConvoMembersDialog setGroupMembers(GroupMember[] members) {
-        mGroupMembers = members;
+    public AddConvoMembersDialog setConvoMembers(GroupMember[] members) {
+        mConvoMembers = members;
         return this;
     }
 
     public long[] getSelectedIds() {
-        return GeneralHelper.convertLong(mSelectedMembers.toArray(new Long[mSelectedMembers.size()]));
+        return GeneralHelper.convertLong(mSelectedIds.toArray(new Long[mSelectedIds.size()]));
+    }
+
+    public void resetCursor() {
+        resetUserListView(getActivity(), getOtherGroupMembersCursor(mGroupId, getIdsFromGroupMembers(mConvoMembers)),
+                mUsers, new ViewHelper.Checker() {
+                    @Override
+                    public void checkHasChanged(long id, boolean isChecked) {
+                        if (isChecked) {
+                            mSelectedIds.add(id);
+                        } else {
+                            mSelectedIds.remove(id);
+                        }
+                    }
+                });
     }
 }

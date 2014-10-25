@@ -17,11 +17,12 @@ import org.json.JSONObject;
 
 public class User extends BaseUser {
 
-    public static User insertOrUpdate(SQLiteOpenHelper dbm, JSONObject json) throws Exception {
+    public static User insertOrUpdate(SQLiteOpenHelper dbm, JSONObject json, boolean isActive) throws Exception {
         long id = json.getLong("id");
         User user = findOneByGlobalId(dbm, id);
         if (user == null) {
             user = new User(dbm);
+            user.setIsActive(isActive ? 1 : 0);
         }
         user.setGlobalId(id);
         if (!json.isNull("first_name"))

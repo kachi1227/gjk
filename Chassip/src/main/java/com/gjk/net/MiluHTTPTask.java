@@ -5,6 +5,7 @@ import android.content.Context;
 import com.gjk.Application;
 import com.gjk.Constants;
 import com.gjk.R;
+import com.gjk.helper.GeneralHelper;
 import com.gjk.net.MiluHttpRequest.DBHttpUploadFile;
 
 import org.apache.http.protocol.HTTP;
@@ -34,7 +35,8 @@ public abstract class MiluHTTPTask extends HTTPTask {
 
     protected void executeWithJson(String uri, JSONObject json) {
         String url = Constants.BASE_URL + uri;
-        Application.get().log(String.format("%s: url=%s, json=%s", this.getClass().getSimpleName(), url, json.toString()));
+        Application.get().log(String.format("%s - %s: url=%s, json=%s", this.getClass().getSimpleName(), getId(), url,
+                json.toString()));
         try {
 //			long currTime = System.currentTimeMillis();
             MiluHttpRequest req = null;
@@ -83,7 +85,7 @@ public abstract class MiluHTTPTask extends HTTPTask {
             //	mListener.onTaskComplete(new TaskResult(this, TaskResult.RC_FAILURE, mCtx.getString(R.string.error_no_connection) , null));
 
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            GeneralHelper.reportMessage(mCtx, "MiluHttpTask", e.getMessage(), true);
         }
     }
 
@@ -129,8 +131,6 @@ public abstract class MiluHTTPTask extends HTTPTask {
         } catch (Exception e) {
             return new TaskResult(this, TaskResult.RC_FAILURE, e.getMessage(), null);
         }
-
-
     }
 
     @Override

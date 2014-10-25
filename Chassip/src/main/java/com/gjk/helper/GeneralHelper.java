@@ -4,6 +4,8 @@ import android.content.Context;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.Signature;
+import android.database.Cursor;
+import android.provider.ContactsContract;
 import android.util.Base64;
 import android.util.Log;
 import android.widget.Toast;
@@ -11,7 +13,11 @@ import android.widget.Toast;
 import com.facebook.Session;
 import com.gjk.Application;
 import com.gjk.Constants;
+import com.gjk.database.objects.GroupMember;
 import com.google.common.collect.Sets;
+import com.google.i18n.phonenumbers.NumberParseException;
+import com.google.i18n.phonenumbers.PhoneNumberUtil;
+import com.google.i18n.phonenumbers.Phonenumber;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -36,6 +42,7 @@ public final class GeneralHelper {
 
     public static void reportMessage(Context ctx, String tag, String message, boolean showToast) {
         if (message != null) {
+            Application.get().log(String.format("%s: %s", tag, message));
             Log.e(tag, String.format("%s: %s", getMethodName(1), message));
             if (ctx != null && showToast) {
                 showLongToast(ctx, message);
@@ -181,11 +188,24 @@ public final class GeneralHelper {
         set1.addAll(Arrays.asList(convertLong(array1)));
         final Set<Long> set2 = new HashSet<Long>();
         set2.addAll(Arrays.asList(convertLong(array2)));
-        final Set<Long> diffSet = Sets.difference(set2, set1);
+        final Set<Long> diffSet = Sets.difference(set1, set2);
         final Long[] diffArray = diffSet.toArray(new Long[diffSet.size()]);
         return convertLong(diffArray);
     }
 
+    public static long[] getIdsFromGroupMembers(Set<GroupMember> members) {
+        return getIdsFromGroupMembers(members.toArray(new GroupMember[members.size()]));
+    }
+
+    public static long[] getIdsFromGroupMembers(GroupMember[] members) {
+        final long[] ids = new long[members.length];
+        int i = 0;
+        for (GroupMember gm : members) {
+            ids[i] = gm.getGlobalId();
+            i++;
+        }
+        return ids;
+    }
 
     public static long[] getConvoIds(String convoString) {
         final JSONObject convos = splitConvos(convoString);
@@ -217,5 +237,26 @@ public final class GeneralHelper {
             e.printStackTrace();
         }
         return ret;
+    }
+
+    public static String[] getPhoneNumbersFromContacts(Context ctx) {
+        final PhoneNumberUtil phoneUtil = PhoneNumberUtil.getInstance();
+        final Cursor cursor = ctx.getContentResolver().query(ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
+                null, null, null, null);
+        final Set<String> numbers = Sets.newHashSet();
+        while (cursor.moveToNext()) {
+            String number = cursor.getString(cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER));
+            if (number != null) {
+                try {
+                    Phonenumber.PhoneNumber numberProto = phoneUtil.parse(number, "US");
+                    numbers.add(String.valueOf(numberProto.getNationalNumber()));
+                } catch (NumberParseException e) {
+                    e.printStackTrace();
+                }
+
+            }
+        }
+        cursor.close();
+        return numbers.toArray(new String[numbers.size()]);
     }
 }
