@@ -38,7 +38,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 public class MiluHttpRequest {
@@ -311,7 +310,7 @@ public class MiluHttpRequest {
     public void executeAsync(DBHttpRequestCompleteListener listener) throws InterruptedException, ExecutionException, TimeoutException {
         setListener(listener);
         mAsyncTask = new DBHttpRequestTask(this);
-        mAsyncTask.execute().get(15, TimeUnit.SECONDS);
+        mAsyncTask.execute();
     }
 
     public void cancelExecuteAsync() {

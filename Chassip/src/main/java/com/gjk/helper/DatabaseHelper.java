@@ -65,6 +65,21 @@ public final class DatabaseHelper {
                 null, null, null, null);
     }
 
+    public static Cursor getUsersCursor(long... exceptTheseIds) {
+        String except = "";
+        if (exceptTheseIds.length > 1) {
+            for (long exceptThisId : exceptTheseIds) {
+                except += " AND NOT " + User.F_GLOBAL_ID + " = " + exceptThisId;
+            }
+        }
+        return sDm.getReadableDatabase().query(User.TABLE_NAME, User.ALL_COLUMN_NAMES, User.F_IS_ACTIVE + " = " + 0 + except,
+                null, null, null, null);
+    }
+
+    public static Cursor getUsersCursorExceptGroupMembers(long groupId) {
+        return getUsersCursor(getGroupMemberIds(groupId));
+    }
+
     public static Long getAccountUserId() {
         return getAccountUser() == null ? null : getAccountUser().getGlobalId();
     }
@@ -183,6 +198,36 @@ public final class DatabaseHelper {
         return groupMembers;
     }
 
+    public static Cursor getOtherGroupMembersCursor(long groupId) {
+        return getOtherGroupMembersCursor(groupId, new long[]{});
+    }
+
+    public static Cursor getOtherGroupMembersCursor(long chatId, long... exceptTheseIds) {
+        String except = "";
+        if (exceptTheseIds.length > 0) {
+            for (long exceptThisId : exceptTheseIds) {
+                except += " AND NOT " + User.F_GLOBAL_ID + " = " + exceptThisId;
+            }
+        }
+        return sDm.getReadableDatabase().query(GroupMember.TABLE_NAME, GroupMember.ALL_COLUMN_NAMES,
+                GroupMember.F_GROUP_ID + " = " + chatId + " AND NOT " + GroupMember.F_GLOBAL_ID + " = " +
+                        getAccountUserId() + except, null,
+                null, null, null);
+    }
+
+    public static Cursor getOtherConvoMembersCursor(long chatId, long... theseIds) {
+        String except = "";
+        if (theseIds.length > 0) {
+            for (long exceptThisId : theseIds) {
+                except += " AND " + User.F_GLOBAL_ID + " = " + exceptThisId;
+            }
+        }
+        return sDm.getReadableDatabase().query(GroupMember.TABLE_NAME, GroupMember.ALL_COLUMN_NAMES,
+                GroupMember.F_GROUP_ID + " = " + chatId + " AND NOT " + GroupMember.F_GLOBAL_ID + " = " +
+                        getAccountUserId() + except, null,
+                null, null, null);
+    }
+
     public static GroupMember[] getGroupMembers(long chatId) {
         Cursor cursor = sDm.getReadableDatabase().query(GroupMember.TABLE_NAME, GroupMember.ALL_COLUMN_NAMES,
                 GroupMember.F_GROUP_ID + " = " + chatId, null, null, null, null);
@@ -232,6 +277,10 @@ public final class DatabaseHelper {
             }
         }
         return ids;
+    }
+
+    public static Message getMessage(Cursor c) {
+        return new Message(sDm, c, false);
     }
 
     public static boolean messageExists(JSONObject json) {
@@ -325,7 +374,7 @@ public final class DatabaseHelper {
 
     public static Message getLatestMessage(long chatId) {
         Cursor cursor = sDm.getReadableDatabase().query(Message.TABLE_NAME, Message.ALL_COLUMN_NAMES,
-                Message.F_GROUP_ID + " = " + chatId, null, null, null, Message.F_DATE + " DESC", "1");
+                Message.F_GROUP_ID + " = " + chatId + " AND " + Message.F_GLOBAL_ID + " >= 0", null, null, null, Message.F_DATE + " DESC", "1");
         cursor.moveToFirst();
         Message m;
         if (cursor.isAfterLast()) {
@@ -339,7 +388,8 @@ public final class DatabaseHelper {
 
     public static long getMostRecentMessageId(long chatId) {
         Cursor cursor = sDm.getReadableDatabase().query(Message.TABLE_NAME, new String[]{Group.F_GLOBAL_ID},
-                Message.F_GROUP_ID + " = " + chatId, null, null, null, Message.F_DATE + " DESC", "1");
+                Message.F_GROUP_ID + " = " + chatId + " AND " + Message.F_GLOBAL_ID + " >= 0", null, null, null,
+                Message.F_DATE + " DESC", "1");
         cursor.moveToFirst();
         long id;
         if (cursor.isAfterLast()) {
@@ -353,7 +403,7 @@ public final class DatabaseHelper {
 
     public static long getLeastRecentMessageId(long chatId) {
         Cursor cursor = sDm.getReadableDatabase().query(Message.TABLE_NAME, new String[]{Group.F_GLOBAL_ID},
-                Message.F_GROUP_ID + " = " + chatId, null, null, null, Message.F_DATE + " ASC", "1");
+                Message.F_GROUP_ID + " = " + chatId + " AND " + Message.F_GLOBAL_ID + " >= 0", null, null, null, Message.F_DATE + " ASC", "1");
         cursor.moveToFirst();
         long id;
         if (cursor.isAfterLast()) {

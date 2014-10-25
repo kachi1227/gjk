@@ -59,7 +59,6 @@ import org.json.JSONObject;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
@@ -77,14 +76,6 @@ import static com.gjk.Constants.ALL_MEMBER_IDS;
 import static com.gjk.Constants.BACKGROUND_ACTION;
 import static com.gjk.Constants.CAMERA_REQUEST;
 import static com.gjk.Constants.CAN_FETCH_MORE_MESSAGES;
-import static com.gjk.Constants.CREATE_CONVO_REQUEST;
-import static com.gjk.Constants.DELETE_CHAT_REQUEST;
-import static com.gjk.Constants.DELETE_CONVO_REQUEST;
-import static com.gjk.Constants.GET_USERS_BY_PHONE_NUMBERS_RESPONSE;
-import static com.gjk.Constants.LOGIN_REQUEST;
-import static com.gjk.Constants.REMOVE_CHAT_MEMBERS_REQUEST;
-import static com.gjk.Constants.REMOVE_CONVO_MEMBERS_REQUEST;
-import static com.gjk.Constants.UI_ACTION;
 import static com.gjk.Constants.CHAT_CONTEXT_MENU_ID;
 import static com.gjk.Constants.CONVO_CONTEXT_MENU_ID;
 import static com.gjk.Constants.CONVO_ID;
@@ -92,8 +83,11 @@ import static com.gjk.Constants.CONVO_NAME;
 import static com.gjk.Constants.CONVO_TYPE;
 import static com.gjk.Constants.CONVO_UPDATE_RESPONSE;
 import static com.gjk.Constants.CREATE_CHAT_REQUEST;
+import static com.gjk.Constants.CREATE_CONVO_REQUEST;
 import static com.gjk.Constants.CREATE_CONVO_RESPONSE;
+import static com.gjk.Constants.DELETE_CHAT_REQUEST;
 import static com.gjk.Constants.DELETE_CHAT_RESPONSE;
+import static com.gjk.Constants.DELETE_CONVO_REQUEST;
 import static com.gjk.Constants.DELETE_CONVO_RESPONSE;
 import static com.gjk.Constants.EMAIL;
 import static com.gjk.Constants.ERROR;
@@ -104,6 +98,8 @@ import static com.gjk.Constants.GALLERY_REQUEST;
 import static com.gjk.Constants.GCM_IS_TYPING;
 import static com.gjk.Constants.GCM_MESSAGE_RESPONSE;
 import static com.gjk.Constants.GET_ALL_GROUPS_RESPONSE;
+import static com.gjk.Constants.GET_USERS_BY_PHONE_NUMBERS_REQUEST;
+import static com.gjk.Constants.GET_USERS_BY_PHONE_NUMBERS_RESPONSE;
 import static com.gjk.Constants.GROUP_ID;
 import static com.gjk.Constants.GROUP_UPDATE_RESPONSE;
 import static com.gjk.Constants.IMAGE_PATH;
@@ -114,6 +110,7 @@ import static com.gjk.Constants.IS_TYPING_INTERVAL_FOR_ME;
 import static com.gjk.Constants.IS_TYPING_INTERVAL_FOR_SOMEONE_ELSE;
 import static com.gjk.Constants.IS_TYPING_REQUEST;
 import static com.gjk.Constants.LAST_NAME;
+import static com.gjk.Constants.LOGIN_REQUEST;
 import static com.gjk.Constants.LOGIN_RESPONSE;
 import static com.gjk.Constants.LOGOUT_REQUEST;
 import static com.gjk.Constants.MANUAL;
@@ -122,16 +119,20 @@ import static com.gjk.Constants.MESSAGE;
 import static com.gjk.Constants.NUM_MESSAGES;
 import static com.gjk.Constants.OFFSCREEN_PAGE_LIMIT;
 import static com.gjk.Constants.PASSWORD;
+import static com.gjk.Constants.PHONE_NUMBERS;
 import static com.gjk.Constants.REGISTER_FACEBOOK_REQUEST;
 import static com.gjk.Constants.REGISTER_REQUEST;
 import static com.gjk.Constants.REGISTER_RESPONSE;
+import static com.gjk.Constants.REMOVE_CHAT_MEMBERS_REQUEST;
 import static com.gjk.Constants.REMOVE_CHAT_MEMBERS_RESPONSE;
+import static com.gjk.Constants.REMOVE_CONVO_MEMBERS_REQUEST;
 import static com.gjk.Constants.REMOVE_CONVO_MEMBERS_RESPONSE;
 import static com.gjk.Constants.SEND_MESSAGE_REQUEST;
 import static com.gjk.Constants.SEND_MESSAGE_RESPONSE;
 import static com.gjk.Constants.SHOW_TOAST;
 import static com.gjk.Constants.START_PROGRESS;
 import static com.gjk.Constants.STOP_PROGRESS;
+import static com.gjk.Constants.UI_ACTION;
 import static com.gjk.Constants.UNSUCCESSFUL;
 import static com.gjk.Constants.USER_ID;
 import static com.gjk.Constants.USER_NAME;
@@ -141,10 +142,10 @@ import static com.gjk.helper.DatabaseHelper.getAccountUserId;
 import static com.gjk.helper.DatabaseHelper.getFirstStoredGroup;
 import static com.gjk.helper.DatabaseHelper.getGroup;
 import static com.gjk.helper.DatabaseHelper.getGroupMember;
-import static com.gjk.helper.DatabaseHelper.getGroupMemberIds;
 import static com.gjk.helper.DatabaseHelper.getGroupMembers;
 import static com.gjk.helper.DatabaseHelper.getGroupsCursor;
-import static com.gjk.helper.DatabaseHelper.getOtherGroupMembers;
+import static com.gjk.helper.GeneralHelper.getIdsFromGroupMembers;
+import static com.gjk.helper.GeneralHelper.getPhoneNumbersFromContacts;
 
 /**
  * @author gpl
@@ -172,9 +173,8 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
 
     private ImageView mSend;
     private LoginDialog mLoginDialog;
-
     private RegisterDialog mRegDialog;
-
+    private AddChatMembersDialog mAddChatMembersDialog;
     private AlertDialog mDialog;
 
     private SettingsDialog mSettingsDialog;
@@ -284,6 +284,7 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
                                 return;
                             }
                             mChatDrawerFragment.resetUserCursor();
+                            mAddChatMembersDialog.resetUserCursor();
                             break;
 
                         case CREATE_CONVO_RESPONSE: {
@@ -416,6 +417,7 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
 
                             setSendButtonEnable(false);
                             setActivityImageState(ActivityImageState.NONE);
+                            mChatDrawerFragment.resetRefresh();
                             if (extras.getBoolean(SHOW_TOAST)) {
                                 GeneralHelper.reportMessage(MainActivity.this, LOGTAG, extras.getString(MESSAGE), true);
                             } else {
@@ -509,6 +511,7 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
         mLoginDialog = new LoginDialog();
         mRegDialog = new RegisterDialog();
         mSettingsDialog = new SettingsDialog();
+        mAddChatMembersDialog = new AddChatMembersDialog();
 
         mViewPager = (ViewPager) findViewById(R.id.pager);
         mViewPager.setOffscreenPageLimit(OFFSCREEN_PAGE_LIMIT);
@@ -677,7 +680,7 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
     public boolean onContextItemSelected(MenuItem item) {
         AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo) item.getMenuInfo();
         if (item.getGroupId() == CHAT_CONTEXT_MENU_ID) {
-            Cursor c = mChatDrawerFragment.getItem(info.position);
+            Cursor c = mChatDrawerFragment.getItem(info.position - 1);
             long groupId = c.getLong(c.getColumnIndex(Group.F_GLOBAL_ID));
             return handleChatClicked(item.getTitle(), groupId);
         } else if (item.getGroupId() == CONVO_CONTEXT_MENU_ID) {
@@ -714,7 +717,7 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
         b.putInt(CONVO_TYPE, dialog.getConvoType().getValue());
         b.putString(CONVO_NAME, dialog.getConvoName());
         b.putLongArray(MEMBER_IDS, dialog.getSelectedIds());
-        b.putLongArray(ALL_MEMBER_IDS, mConvoDrawerFragment.getMainConvo().getOtherMemberIds());
+        b.putLongArray(ALL_MEMBER_IDS, getIdsFromGroupMembers(mConvoDrawerFragment.getMainConvo().getOtherMembers()));
         sendBackgroundRequest(b);
     }
 
@@ -756,7 +759,7 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
         b.putLong(CONVO_ID, dialog.getConvoId());
         b.putInt(CONVO_TYPE, dialog.getConvoType().getValue());
         b.putLongArray(MEMBER_IDS, dialog.getSelectedIds());
-        b.putLongArray(ALL_MEMBER_IDS, mConvoDrawerFragment.getFrag(dialog.getConvoId()).getOtherMemberIds());
+        b.putLongArray(ALL_MEMBER_IDS, getIdsFromGroupMembers(mConvoDrawerFragment.getMainConvo().getOtherMembers()));
         sendBackgroundRequest(b);
     }
 
@@ -769,7 +772,7 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
         b.putLong(CONVO_ID, dialog.getConvoId());
         b.putInt(CONVO_TYPE, dialog.getConvoType().getValue());
         b.putLongArray(MEMBER_IDS, dialog.getSelectedIds());
-        b.putLongArray(ALL_MEMBER_IDS, mConvoDrawerFragment.getFrag(dialog.getConvoId()).getOtherMemberIds());
+        b.putLongArray(ALL_MEMBER_IDS, getIdsFromGroupMembers(mConvoDrawerFragment.getMainConvo().getOtherMembers()));
         sendBackgroundRequest(b);
     }
 
@@ -984,6 +987,13 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
         finalizeToggleConvo();
     }
 
+    protected void findElligibleChassipUsers() {
+        final Bundle b = new Bundle();
+        b.putString(INTENT_TYPE, GET_USERS_BY_PHONE_NUMBERS_REQUEST);
+        b.putStringArray(PHONE_NUMBERS, getPhoneNumbersFromContacts(this));
+        sendBackgroundRequest(b);
+    }
+
     private void resetIsTypingField() {
         mWhosTpying.setText(getResources().getString(R.string.is_typing_holder));
     }
@@ -1038,7 +1048,7 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
             if (availableMembers.isEmpty()) {
                 Toast.makeText(this, "No one to add!", Toast.LENGTH_SHORT).show();
             } else {
-                showAddConvoMembersDialog(groupId, convoId, convoType, availableMembers.toArray(new GroupMember[availableMembers.size()]));
+                showAddConvoMembersDialog(groupId, convoId, convoType, otherConvoMembersArry);
             }
         } else if (title.equals(Constants.CONVO_DRAWER_REMOVE_SIDE_CONVO_MEMBERS) || title.equals(Constants.CONVO_DRAWER_REMOVE_WHISPER_MEMBERS)) {
             showRemoveConvoMembersDialog(groupId, convoId, convoType, otherConvoMembersArry);
@@ -1198,23 +1208,14 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
     }
 
     private void showAddChatMembersDialog(long groupId) {
-        final AddChatMembersDialog d = new AddChatMembersDialog();
-        final Set<Long> memberIds = Sets.newHashSet(GeneralHelper.convertLong(getGroupMemberIds
-                (groupId)));
-        final Set<Long> allPossibleIds = Sets.newHashSet(Arrays.asList(3l, 6l, 8l, 9l, 23l)); //TODO: TEMPORARY!!!!
-        final Set<Long> availalbleIds = Sets.difference(allPossibleIds, memberIds);
-        if (availalbleIds.isEmpty()) {
-            Toast.makeText(this, "No one to add!", Toast.LENGTH_SHORT).show();
-        } else {
-            final GroupMember[] gms = getGroupMembers(GeneralHelper.convertLong(availalbleIds.toArray(new Long[availalbleIds.size()])));
-            d.setGroupId(groupId).setGroupMembers(gms);
-            d.show(getSupportFragmentManager(), "AddChatMembersDialog");
-        }
+        findElligibleChassipUsers();
+        mAddChatMembersDialog.setGroupId(groupId);
+        mAddChatMembersDialog.show(getSupportFragmentManager(), "AddChatMembersDialog");
     }
 
     private void showRemoveChatMembersDialog(long groupId) {
         RemoveChatMembersDialog d = new RemoveChatMembersDialog();
-        d.setGroupId(groupId).setGroupMembers(getOtherGroupMembers(groupId));
+        d.setGroupId(groupId);
         d.show(getSupportFragmentManager(), "RemoveChatMembersDialog");
     }
 
@@ -1226,7 +1227,7 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
 
     private void showAddConvoMembersDialog(long groupId, long convoId, ConvoType convoType, GroupMember[] groupMembers) {
         AddConvoMembersDialog d = new AddConvoMembersDialog();
-        d.setGroupId(groupId).setConvoId(convoId).setConvoType(convoType).setGroupMembers(groupMembers);
+        d.setGroupId(groupId).setConvoId(convoId).setConvoType(convoType).setConvoMembers(groupMembers);
         d.show(getSupportFragmentManager(), "AddConvoMembersDialog");
     }
 
@@ -1617,7 +1618,7 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
                 b.putLong(CONVO_ID, frag.getConvoId());
                 b.putInt(CONVO_TYPE, frag.getConvoType().getValue());
                 b.putLongArray(MEMBER_IDS, members);
-                b.putLongArray(ALL_MEMBER_IDS, frag.getOtherMemberIds());
+                b.putLongArray(ALL_MEMBER_IDS, getIdsFromGroupMembers(frag.getOtherMembers()));
                 sendBackgroundRequest(b);
             }
         }

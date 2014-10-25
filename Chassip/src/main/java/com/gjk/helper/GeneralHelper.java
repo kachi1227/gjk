@@ -13,6 +13,7 @@ import android.widget.Toast;
 import com.facebook.Session;
 import com.gjk.Application;
 import com.gjk.Constants;
+import com.gjk.database.objects.GroupMember;
 import com.google.common.collect.Sets;
 import com.google.i18n.phonenumbers.NumberParseException;
 import com.google.i18n.phonenumbers.PhoneNumberUtil;
@@ -187,11 +188,24 @@ public final class GeneralHelper {
         set1.addAll(Arrays.asList(convertLong(array1)));
         final Set<Long> set2 = new HashSet<Long>();
         set2.addAll(Arrays.asList(convertLong(array2)));
-        final Set<Long> diffSet = Sets.difference(set2, set1);
+        final Set<Long> diffSet = Sets.difference(set1, set2);
         final Long[] diffArray = diffSet.toArray(new Long[diffSet.size()]);
         return convertLong(diffArray);
     }
 
+    public static long[] getIdsFromGroupMembers(Set<GroupMember> members) {
+        return getIdsFromGroupMembers(members.toArray(new GroupMember[members.size()]));
+    }
+
+    public static long[] getIdsFromGroupMembers(GroupMember[] members) {
+        final long[] ids = new long[members.length];
+        int i = 0;
+        for (GroupMember gm : members) {
+            ids[i] = gm.getGlobalId();
+            i++;
+        }
+        return ids;
+    }
 
     public static long[] getConvoIds(String convoString) {
         final JSONObject convos = splitConvos(convoString);

@@ -58,6 +58,8 @@ public class MessagesAdapter extends CursorAdapter {
 
     private void buildView(View view, Cursor cursor) {
 
+        final Message messageObj = DatabaseHelper.getMessage(cursor);
+
         final RelativeLayout row = (RelativeLayout) view.findViewById(R.id.messageLayout);
         final TextView userName = (TextView) view.findViewById(R.id.userName);
         final TextView message = (TextView) view.findViewById(R.id.message);
@@ -65,11 +67,10 @@ public class MessagesAdapter extends CursorAdapter {
         final TextView headerDate = (TextView) view.findViewById(R.id.headerDate);
         final TextView footerDate = (TextView) view.findViewById(R.id.footerDate);
 
-        final String thisD = String.valueOf(DateFormat.format("yyyyMMdd", cursor.getLong(cursor.getColumnIndex
-                (Message.F_DATE))));
+        final String thisD = String.valueOf(DateFormat.format("yyyyMMdd", messageObj.getDate()));
         if (cursor.isFirst()) { // first message
             headerDate.setVisibility(View.VISIBLE);
-            headerDate.setText(convertDateToStr(cursor.getLong(cursor.getColumnIndex(Message.F_DATE)), true));
+            headerDate.setText(convertDateToStr(messageObj.getDate(), true));
             footerDate.setVisibility(View.GONE);
             if (cursor.getCount() > 1) {
                 cursor.moveToNext();
@@ -80,7 +81,7 @@ public class MessagesAdapter extends CursorAdapter {
                     footerDate.setVisibility(View.GONE);
                 } else {
                     footerDate.setVisibility(View.VISIBLE);
-                    footerDate.setText(convertDateToStr(cursor.getLong(cursor.getColumnIndex(Message.F_DATE)), false));
+                    footerDate.setText(convertDateToStr(messageObj.getDate(), false));
                 }
             }
         } else if (cursor.getPosition() < getCount()) { // any message but the first
@@ -92,7 +93,7 @@ public class MessagesAdapter extends CursorAdapter {
                 headerDate.setVisibility(View.GONE);
             } else {
                 headerDate.setVisibility(View.VISIBLE);
-                headerDate.setText(convertDateToStr(cursor.getLong(cursor.getColumnIndex(Message.F_DATE)), true));
+                headerDate.setText(convertDateToStr(messageObj.getDate(), true));
             }
             if (!cursor.isLast()) { // not the first or last message
                 cursor.moveToNext();
@@ -103,7 +104,7 @@ public class MessagesAdapter extends CursorAdapter {
                     footerDate.setVisibility(View.GONE);
                 } else {
                     footerDate.setVisibility(View.VISIBLE);
-                    footerDate.setText(convertDateToStr(cursor.getLong(cursor.getColumnIndex(Message.F_DATE)), false));
+                    footerDate.setText(convertDateToStr(messageObj.getDate(), false));
                 }
             } else { // the last message
                 String currDate = String.valueOf(DateFormat.format("yyyyMMdd", System.currentTimeMillis()));
@@ -111,27 +112,31 @@ public class MessagesAdapter extends CursorAdapter {
                     footerDate.setVisibility(View.GONE);
                 } else {
                     footerDate.setVisibility(View.VISIBLE);
-                    footerDate.setText(convertDateToStr(cursor.getLong(cursor.getColumnIndex(Message.F_DATE)), false));
+                    footerDate.setText(convertDateToStr(messageObj.getDate(), false));
                 }
             }
         }
 
-        if (cursor.getLong(cursor.getColumnIndex(Message.F_SENDER_ID)) == DatabaseHelper.getAccountUserId()) {
+        if (messageObj.getSenderId() == DatabaseHelper.getAccountUserId()) {
             row.setBackgroundColor(mA.getResources().getColor(R.color.ivory));
         } else {
             row.setBackgroundColor(mA.getResources().getColor(R.color.ghostwhite));
         }
-        String name = String.format(Locale.getDefault(), "%s %s", cursor.getString(cursor.getColumnIndex(Message
-                .F_SENDER_FIRST_NAME)), cursor.getString(cursor.getColumnIndex(Message
-                .F_SENDER_LAST_NAME)));
+        String name = String.format(Locale.getDefault(), "%s %s", messageObj.getSenderFirstName(),
+                messageObj.getSenderLastName());
         userName.setText(name);
-        message.setText(cursor.getString(cursor.getColumnIndex(Message.F_CONTENT)));
+        message.setText(messageObj.getContent());
         Linkify.addLinks(message, Linkify.ALL);
-        if (cursor.getColumnIndex(Message.F_GLOBAL_ID) > 0) {
-            
+        if (messageObj.getGlobalId() > 0) {
+            time.setText(convertTimeToStr(messageObj.getDate()));
+        } else  {
+            if (messageObj.getWasSuccessful() == 1) {
+                time.setText("Sending...");
+            } else {
+                time.setText("Failed");
+                row.setBackgroundColor(mA.getResources().getColor(R.color.mistyrose));
+            }
         }
-        time.setText(cursor.getInt(cursor.getColumnIndex(Message.F_GLOBAL_ID)) > 0 ? convertTimeToStr(cursor.getLong
-                (cursor.getColumnIndex(Message.F_DATE))) : "Sending...");
         int color = getColor(cursor.getInt(cursor.getColumnIndex(Message.F_MESSAGE_TYPE_ID)),
                 cursor.getLong(cursor.getColumnIndex(Message.F_TABLE_ID)));
         userName.setTextColor(mA.getResources().getColor(color));
@@ -143,8 +148,8 @@ public class MessagesAdapter extends CursorAdapter {
         CacheImageView attachment = (CacheImageView) view.findViewById(R.id.attachment);
         RecyclingImageView attachment2 = (RecyclingImageView) view.findViewById(R.id.attachment2);
 
-        final String senderImageUrl = cursor.getString(cursor.getColumnIndex(Message.F_SENDER_IMAGE_URL));
-        final String attachmentUrl = cursor.getString(cursor.getColumnIndex(Message.F_ATTACHMENT));
+        final String senderImageUrl = messageObj.getSenderImageUrl();
+        final String attachmentUrl = messageObj.getAttachments();
         if (GeneralHelper.getKachisCachePref()) {
             avi2.setVisibility(View.INVISIBLE);
             avi.setVisibility(View.VISIBLE);
@@ -158,7 +163,7 @@ public class MessagesAdapter extends CursorAdapter {
                     ImageViewerFragment imgFrag = new ImageViewerFragment();
                     imgFrag.setArguments(args);
                     FragmentTransaction transaction = mFm.beginTransaction();
-                    transaction.add(R.id.drawer_layout,imgFrag, "imgFrag");
+                    transaction.add(R.id.drawer_layout, imgFrag, "imgFrag");
                     transaction.addToBackStack("imgFrag");
                     transaction.commit();
                 }
@@ -178,15 +183,15 @@ public class MessagesAdapter extends CursorAdapter {
                         //Toast.makeText(mA, "IMAGETOVIEW", Toast.LENGTH_LONG).show();
                         Log.d(LOGTAG, "IMAGETOVIEW");
                         Bundle args = new Bundle();
-                        args.putString("imgUrl",attachmentUrl);
+                        args.putString("imgUrl", attachmentUrl);
                         ImageViewerFragment imgFrag = new ImageViewerFragment();
                         imgFrag.setArguments(args);
                         FragmentTransaction transaction = mFm.beginTransaction();
-                        transaction.add(R.id.drawer_layout,imgFrag, "imgFrag");
+                        transaction.add(R.id.drawer_layout, imgFrag, "imgFrag");
                         transaction.addToBackStack("imgFrag");
                         transaction.commit();
-                     }
-                 });
+                    }
+                });
 
 
             }
@@ -203,7 +208,7 @@ public class MessagesAdapter extends CursorAdapter {
                     ImageViewerFragment imgFrag = new ImageViewerFragment();
                     imgFrag.setArguments(args);
                     FragmentTransaction transaction = mFm.beginTransaction();
-                    transaction.add(R.id.drawer_layout,imgFrag, "imgFrag");
+                    transaction.add(R.id.drawer_layout, imgFrag, "imgFrag");
                     transaction.addToBackStack("imgFrag");
                     transaction.commit();
                 }
@@ -223,11 +228,11 @@ public class MessagesAdapter extends CursorAdapter {
                         //Toast.makeText(mA, "IMAGETOVIEW", Toast.LENGTH_LONG).show();
                         Log.d(LOGTAG, "IMAGETOVIEW");
                         Bundle args = new Bundle();
-                        args.putString("imgUrl",attachmentUrl);
+                        args.putString("imgUrl", attachmentUrl);
                         ImageViewerFragment imgFrag = new ImageViewerFragment();
                         imgFrag.setArguments(args);
                         FragmentTransaction transaction = mFm.beginTransaction();
-                        transaction.add(R.id.drawer_layout,imgFrag, "imgFrag");
+                        transaction.add(R.id.drawer_layout, imgFrag, "imgFrag");
                         transaction.addToBackStack("imgFrag");
                         transaction.commit();
                     }

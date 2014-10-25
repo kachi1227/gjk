@@ -5,6 +5,7 @@ import android.content.Context;
 import com.gjk.Application;
 import com.gjk.Constants;
 import com.gjk.R;
+import com.gjk.helper.GeneralHelper;
 import com.gjk.net.MiluHttpRequest.DBHttpUploadFile;
 
 import org.apache.http.protocol.HTTP;
@@ -84,7 +85,7 @@ public abstract class MiluHTTPTask extends HTTPTask {
             //	mListener.onTaskComplete(new TaskResult(this, TaskResult.RC_FAILURE, mCtx.getString(R.string.error_no_connection) , null));
 
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            GeneralHelper.reportMessage(mCtx, "MiluHttpTask", e.getMessage(), true);
         }
     }
 

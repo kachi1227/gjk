@@ -6,22 +6,28 @@ import android.app.Dialog;
 import android.content.DialogInterface;
 import android.os.Bundle;
 import android.support.v4.app.DialogFragment;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ListView;
 
-import com.gjk.database.objects.GroupMember;
 import com.gjk.helper.GeneralHelper;
-import com.google.common.collect.Lists;
+import com.gjk.helper.ViewHelper;
+import com.google.common.collect.Sets;
 
-import java.util.List;
+import java.util.Set;
+
+import static com.gjk.helper.DatabaseHelper.getOtherGroupMembersCursor;
+import static com.gjk.helper.ViewHelper.resetUserListView;
 
 public class RemoveChatMembersDialog extends DialogFragment {
 
-    private static final String LOGTAG = "AddChatMembersDialog";
+    private static final String LOGTAG = "RemoveChatMembersDialog";
+
+    private ListView mUsers;
 
     private long mGroupId;
-    private GroupMember[] mGroupMembers;
-    private List<Long> mSelectedMembers;
+    private Set<Long> mSelectedIds = Sets.newHashSet();
 
     /*
      * The activity that creates an instance of this dialog fragment must implement this interface in order to receive
@@ -60,7 +66,7 @@ public class RemoveChatMembersDialog extends DialogFragment {
                 positiveButton.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        if (mSelectedMembers != null && mSelectedMembers.size() > 0) {
+                        if (mSelectedIds != null && mSelectedIds.size() > 0) {
                             mListener.onRemoveChatMembersDialogPositiveClick(RemoveChatMembersDialog.this);
                             RemoveChatMembersDialog.this.dismiss();
                         }
@@ -74,30 +80,16 @@ public class RemoveChatMembersDialog extends DialogFragment {
     public Dialog onCreateDialog(Bundle savedInstanceState) {
 
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+        // Get the layout inflater
+        LayoutInflater inflater = getActivity().getLayoutInflater();
+        View view = inflater.inflate(R.layout.remove_chat_members_dialog, null);
 
-        final String[] array = new String[mGroupMembers.length];
-        for (int i = 0; i < mGroupMembers.length; i++) {
-            array[i] = mGroupMembers[i].getFullName();
-        }
-        mSelectedMembers = Lists.newArrayList();
-        builder.setTitle(R.string.remove_members_from_chat_title)
-                // Specify the list array, the items to be selected by default (null for none),
-                // and the listener through which to receive callbacks when items are selected
-                .setMultiChoiceItems(array, null,
-                        new DialogInterface.OnMultiChoiceClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialog, int which, boolean isChecked) {
-                                GroupMember gm = mGroupMembers[which];
-                                if (isChecked) {
-                                    // If the user checked the item, add it to the selected items
-                                    mSelectedMembers.add(gm.getGlobalId());
-                                } else if (mSelectedMembers.contains(gm.getGlobalId())) {
-                                    // Else, if the item is already in the array, remove it
-                                    mSelectedMembers.remove(gm.getGlobalId());
-                                }
-                            }
-                        })
-                        // Set the action buttons
+        mUsers = (ListView) view.findViewById(R.id.removeChatMembersListView);
+        resetUserCursor();
+
+        // Inflate and set the layout for the dialog
+        // Pass null as the parent view because its going in the dialog layout
+        builder.setView(view).setTitle(R.string.remove_members_from_chat_title)
                 .setPositiveButton(R.string.ok, new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int id) {
@@ -133,12 +125,20 @@ public class RemoveChatMembersDialog extends DialogFragment {
         return this;
     }
 
-    public RemoveChatMembersDialog setGroupMembers(GroupMember[] groupMembers) {
-        mGroupMembers = groupMembers;
-        return this;
+    public long[] getSelectedIds() {
+        return GeneralHelper.convertLong(mSelectedIds.toArray(new Long[mSelectedIds.size()]));
     }
 
-    public long[] getSelectedIds() {
-        return GeneralHelper.convertLong(mSelectedMembers.toArray(new Long[mSelectedMembers.size()]));
+    public void resetUserCursor() {
+        resetUserListView(getActivity(), getOtherGroupMembersCursor(mGroupId), mUsers, new ViewHelper.Checker() {
+            @Override
+            public void checkHasChanged(long id, boolean isChecked) {
+                if (isChecked) {
+                    mSelectedIds.add(id);
+                } else {
+                    mSelectedIds.remove(id);
+                }
+            }
+        });
     }
 }

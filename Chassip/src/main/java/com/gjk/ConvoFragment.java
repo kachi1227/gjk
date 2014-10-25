@@ -77,7 +77,6 @@ public class ConvoFragment extends ListFragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         mView = inflater.inflate(R.layout.message_list, null);
-        mViewIsCreated = true;
         return mView;
     }
 
@@ -85,6 +84,7 @@ public class ConvoFragment extends ListFragment {
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
         setAdapter();
+        mViewIsCreated = true;
         scrollToBottom();
         if (getConvoType() != ConvoType.MAIN_CHAT) {
             final Bundle b = new Bundle();
@@ -217,17 +217,6 @@ public class ConvoFragment extends ListFragment {
             }
         }
         return others;
-    }
-
-
-    public long[] getOtherMemberIds() {
-        final long[] ids = new long[getOtherMembers().size()];
-        int i = 0;
-        for (GroupMember gm : getOtherMembers()) {
-            ids[i] = gm.getGlobalId();
-            i++;
-        }
-        return ids;
     }
 
     private void scrollToBottom() {

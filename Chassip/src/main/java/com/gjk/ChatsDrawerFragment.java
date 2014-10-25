@@ -36,19 +36,16 @@ import static com.gjk.Constants.CHAT_CONTEXT_MENU_ID;
 import static com.gjk.Constants.CHAT_DRAWER_ADD_CHAT_MEMBERS;
 import static com.gjk.Constants.CHAT_DRAWER_DELETE_CHAT;
 import static com.gjk.Constants.CHAT_DRAWER_REMOVE_CHAT_MEMBERS;
-import static com.gjk.Constants.GET_USERS_BY_PHONE_NUMBERS_REQUEST;
 import static com.gjk.Constants.INTENT_TYPE;
 import static com.gjk.Constants.MANUAL;
 import static com.gjk.Constants.MANUAL_UPDATE_REQUEST;
-import static com.gjk.Constants.PHONE_NUMBERS;
-import static com.gjk.helper.GeneralHelper.getPhoneNumbersFromContacts;
 
 /**
  * @author gpl
  */
 public class ChatsDrawerFragment extends Fragment implements UpdatebaleListView.Boom {
 
-    private static final int HEADER_HEIGHT = 100;
+    private static final int HEADER_HEIGHT = 50;
     private static final int STATE_PULL_TO_REFRESH = 1;
     private static final int STATE_RELEASE_TO_UPDATE = 2;
     private static final int HEADER_TOP = 0;
@@ -86,10 +83,7 @@ public class ChatsDrawerFragment extends Fragment implements UpdatebaleListView.
                     mCreateChatDialog = new CreateChatDialog();
                 }
                 mCreateChatDialog.show(getActivity().getSupportFragmentManager(), "CreateChatDialog");
-                final Bundle b = new Bundle();
-                b.putString(INTENT_TYPE, GET_USERS_BY_PHONE_NUMBERS_REQUEST);
-                b.putStringArray(PHONE_NUMBERS, getPhoneNumbersFromContacts(getActivity()));
-                ((MainActivity)getActivity()).sendBackgroundRequest(b);
+                ((MainActivity)getActivity()).findElligibleChassipUsers();
             }
         });
         final View header = inflater.inflate(R.layout.chats_list_header, mChatsList, false);

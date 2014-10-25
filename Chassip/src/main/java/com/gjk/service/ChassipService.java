@@ -1094,7 +1094,28 @@ public class ChassipService extends IntentService {
             reportError(e.getMessage(), true);
             return;
         }
-        if (extras.containsKey(IMAGE_PATH)) {
+        if (!extras.containsKey(IMAGE_PATH)) {
+            new SendMessageTask(getApplicationContext(), new HTTPTask.HTTPTaskListener() {
+                @Override
+                public void onTaskComplete(TaskResult result) {
+                    if (result.getResponseCode() == 1) {
+                        m.delete();
+                        fetchMostRecentGroupMessages(groupId, new FetchGroupMessagesAction() {
+                            @Override
+                            public void doThis(List<Message> messages) {
+                                updateUiForMessages(groupId, messages.size());
+                            }
+                        });
+                        notifyGroupOfMessage(groupId);
+                    } else {
+                        m.setWasSuccessful(0);
+                        m.save();
+                        updateUiForMessages(groupId, 0);
+                        reportUnsuccess(result.getMessage(), false);
+                    }
+                }
+            }, getAccountUserId(), groupId, convoType, convoId, message);
+        } else {
             HashMap<String, Object> fieldMapping = Maps.newHashMap();
             File f = new File(extras.getString(IMAGE_PATH));
             if (f.exists()) {
@@ -1116,30 +1137,11 @@ public class ChassipService extends IntentService {
                     } else {
                         m.setWasSuccessful(0);
                         m.save();
+                        updateUiForMessages(groupId, 0);
                         reportUnsuccess(result.getMessage(), false);
                     }
                 }
             }, getAccountUserId(), groupId, convoType, convoId, message, fieldMapping);
-        } else {
-            new SendMessageTask(getApplicationContext(), new HTTPTask.HTTPTaskListener() {
-                @Override
-                public void onTaskComplete(TaskResult result) {
-                    if (result.getResponseCode() == 1) {
-                        m.delete();
-                        fetchMostRecentGroupMessages(groupId, new FetchGroupMessagesAction() {
-                            @Override
-                            public void doThis(List<Message> messages) {
-                                updateUiForMessages(groupId, messages.size());
-                            }
-                        });
-                        notifyGroupOfMessage(groupId);
-                    } else {
-                        m.setWasSuccessful(0);
-                        m.save();
-                        reportUnsuccess(result.getMessage(), false);
-                    }
-                }
-            }, getAccountUserId(), groupId, convoType, convoId, message);
         }
     }
 
@@ -1385,7 +1387,7 @@ public class ChassipService extends IntentService {
                 moreExtras.putLong(GROUP_ID, groupId);
                 moreExtras.putLongArray(MEMBER_IDS, memberIds);
                 updateUiForAddChatMembers(moreExtras);
-                final long[] newMembers = GeneralHelper.diff(previousMemberIds, memberIds);
+                final long[] newMembers = GeneralHelper.diff(memberIds, previousMemberIds);
                 notifyUserOfNewGroupMember(g, newMembers);
             }
         } catch (Exception e) {

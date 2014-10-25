@@ -9,26 +9,31 @@ import android.support.v4.app.DialogFragment;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
-import android.widget.CheckBox;
 import android.widget.EditText;
+import android.widget.ListView;
 import android.widget.RadioButton;
 
-import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
-import java.util.List;
+import java.util.Set;
+
+import static com.gjk.helper.DatabaseHelper.getOtherGroupMembersCursor;
+import static com.gjk.helper.GeneralHelper.convertLong;
+import static com.gjk.helper.ViewHelper.Checker;
+import static com.gjk.helper.ViewHelper.resetUserListView;
 
 public class CreateConvoDialog extends DialogFragment {
 
     private static final String LOGTAG = "CreateConvoDialog";
 
+    private ListView mUsers;
     private RadioButton mSideConvo;
     private RadioButton mWhisper;
     private EditText mConvoName;
-    private CheckBox mGreg;
-    private CheckBox mGreg2;
-    private CheckBox mGreg3;
-    private CheckBox mJeff;
-    private CheckBox mKach;
+
+    private long mGroupId;
+
+    private Set<Long> mSelectedIds = Sets.newHashSet();
 
     /*
      * The activity that creates an instance of this dialog fragment must implement this interface in order to receive
@@ -102,6 +107,8 @@ public class CreateConvoDialog extends DialogFragment {
             }
         });
         mConvoName = (EditText) view.findViewById(R.id.convoName);
+        mUsers = (ListView) view.findViewById(R.id.createConvoChatMembersListView);
+        resetCursor();
 
         // Inflate and set the layout for the dialog
         // Pass null as the parent view because its going in the dialog layout
@@ -133,6 +140,15 @@ public class CreateConvoDialog extends DialogFragment {
         super.onPause();
     }
 
+    public long getGroupId() {
+        return mGroupId;
+    }
+
+    public CreateConvoDialog setGroupId(long groupId) {
+        this.mGroupId = groupId;
+        return this;
+    }
+
     public ConvoType getConvoType() {
         if (mSideConvo.isChecked()) {
             return ConvoType.SIDE_CONVO;
@@ -141,27 +157,7 @@ public class CreateConvoDialog extends DialogFragment {
     }
 
     public long[] getSelectedIds() {
-        List<Long> ids = Lists.newArrayList();
-        if (mGreg.isChecked()) {
-            ids.add(3l);
-        }
-        if (mGreg2.isChecked()) {
-            ids.add(9l);
-        }
-        if (mGreg3.isChecked()) {
-            ids.add(23l);
-        }
-        if (mJeff.isChecked()) {
-            ids.add(6l);
-        }
-        if (mKach.isChecked()) {
-            ids.add(8l);
-        }
-        long[] primitveIds = new long[ids.size()];
-        for (int i = 0; i < ids.size(); i++) {
-            primitveIds[i] = ids.get(i);
-        }
-        return primitveIds;
+        return convertLong(mSelectedIds.toArray(new Long[mSelectedIds.size()]));
     }
 
     public String getConvoName() {
@@ -169,7 +165,19 @@ public class CreateConvoDialog extends DialogFragment {
     }
 
     private boolean isCreateConvoReady() {
-        return (mGreg.isChecked() || mGreg2.isChecked() || mGreg3.isChecked() || mJeff.isChecked() || mKach.isChecked())
-                && !mConvoName.getText().toString().isEmpty();
+        return !mSelectedIds.isEmpty() || !mConvoName.getText().toString().isEmpty();
+    }
+
+    public void resetCursor() {
+        resetUserListView(getActivity(), getOtherGroupMembersCursor(mGroupId), mUsers, new Checker() {
+            @Override
+            public void checkHasChanged(long id, boolean isChecked) {
+                if (isChecked) {
+                    mSelectedIds.add(id);
+                } else {
+                    mSelectedIds.remove(id);
+                }
+            }
+        });
     }
 }

@@ -156,7 +156,6 @@ public abstract class BaseMessage extends PersistentObject {
             throw new PersistentObjectHydrateException(ERROR_MSG_CLOSED_CURSOR);
         }
 
-
         try {
             setId(c.getLong(c.getColumnIndexOrThrow(F_ID)));
         } catch (Exception e) {

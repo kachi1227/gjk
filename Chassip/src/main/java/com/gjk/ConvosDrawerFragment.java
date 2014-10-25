@@ -61,7 +61,8 @@ public class ConvosDrawerFragment extends Fragment {
         mCreateConvo.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                new CreateConvoDialog().show(getActivity().getSupportFragmentManager(), "CreateConvoDialog");
+                new CreateConvoDialog().setGroupId(Application.get().getCurrentChat().getGlobalId())
+                        .show(getActivity().getSupportFragmentManager(), "CreateConvoDialog");
             }
         });
         return view;
