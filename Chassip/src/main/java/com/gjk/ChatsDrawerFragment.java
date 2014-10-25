@@ -45,7 +45,7 @@ import static com.gjk.Constants.MANUAL_UPDATE_REQUEST;
  */
 public class ChatsDrawerFragment extends Fragment implements UpdatebaleListView.Boom {
 
-    private static final int HEADER_HEIGHT = 50;
+    private static final int HEADER_HEIGHT = 100;
     private static final int STATE_PULL_TO_REFRESH = 1;
     private static final int STATE_RELEASE_TO_UPDATE = 2;
     private static final int HEADER_TOP = 0;
