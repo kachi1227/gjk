@@ -604,7 +604,7 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
             }
         } else {
 
-            if (Application.get().appIsUpdated()) {
+            if (Application.get().databaseIsUpdated()) {
                 logout();
                 return;
             }
