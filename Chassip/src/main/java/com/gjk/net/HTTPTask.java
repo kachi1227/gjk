@@ -10,10 +10,12 @@ import com.gjk.net.MiluHttpRequest.DBHttpResponse;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.UUID;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
+
 
 abstract public class HTTPTask implements DBHttpRequestCompleteListener, Task {
-
-    public static final int MAX_FAILURES = 1;
 
     private static final String TAG = "ApiTask";
 
@@ -28,12 +30,14 @@ abstract public class HTTPTask implements DBHttpRequestCompleteListener, Task {
     protected MiluHttpRequest mRequest;
     protected int mRequestCode;
     protected TaskResult mResult;
+    private String mId;
 
     public HTTPTask(Context ctx, int requestCode, HTTPTaskListener listener) {
         mListener = listener;
         mCtx = ctx;
         mFailCount = 0;
         mRequestCode = requestCode;
+        mId = UUID.randomUUID().toString();
     }
 
 
@@ -60,7 +64,7 @@ abstract public class HTTPTask implements DBHttpRequestCompleteListener, Task {
         if (mListener != null) {
             if (mResult == null)
                 mResult = new TaskResult(this, TaskResult.RC_SUCCESS, response.getResponseText(), response);
-            Application.get().log(String.format("%s: success, message=%s", this.getClass().getSimpleName(),
+            Application.get().log(String.format("%s - %s: success, message=%s", this.getClass().getSimpleName(), mId,
                     mResult.getMessage()));
             mListener.onTaskComplete(mResult);
             //notifyUpdateListener(response);
@@ -68,27 +72,21 @@ abstract public class HTTPTask implements DBHttpRequestCompleteListener, Task {
     }
 
     public void onHttpRequestFailed(DBHttpResponse response) {
-        if (mFailCount < MAX_FAILURES) {
-            mFailCount++;
-            response.getRequest().executeAsync(this);
-        } else {
-            if (mListener != null) {
-                try {
-                    String message = getRootErrorMessage(response);
-                    if (message == null || message.equals(""))
-                        // TODO add error message
-                        //message = mApp.getString(R.string.unknown_error);
-                        if (mResult == null)
-                            mResult = createTaskResultFailed(message, null);
-                    Application.get().log(String.format("%s: failed, message=%s", this.getClass().getSimpleName(),
-                            mResult.getMessage()));
-                    mListener.onTaskComplete(mResult);
-                } catch (Throwable t) {
-                    t.printStackTrace();
-                }
+        if (mListener != null) {
+            try {
+                String message = getRootErrorMessage(response);
+                if (message == null || message.equals(""))
+                    // TODO add error message
+                    //message = mApp.getString(R.string.unknown_error);
+                    if (mResult == null)
+                        mResult = createTaskResultFailed(message, null);
+                Application.get().log(String.format("%s - %s: failed, message=%s", this.getClass().getSimpleName(), mId,
+                        mResult.getMessage()));
+                mListener.onTaskComplete(mResult);
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         }
-//		mDbManager.close();
     }
 
     protected String getRootErrorMessage(DBHttpResponse response) {
@@ -129,7 +127,7 @@ abstract public class HTTPTask implements DBHttpRequestCompleteListener, Task {
         }
     }
 
-    protected void executeWithJson(MiluHttpRequest req) {
+    protected void executeWithJson(MiluHttpRequest req) throws InterruptedException, ExecutionException, TimeoutException {
         mRequest = req;
         req.addHeader("Accept", "application/json");
         req.executeAsync(this);
@@ -152,7 +150,7 @@ abstract public class HTTPTask implements DBHttpRequestCompleteListener, Task {
         return new TaskResult(this, TaskResult.RC_FAILURE, message, e);
     }
 
-    protected void execute(MiluHttpRequest req) {
+    protected void execute(MiluHttpRequest req) throws InterruptedException, ExecutionException, TimeoutException {
         mRequest = req;
         req.executeAsync(this);
     }
@@ -163,6 +161,10 @@ abstract public class HTTPTask implements DBHttpRequestCompleteListener, Task {
 
     public boolean isTypeOfRequest(int requestCode) {
         return mRequestCode == requestCode;
+    }
+
+    public String getId() {
+        return mId;
     }
 
 	/*public static String buildUrl(String path, Object...args) {

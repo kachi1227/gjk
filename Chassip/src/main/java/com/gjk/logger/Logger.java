@@ -92,7 +92,7 @@ public class Logger {
                     final LogEntry entry = queue.take();
                     final PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(f, true)));
                     final DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
-                    out.println(String.format("%s: %s", df.format(new Date(entry.time)), entry.message));
+                    out.println(String.format("%s: %s\n", df.format(new Date(entry.time)), entry.message));
                     out.close();
                 }
             } catch (InterruptedException | IOException e) {

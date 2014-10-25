@@ -127,7 +127,10 @@ public class MessagesAdapter extends CursorAdapter {
         userName.setText(name);
         message.setText(cursor.getString(cursor.getColumnIndex(Message.F_CONTENT)));
         Linkify.addLinks(message, Linkify.ALL);
-        time.setText(cursor.getLong(cursor.getColumnIndex(Message.F_SUCCESSFUL)) == 0 ? convertTimeToStr(cursor.getLong
+        if (cursor.getColumnIndex(Message.F_GLOBAL_ID) > 0) {
+            
+        }
+        time.setText(cursor.getInt(cursor.getColumnIndex(Message.F_GLOBAL_ID)) > 0 ? convertTimeToStr(cursor.getLong
                 (cursor.getColumnIndex(Message.F_DATE))) : "Sending...");
         int color = getColor(cursor.getInt(cursor.getColumnIndex(Message.F_MESSAGE_TYPE_ID)),
                 cursor.getLong(cursor.getColumnIndex(Message.F_TABLE_ID)));

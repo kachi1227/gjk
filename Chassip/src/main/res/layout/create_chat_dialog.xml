@@ -8,7 +8,6 @@
     android:paddingTop="@dimen/list_padding"
     android:paddingBottom="@dimen/list_padding">
 
-
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -22,8 +21,6 @@
         android:inputType="text|textCapWords|textMultiLine"
         android:hint="@string/create_chat_hint"/>
 
-    <!--TEMPORARY-->
-
     <TextView
         android:paddingTop="@dimen/list_padding"
         android:layout_width="wrap_content"
@@ -31,43 +28,13 @@
         android:textAppearance="?android:attr/textAppearanceLarge"
         android:text="@string/choose_members"/>
 
-    <CheckBox
-        android:layout_width="wrap_content"
+    <ListView
+        android:id="@+id/users"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Greg"
-        android:id="@+id/greg"/>
-
-    <CheckBox
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Greg2"
-        android:id="@+id/greg2"/>
-
-    <CheckBox
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Greg3"
-        android:id="@+id/greg3"/>
-    <CheckBox
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Jeff"
-        android:id="@+id/jeff"/>
-
-    <CheckBox
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Kach"
-        android:id="@+id/kach"/>
-
-    <!--/TEMPORARY-->
-
-    <!--<Button-->
-    <!--android:layout_width="wrap_content"-->
-    <!--android:layout_height="wrap_content"-->
-    <!--android:text="@string/select_avi_group"-->
-    <!--android:id="@+id/selectAviGroup"-->
-    <!--android:layout_gravity="center_horizontal"/>-->
-
+        android:paddingTop="@dimen/small_list_padding"
+        android:layout_gravity="center_horizontal"
+        android:dividerHeight="10dp"
+        android:divider="@android:color/transparent"/>
 
 </LinearLayout>

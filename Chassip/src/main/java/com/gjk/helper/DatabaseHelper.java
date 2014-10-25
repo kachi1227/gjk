@@ -27,15 +27,28 @@ public final class DatabaseHelper {
     private final static DatabaseManager sDm = Application.get().getDatabaseManager();
 
     public static User setAccountUser(Bundle bundle) throws Exception {
-        return User.insertOrUpdate(sDm, DatabaseHelper.bundleToJson(bundle));
+        return User.insertOrUpdate(sDm, DatabaseHelper.bundleToJson(bundle), true);
     }
 
     public static User setAccountUser(JSONObject json) throws Exception {
-        return User.insertOrUpdate(sDm, json);
+        return User.insertOrUpdate(sDm, json, true);
+    }
+
+    public static User addUser(JSONObject json) throws Exception {
+        return User.insertOrUpdate(sDm, json, false);
+    }
+
+    public static List<User> addUsers(JSONArray users) throws Exception {
+        List<User> listOfUsers = Lists.newArrayList();
+        for (int i = 0; i < users.length(); i++) {
+            listOfUsers.add(addUser(users.getJSONObject(i)));
+        }
+        return listOfUsers;
     }
 
     public static User getAccountUser() {
-        Cursor cursor = sDm.getReadableDatabase().query(User.TABLE_NAME, User.ALL_COLUMN_NAMES, null, null,
+        Cursor cursor = sDm.getReadableDatabase().query(User.TABLE_NAME, User.ALL_COLUMN_NAMES,
+                User.F_IS_ACTIVE + " = " + 1, null,
                 null, null, null);
         cursor.moveToFirst();
         if (cursor.isAfterLast()) {
@@ -47,27 +60,17 @@ public final class DatabaseHelper {
         return user;
     }
 
+    public static Cursor getUsersCursor() {
+        return sDm.getReadableDatabase().query(User.TABLE_NAME, User.ALL_COLUMN_NAMES, User.F_IS_ACTIVE + " = " + 0,
+                null, null, null, null);
+    }
+
     public static Long getAccountUserId() {
-        Cursor cursor = sDm.getReadableDatabase().query(User.TABLE_NAME, new String[]{User.F_GLOBAL_ID}, null, null,
-                null, null, null);
-        cursor.moveToFirst();
-        if (cursor.isAfterLast()) {
-            cursor.close();
-            return null;
-        }
-        Long id = cursor.getLong(0);
-        cursor.close();
-        return id;
+        return getAccountUser() == null ? null : getAccountUser().getGlobalId();
     }
 
     public static String getAccountUserFullName() {
-        Cursor cursor = sDm.getReadableDatabase().query(User.TABLE_NAME,
-                new String[]{User.F_FIRST_NAME, User.F_LAST_NAME}, null, null, null, null, null);
-        cursor.moveToFirst();
-        String firstName = cursor.getString(cursor.getColumnIndex(User.F_FIRST_NAME));
-        String lastName = cursor.getString(cursor.getColumnIndex(User.F_LAST_NAME));
-        cursor.close();
-        return String.format("%s %s", firstName, lastName);
+        return getAccountUser() == null ? null : getAccountUser().getFullName();
     }
 
     public static List<Group> addGroups(JSONArray groups, boolean notify) throws Exception {
@@ -256,11 +259,15 @@ public final class DatabaseHelper {
     }
 
     public static Message addGroupMessage(JSONObject message, boolean isLast) throws Exception {
-        return messageExists(message) ? null : Message.insertOrUpdate(sDm, message, isLast);
+        return messageExists(message) ? null : Message.insertOrUpdate(sDm, message, isLast, true);
     }
 
-    public static int removeGroupMessage(long successul) {
-        return Message.deleteWhere(sDm, Message.F_SUCCESSFUL + "=" + successul);
+    public static Message addGroupMessage(JSONObject message, boolean isLast, boolean wasSuccessful) throws Exception {
+        return messageExists(message) ? null : Message.insertOrUpdate(sDm, message, isLast, wasSuccessful);
+    }
+
+    public static int removeGroupMessage(long id) {
+        return Message.deleteByGlobalId(sDm, id);
     }
 
     public static Cursor getMessagesCursor(long chatId, int limit) {

@@ -102,11 +102,6 @@ public class CreateConvoDialog extends DialogFragment {
             }
         });
         mConvoName = (EditText) view.findViewById(R.id.convoName);
-        mGreg = (CheckBox) view.findViewById(R.id.greg);
-        mGreg2 = (CheckBox) view.findViewById(R.id.greg2);
-        mGreg3 = (CheckBox) view.findViewById(R.id.greg3);
-        mJeff = (CheckBox) view.findViewById(R.id.jeff);
-        mKach = (CheckBox) view.findViewById(R.id.kach);
 
         // Inflate and set the layout for the dialog
         // Pass null as the parent view because its going in the dialog layout

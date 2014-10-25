@@ -36,9 +36,12 @@ import static com.gjk.Constants.CHAT_CONTEXT_MENU_ID;
 import static com.gjk.Constants.CHAT_DRAWER_ADD_CHAT_MEMBERS;
 import static com.gjk.Constants.CHAT_DRAWER_DELETE_CHAT;
 import static com.gjk.Constants.CHAT_DRAWER_REMOVE_CHAT_MEMBERS;
+import static com.gjk.Constants.GET_USERS_BY_PHONE_NUMBERS_REQUEST;
 import static com.gjk.Constants.INTENT_TYPE;
 import static com.gjk.Constants.MANUAL;
 import static com.gjk.Constants.MANUAL_UPDATE_REQUEST;
+import static com.gjk.Constants.PHONE_NUMBERS;
+import static com.gjk.helper.GeneralHelper.getPhoneNumbersFromContacts;
 
 /**
  * @author gpl
@@ -64,6 +67,7 @@ public class ChatsDrawerFragment extends Fragment implements UpdatebaleListView.
     private Animation rotateAnimation;
     private Animation reverseRotateAnimation;
 
+    private CreateChatDialog mCreateChatDialog;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -78,7 +82,14 @@ public class ChatsDrawerFragment extends Fragment implements UpdatebaleListView.
         mCreateChat.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                new CreateChatDialog().show(getActivity().getSupportFragmentManager(), "CreateChatDialog");
+                if (mCreateChatDialog == null || !mCreateChatDialog.isAdded()) {
+                    mCreateChatDialog = new CreateChatDialog();
+                }
+                mCreateChatDialog.show(getActivity().getSupportFragmentManager(), "CreateChatDialog");
+                final Bundle b = new Bundle();
+                b.putString(INTENT_TYPE, GET_USERS_BY_PHONE_NUMBERS_REQUEST);
+                b.putStringArray(PHONE_NUMBERS, getPhoneNumbersFromContacts(getActivity()));
+                ((MainActivity)getActivity()).sendBackgroundRequest(b);
             }
         });
         final View header = inflater.inflate(R.layout.chats_list_header, mChatsList, false);
@@ -117,6 +128,10 @@ public class ChatsDrawerFragment extends Fragment implements UpdatebaleListView.
         menu.add(CHAT_CONTEXT_MENU_ID, v.getId(), 0, CHAT_DRAWER_ADD_CHAT_MEMBERS);//groupId, itemId, order, title
         menu.add(CHAT_CONTEXT_MENU_ID, v.getId(), 1, CHAT_DRAWER_REMOVE_CHAT_MEMBERS);
         menu.add(CHAT_CONTEXT_MENU_ID, v.getId(), 2, CHAT_DRAWER_DELETE_CHAT);
+    }
+
+    public void resetUserCursor() {
+        mCreateChatDialog.resetCursor();
     }
 
     public void swapCursor(Cursor cursor) {

@@ -80,6 +80,7 @@ import static com.gjk.Constants.CAN_FETCH_MORE_MESSAGES;
 import static com.gjk.Constants.CREATE_CONVO_REQUEST;
 import static com.gjk.Constants.DELETE_CHAT_REQUEST;
 import static com.gjk.Constants.DELETE_CONVO_REQUEST;
+import static com.gjk.Constants.GET_USERS_BY_PHONE_NUMBERS_RESPONSE;
 import static com.gjk.Constants.LOGIN_REQUEST;
 import static com.gjk.Constants.REMOVE_CHAT_MEMBERS_REQUEST;
 import static com.gjk.Constants.REMOVE_CONVO_MEMBERS_REQUEST;
@@ -225,6 +226,7 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
                     Application.get().log(String.format("UI: %s, extras=%s", type, extras.toString()));
 
                     switch (type) {
+
                         case GCM_IS_TYPING:
 
                             if (Application.get().isActivityIsInBackground()) {
@@ -275,6 +277,15 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
                             }
 
                             break;
+
+                        case GET_USERS_BY_PHONE_NUMBERS_RESPONSE:
+
+                            if (mChatDrawerFragment == null) {
+                                return;
+                            }
+                            mChatDrawerFragment.resetUserCursor();
+                            break;
+
                         case CREATE_CONVO_RESPONSE: {
 
                             final long groupId = extras.getLong(GROUP_ID);
@@ -584,6 +595,7 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
     public void onStart() {
         super.onStart();
         if (!Application.get().isLoggedIn()) {
+            Application.get().updateAppVersionName();
             if (!mLoginDialog.isAdded() && !mRegDialog.isAdded()) {
                 mLoginDialog.show(getSupportFragmentManager(), "LoginDialog");
             }
@@ -591,7 +603,6 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
 
             if (Application.get().appIsUpdated()) {
                 logout();
-                Application.get().updateAppVersionName();
                 return;
             }
 
@@ -1379,11 +1390,15 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
     }
 
     private void logout() {
-        final Bundle b = new Bundle();
-        b.putString(INTENT_TYPE, LOGOUT_REQUEST);
-        b.putLong(USER_ID, getAccountUserId());
-        b.putString(USER_NAME, getAccountUserFullName());
-        sendBackgroundRequest(b);
+        try {
+            final Bundle b = new Bundle();
+            b.putString(INTENT_TYPE, LOGOUT_REQUEST);
+            b.putLong(USER_ID, getAccountUserId());
+            b.putString(USER_NAME, getAccountUserFullName());
+            sendBackgroundRequest(b);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
         try {
             GoogleCloudMessaging.getInstance(this).unregister();
@@ -1409,7 +1424,7 @@ public class MainActivity extends FragmentActivity implements LoginDialog.Notice
         invalidateOptionsMenu();
         getActionBar().setIcon(R.drawable.ic_launcher);
         setTitle(R.string.app_name);
-        Application.get().clearLog();
+        Application.get().updateAppVersionName();
 
         mLoginDialog.show(getSupportFragmentManager(), "LoginDialog");
     }

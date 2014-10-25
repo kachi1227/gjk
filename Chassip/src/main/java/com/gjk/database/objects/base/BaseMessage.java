@@ -34,8 +34,8 @@ public abstract class BaseMessage extends PersistentObject {
     private static final String ERROR_MSG_HYDRATE_NO_ATTACHMENT = "Error fetching column 'attachment' from table 'message'";
     private static final String ERROR_MSG_HYDRATE_NO_MESSAGE_TYPE_ID = "Error fetching column 'message_type_id' from table 'message'";
     private static final String ERROR_MSG_HYDRATE_NO_TABLE_ID = "Error fetching column 'table_id' from table 'message'";
-    private static final String ERROR_MSG_HYDRATE_NO_SUCCESSFUL = "Error fetching column 'successful' from table 'message'";
     private static final String ERROR_MSG_HYDRATE_NO_DATE = "Error fetching column 'date' from table 'message'";
+    private static final String ERROR_MSG_HYDRATE_NO_WAS_SUCCESSFUL = "Error fetching column 'was_successful' from table 'message'";
 
     public static final String TABLE_NAME = "message";
 
@@ -57,11 +57,11 @@ public abstract class BaseMessage extends PersistentObject {
     public static final String F_MESSAGE_TYPE_ID = "message_type_id";
     public static final String F_TABLE_ID = "table_id";
     public static final String F_DATE = "date";
-    public static final String F_SUCCESSFUL = "successful";
+    public static final String F_WAS_SUCCESSFUL = "was_successful";
 
-    public static final String[] ALL_COLUMN_NAMES = new String[]{F_ID, F_GLOBAL_ID, F_GROUP_ID, F_SENDER_ID, F_SENDER_FIRST_NAME, F_SENDER_LAST_NAME, F_SENDER_IMAGE_URL, F_RECIPIENT_ID, F_RECIPIENT_FIRST_NAME, F_RECIPIENT_LAST_NAME, F_TOPIC_ID, F_TOPIC_NAME, F_CONTENT, F_ATTACHMENT, F_MESSAGE_TYPE_ID, F_TABLE_ID, F_DATE, F_SUCCESSFUL};
+    public static final String[] ALL_COLUMN_NAMES = new String[]{F_ID, F_GLOBAL_ID, F_GROUP_ID, F_SENDER_ID, F_SENDER_FIRST_NAME, F_SENDER_LAST_NAME, F_SENDER_IMAGE_URL, F_RECIPIENT_ID, F_RECIPIENT_FIRST_NAME, F_RECIPIENT_LAST_NAME, F_TOPIC_ID, F_TOPIC_NAME, F_CONTENT, F_ATTACHMENT, F_MESSAGE_TYPE_ID, F_TABLE_ID, F_DATE, F_WAS_SUCCESSFUL};
 
-    public static final String CREATE_TABLE_STATEMENT = "CREATE TABLE \"message\"(   \"_id\" INTEGER PRIMARY KEY NOT NULL,   \"global_id\" INTEGER NOT NULL,		\"group_id\" INTEGER NOT NULL,   \"sender_id\" INTEGER NOT NULL,	\"sender_first_name\" VARCHAR(256),		\"sender_last_name\" VARCHAR(256),   \"sender_image_url\" VARCHAR(2000),	\"recipient_id\" INTEGER,		\"recipient_first_name\" VARCHAR(256),		\"recipient_last_name\" VARCHAR(256),	\"topic_id\" INTEGER,   \"topic_name\" VARCHAR(2000),	\"content\" TEXT,   \"attachment\" VARCHAR(5000),	\"message_type_id\" INTEGER,	\"table_id\" INTEGER,	\"date\" DATETIME      , \"successful\" INTEGER)";
+    public static final String CREATE_TABLE_STATEMENT = "CREATE TABLE \"message\"(   \"_id\" INTEGER PRIMARY KEY NOT NULL,   \"global_id\" INTEGER NOT NULL,		\"group_id\" INTEGER NOT NULL,   \"sender_id\" INTEGER NOT NULL,	\"sender_first_name\" VARCHAR(256),		\"sender_last_name\" VARCHAR(256),   \"sender_image_url\" VARCHAR(2000),	\"recipient_id\" INTEGER,		\"recipient_first_name\" VARCHAR(256),		\"recipient_last_name\" VARCHAR(256),	\"topic_id\" INTEGER,   \"topic_name\" VARCHAR(2000),	\"content\" TEXT,   \"attachment\" VARCHAR(5000),	\"message_type_id\" INTEGER,	\"table_id\" INTEGER,	\"date\" DATETIME      ,  \"was_successful\" INTEGER)";
     public static final String DROP_TABLE_STATEMENT = "DROP TABLE IF EXISTS 'message';";
 
     private static final String COUNT_STATEMENT = "SELECT COUNT(" + F_ID + ") FROM message";
@@ -85,7 +85,7 @@ public abstract class BaseMessage extends PersistentObject {
     private int mMessageTypeId;
     private long mTableId;
     private long mDate;
-    private long mSuccessful;
+    private int mWasSuccessful;
 
     public BaseMessage(SQLiteOpenHelper dbm, Cursor c, boolean skipOk) {
         super(dbm, c, skipOk);
@@ -127,7 +127,7 @@ public abstract class BaseMessage extends PersistentObject {
         mMessageTypeId = ConvoType.MAIN_CHAT.getValue();
         mTableId = 0;
         mDate = System.currentTimeMillis();
-        mSuccessful = 0;
+        mWasSuccessful = 1;
     }
 
     @Override
@@ -328,15 +328,16 @@ public abstract class BaseMessage extends PersistentObject {
             }
         }
         try {
-            setSuccessful(c.getLong(c.getColumnIndexOrThrow(F_SUCCESSFUL)));
+            setWasSuccessful(c.getInt(c.getColumnIndexOrThrow(F_WAS_SUCCESSFUL)));
         } catch (Exception e) {
             if (!skipOk) {
                 e.printStackTrace();
-                throw new PersistentObjectHydrateException(ERROR_MSG_HYDRATE_NO_SUCCESSFUL, e);
+                throw new PersistentObjectHydrateException(ERROR_MSG_HYDRATE_NO_WAS_SUCCESSFUL, e);
             } else {
                 setIsComplete(false);
             }
         }
+
         setIsDirty(false);
     }
 
@@ -516,11 +517,11 @@ public abstract class BaseMessage extends PersistentObject {
             }
         }
         try {
-            mSuccessful = obj.getLong(F_SUCCESSFUL);
+            mWasSuccessful = obj.getInt(F_WAS_SUCCESSFUL);
         } catch (Exception e) {
             if (!skipOk) {
                 e.printStackTrace();
-                throw new PersistentObjectHydrateException(ERROR_MSG_HYDRATE_NO_SUCCESSFUL, e);
+                throw new PersistentObjectHydrateException(ERROR_MSG_HYDRATE_NO_WAS_SUCCESSFUL, e);
             } else {
                 setIsComplete(false);
             }
@@ -552,7 +553,7 @@ public abstract class BaseMessage extends PersistentObject {
             obj.put(F_MESSAGE_TYPE_ID, mMessageTypeId);
             obj.put(F_TABLE_ID, mTableId);
             obj.put(F_DATE, mDate);
-            obj.put(F_SUCCESSFUL, mSuccessful);
+            obj.put(F_WAS_SUCCESSFUL, mWasSuccessful);
 
             return obj;
         } catch (Exception e) {
@@ -581,7 +582,7 @@ public abstract class BaseMessage extends PersistentObject {
         cv.put(F_MESSAGE_TYPE_ID, mMessageTypeId);
         cv.put(F_TABLE_ID, mTableId);
         cv.put(F_DATE, mDate);
-        cv.put(F_SUCCESSFUL, mSuccessful);
+        cv.put(F_WAS_SUCCESSFUL, mWasSuccessful);
 
         return cv;
     }
@@ -672,19 +673,6 @@ public abstract class BaseMessage extends PersistentObject {
         return obj;
     }
 
-    public static Message findOneBySuccessful(SQLiteOpenHelper dbm, long val) {
-        Cursor c = dbm.getReadableDatabase().query(TABLE_NAME, ALL_COLUMN_NAMES, F_SUCCESSFUL + " = " + val, null, null, null,
-                null);
-        c.moveToFirst();
-        if (c.isAfterLast()) {
-            c.close();
-            return null;
-        }
-        Message obj = new Message(dbm, c, false);
-        c.close();
-        return obj;
-    }
-
     public long getGlobalId() {
         return mGlobalId;
     }
@@ -693,7 +681,6 @@ public abstract class BaseMessage extends PersistentObject {
         this.mGlobalId = val;
         setIsDirty(true);
     }
-
 
     public static int deleteByGlobalId(SQLiteOpenHelper dbm, long val) {
         return dbm.getWritableDatabase().delete(TABLE_NAME, F_GLOBAL_ID + "=" + val, null);
@@ -836,12 +823,12 @@ public abstract class BaseMessage extends PersistentObject {
         setIsDirty(true);
     }
 
-    public long getSuccessful() {
-        return mSuccessful;
+    public int getWasSuccessful() {
+        return mWasSuccessful;
     }
 
-    public void setSuccessful(long val) {
-        this.mSuccessful = val;
+    public void setWasSuccessful(int val) {
+        this.mWasSuccessful = val;
         setIsDirty(true);
     }
 }

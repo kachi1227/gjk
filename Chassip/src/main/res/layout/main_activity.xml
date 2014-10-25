@@ -18,6 +18,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:paddingTop="@dimen/small_list_padding"
             android:paddingLeft="@dimen/list_padding"
             android:paddingRight="@dimen/list_padding"
             android:text="@string/is_typing_holder"

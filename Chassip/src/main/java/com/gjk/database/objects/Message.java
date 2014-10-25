@@ -10,14 +10,10 @@ import org.json.JSONObject;
 public class Message extends BaseMessage {
     public static final int ROW_LIMIT = 500;
 
-    public static Message insertOrUpdate(SQLiteOpenHelper dbm, JSONObject json, boolean isLast) throws Exception {
+    public static Message insertOrUpdate(SQLiteOpenHelper dbm, JSONObject json, boolean isLast,
+                                         boolean wasSuccessful) throws Exception {
 
-        Message message;
-        if (json.has("successful")) {
-            message = findOneBySuccessful(dbm, json.getLong("successful"));
-        } else {
-            message = findOneByGlobalId(dbm, json.getLong("id"));
-        }
+        Message message = findOneByGlobalId(dbm, json.getLong("id"));
         if (message == null) {
             message = new Message(dbm);
         }
@@ -54,8 +50,8 @@ public class Message extends BaseMessage {
             message.setTableId(json.getLong("table_id"));
         if (!json.isNull("date"))
             message.setDate(json.getLong("date"));
-        if (!json.isNull("successful"))
-            message.setSuccessful(json.getLong("successful"));
+        if (!json.isNull("was_successful"))
+            message.setWasSuccessful(wasSuccessful ? 1 : 0);
         message.save(isLast);
         return message;
     }

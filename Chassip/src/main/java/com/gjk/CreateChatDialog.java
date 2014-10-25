@@ -3,29 +3,42 @@ package com.gjk;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
+import android.content.Context;
 import android.content.DialogInterface;
+import android.database.Cursor;
 import android.os.Bundle;
 import android.support.v4.app.DialogFragment;
+import android.support.v4.app.FragmentActivity;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.CheckBox;
+import android.widget.CompoundButton;
+import android.widget.CursorAdapter;
 import android.widget.EditText;
+import android.widget.ListView;
+import android.widget.TextView;
 
+import com.gjk.database.objects.User;
+import com.gjk.views.CacheImageView;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 import java.util.List;
+import java.util.Set;
+
+import static com.gjk.helper.DatabaseHelper.getUsersCursor;
 
 public class CreateChatDialog extends DialogFragment {
 
     private static final String LOGTAG = "CreateChatDialog";
 
+    private UsersAdapter mAdapter;
     private EditText mChatName;
-    private CheckBox mGreg;
-    private CheckBox mGreg2;
-    private CheckBox mGreg3;
-    private CheckBox mJeff;
-    private CheckBox mKach;
+    private ListView mUsers;
+
+    private Set<Long> mSelectedIds = Sets.newHashSet();
 
     /*
      * The activity that creates an instance of this dialog fragment must implement this interface in order to receive
@@ -83,11 +96,8 @@ public class CreateChatDialog extends DialogFragment {
         View view = inflater.inflate(R.layout.create_chat_dialog, null);
 
         mChatName = (EditText) view.findViewById(R.id.chatName);
-        mGreg = (CheckBox) view.findViewById(R.id.greg);
-        mGreg2 = (CheckBox) view.findViewById(R.id.greg2);
-        mGreg3 = (CheckBox) view.findViewById(R.id.greg3);
-        mJeff = (CheckBox) view.findViewById(R.id.jeff);
-        mKach = (CheckBox) view.findViewById(R.id.kach);
+        mUsers = (ListView) view.findViewById(R.id.users);
+        resetCursor();
 
         // Inflate and set the layout for the dialog
         // Pass null as the parent view because its going in the dialog layout
@@ -121,21 +131,6 @@ public class CreateChatDialog extends DialogFragment {
 
     public long[] getSelectedIds() {
         List<Long> ids = Lists.newArrayList();
-        if (mGreg.isChecked()) {
-            ids.add(3l);
-        }
-        if (mGreg2.isChecked()) {
-            ids.add(9l);
-        }
-        if (mGreg3.isChecked()) {
-            ids.add(23l);
-        }
-        if (mJeff.isChecked()) {
-            ids.add(6l);
-        }
-        if (mKach.isChecked()) {
-            ids.add(8l);
-        }
         long[] primitveIds = new long[ids.size()];
         for (int i = 0; i < ids.size(); i++) {
             primitveIds[i] = ids.get(i);
@@ -147,8 +142,54 @@ public class CreateChatDialog extends DialogFragment {
         return mChatName.getText().toString();
     }
 
+    public void resetCursor() {
+        mAdapter = new UsersAdapter(getActivity(), getUsersCursor());
+        mUsers.setAdapter(mAdapter);
+    }
+
     private boolean isCreateChatReady() {
-        return (mGreg.isChecked() || mGreg2.isChecked() || mGreg3.isChecked() || mJeff.isChecked() || mKach.isChecked())
-                && !mChatName.getText().toString().isEmpty();
+        return !mSelectedIds.isEmpty() || !mChatName.getText().toString().isEmpty();
+    }
+
+    private class UsersAdapter extends CursorAdapter {
+
+        public UsersAdapter(FragmentActivity a, Cursor cursor) {
+            super(a, cursor, true);
+        }
+
+        @Override
+        public View newView(Context context, Cursor cursor, ViewGroup parent) {
+            View view = LayoutInflater.from(context).inflate(R.layout.user_row, parent, false);
+            buildView(view, cursor);
+            return view;
+        }
+
+        @Override
+        public void bindView(View view, Context context, Cursor cursor) {
+            buildView(view, cursor);
+        }
+
+        private void buildView(View view, final Cursor cursor) {
+
+            final CheckBox checkBox = (CheckBox) view.findViewById(R.id.checkBox);
+            checkBox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+                @Override
+                public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                    final long id = cursor.getLong(cursor.getColumnIndex(User.F_GLOBAL_ID));
+                    if (isChecked) {
+                        mSelectedIds.add(id);
+                    } else {
+                        mSelectedIds.remove(id);
+                    }
+                }
+            });
+            final CacheImageView memberAvi = (CacheImageView) view.findViewById(R.id.memberAvi);
+            final TextView userName = (TextView) view.findViewById(R.id.userName);
+
+            memberAvi.configure(Constants.BASE_URL + cursor.getString(cursor.getColumnIndex(User.F_IMAGE_URL)), 0,
+                    true);
+            userName.setText(cursor.getString(cursor.getColumnIndex(User.F_FIRST_NAME)) + " " + cursor.getString
+                    (cursor.getColumnIndex(User.F_LAST_NAME)));
+        }
     }
 }

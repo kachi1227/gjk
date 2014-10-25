@@ -56,6 +56,7 @@ public interface Constants {
     public static final String IMAGE_PATH = "imagePath";
     public static final String IMAGE_URL = "imageUrl";
     public static final String NUM_MESSAGES = "numMessages";
+    public static final String PHONE_NUMBERS = "phoneNumbers";
     public static final String SHOW_TOAST = "showToast";
     public static final String SEND_MESSAGE_RESPONSE = "sendMessageResponse";
     public static final String GET_ALL_GROUPS_RESPONSE = "getAllGroupsResponse";
@@ -101,6 +102,8 @@ public interface Constants {
     public static final String REGISTER_RESPONSE = "registerResponse";
     public static final String MANUAL_UPDATE_REQUEST = "manualUpdateRequest";
     public static final String LAST_UPDATED = "lastUpdated";
+    public static final String GET_USERS_BY_PHONE_NUMBERS_REQUEST = "getUsersByPhoneNumbersRequest";
+    public static final String GET_USERS_BY_PHONE_NUMBERS_RESPONSE = "getUsersByPhoneNumbersResponse";
     public static final String CHAT_DRAWER_ADD_CHAT_MEMBERS = "Add New Chat Members";
     public static final String CHAT_DRAWER_REMOVE_CHAT_MEMBERS = "Remove Chat Members";
     public static final String CHAT_DRAWER_DELETE_CHAT = "Delete Chat";
