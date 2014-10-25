@@ -4,6 +4,8 @@ import android.content.Context;
 
 import com.gjk.utils.media2.ImageUtil;
 
+import org.apache.commons.lang.StringUtils;
+
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
@@ -19,6 +21,9 @@ import java.util.concurrent.LinkedBlockingQueue;
  * @author gpl
  */
 public class Logger {
+
+    private static final double MAX_LOG_SIZE = 1024 * 1024 * 10L; //10MB
+    private static final double MAX_NUMBER_OF_LOGS = 10;
 
     private final LogProducer p;
     private final LogConsumer c;
@@ -67,7 +72,7 @@ public class Logger {
 
     class LogConsumer implements Runnable {
         private final BlockingQueue<LogEntry> queue;
-        private final File f;
+        private File f;
 
         LogConsumer(BlockingQueue<LogEntry> q, String filename) {
             queue = q;
@@ -89,10 +94,18 @@ public class Logger {
             try {
                 //noinspection InfiniteLoopStatement
                 while (true) {
+
                     final LogEntry entry = queue.take();
+
+                    if (f.length() > MAX_LOG_SIZE) {
+                        final String oldName = f.getAbsolutePath();
+                        rollLog(f, 0);
+                        f = new File(oldName);
+                    }
+
                     final PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(f, true)));
                     final DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
-                    out.println(String.format("%s: %s\n", df.format(new Date(entry.time)), entry.message));
+                    out.println(String.format("%s: %s", df.format(new Date(entry.time)), entry.message));
                     out.close();
                 }
             } catch (InterruptedException | IOException e) {
@@ -101,14 +114,29 @@ public class Logger {
         }
 
         public void clear() {
-            try {
-                final BufferedWriter bw = new BufferedWriter(new FileWriter(f));
-                bw.write("");
-                bw.flush();
-                bw.close();
-            } catch (IOException e) {
-                e.printStackTrace();
+//            try {
+//                final BufferedWriter bw = new BufferedWriter(new FileWriter(f));
+//                bw.write("");
+//                bw.flush();
+//                bw.close();
+//            } catch (IOException e) {
+//                e.printStackTrace();
+//            }
+        }
+
+        private void rollLog(File f, int count) {
+            count++;
+            if (count >= MAX_NUMBER_OF_LOGS) {
+                return;
             }
+            final String lastStuff = f.getName().substring(f.getName().lastIndexOf('.') + 1);
+            final String oldName = f.getAbsolutePath();
+            final File newFile = StringUtils.isNumeric(lastStuff) ? new File(oldName.substring(0,
+                    oldName.lastIndexOf('.')) + "." + (Integer.valueOf(lastStuff) + 1)) : new File(oldName + "." + 1);
+            if (newFile.exists()) {
+                rollLog(newFile, count);
+            }
+            f.renameTo(newFile);
         }
     }
 }
